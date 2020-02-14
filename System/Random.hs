@@ -77,10 +77,12 @@ module System.Random
 
 import Prelude
 
+import Control.Arrow (first)
 import Data.Bits
 import Data.Int
 import Data.Word
 import Foreign.C.Types
+import qualified System.Random.SplitMix as SM
 
 #ifdef __NHC__
 import CPUTime		( getCPUTime )
@@ -211,34 +213,15 @@ instance of 'StdGen' has the following properties:
 
 -}
 
-data StdGen 
- = StdGen !Int32 !Int32
+type StdGen = SM.SMGen
 
-instance RandomGen StdGen where
-  next  = stdNext
-  genRange _ = stdRange
+instance RandomGen SM.SMGen where
+  next  = SM.nextInt
 
 #ifdef ENABLE_SPLITTABLEGEN
-instance SplittableGen StdGen where
+instance SplittableGen SM.SMGen where
 #endif
-  split = stdSplit
-
-instance Show StdGen where
-  showsPrec p (StdGen s1 s2) = 
-     showsPrec p s1 . 
-     showChar ' ' .
-     showsPrec p s2
-
-instance Read StdGen where
-  readsPrec _p = \ r ->
-     case try_read r of
-       r'@[_] -> r'
-       _   -> [stdFromString r] -- because it shouldn't ever fail.
-    where 
-      try_read r = do
-         (s1, r1) <- readDec (dropWhile isSpace r)
-	 (s2, r2) <- readDec (dropWhile isSpace r1)
-	 return (StdGen s1 s2, r2)
+  split = SM.splitSMGen
 
 {-
  If we cannot unravel the StdGen from a string, create
@@ -256,7 +239,7 @@ generator, by mapping an 'Int' into a generator. Again, distinct arguments
 should be likely to produce distinct generators.
 -}
 mkStdGen :: Int -> StdGen -- why not Integer ?
-mkStdGen s = mkStdGen32 $ fromIntegral s
+mkStdGen s = SM.mkSMGen $ fromIntegral s
 
 {-
 From ["System.Random\#LEcuyer"]: "The integer variables s1 and s2 ... must be
@@ -264,13 +247,7 @@ initialized to values in the range [1, 2147483562] and [1, 2147483398]
 respectively."
 -}
 mkStdGen32 :: Int32 -> StdGen
-mkStdGen32 sMaybeNegative = StdGen (s1+1) (s2+1)
-      where
-	-- We want a non-negative number, but we can't just take the abs
-	-- of sMaybeNegative as -minBound == minBound.
-	s       = sMaybeNegative .&. maxBound
-	(q, s1) = s `divMod` 2147483562
-	s2      = q `mod` 2147483398
+mkStdGen32 s = SM.mkSMGen $ fromIntegral s
 
 createStdGen :: Integer -> StdGen
 createStdGen s = mkStdGen32 $ fromIntegral s
@@ -342,40 +319,40 @@ instance Random Integer where
   randomR ival g = randomIvalInteger ival g
   random g	 = randomR (toInteger (minBound::Int), toInteger (maxBound::Int)) g
 
-instance Random Int        where randomR = randomIvalIntegral; random = randomBounded
-instance Random Int8       where randomR = randomIvalIntegral; random = randomBounded
-instance Random Int16      where randomR = randomIvalIntegral; random = randomBounded
-instance Random Int32      where randomR = randomIvalIntegral; random = randomBounded
-instance Random Int64      where randomR = randomIvalIntegral; random = randomBounded
+instance Random Int        where randomR = bitmaskWithRejection; random = randomBounded
+instance Random Int8       where randomR = bitmaskWithRejection; random = randomBounded
+instance Random Int16      where randomR = bitmaskWithRejection; random = randomBounded
+instance Random Int32      where randomR = bitmaskWithRejection; random = randomBounded
+instance Random Int64      where randomR = bitmaskWithRejection; random = randomBounded
 
 #ifndef __NHC__
 -- Word is a type synonym in nhc98.
-instance Random Word       where randomR = randomIvalIntegral; random = randomBounded
+instance Random Word       where randomR = bitmaskWithRejection; random = randomBounded
 #endif
-instance Random Word8      where randomR = randomIvalIntegral; random = randomBounded
-instance Random Word16     where randomR = randomIvalIntegral; random = randomBounded
-instance Random Word32     where randomR = randomIvalIntegral; random = randomBounded
-instance Random Word64     where randomR = randomIvalIntegral; random = randomBounded
+instance Random Word8      where randomR = bitmaskWithRejection; random = randomBounded
+instance Random Word16     where randomR = bitmaskWithRejection; random = randomBounded
+instance Random Word32     where randomR = bitmaskWithRejection; random = randomBounded
+instance Random Word64     where randomR = bitmaskWithRejection; random = randomBounded
 
-instance Random CChar      where randomR = randomIvalIntegral; random = randomBounded
-instance Random CSChar     where randomR = randomIvalIntegral; random = randomBounded
-instance Random CUChar     where randomR = randomIvalIntegral; random = randomBounded
-instance Random CShort     where randomR = randomIvalIntegral; random = randomBounded
-instance Random CUShort    where randomR = randomIvalIntegral; random = randomBounded
-instance Random CInt       where randomR = randomIvalIntegral; random = randomBounded
-instance Random CUInt      where randomR = randomIvalIntegral; random = randomBounded
-instance Random CLong      where randomR = randomIvalIntegral; random = randomBounded
-instance Random CULong     where randomR = randomIvalIntegral; random = randomBounded
-instance Random CPtrdiff   where randomR = randomIvalIntegral; random = randomBounded
-instance Random CSize      where randomR = randomIvalIntegral; random = randomBounded
-instance Random CWchar     where randomR = randomIvalIntegral; random = randomBounded
-instance Random CSigAtomic where randomR = randomIvalIntegral; random = randomBounded
-instance Random CLLong     where randomR = randomIvalIntegral; random = randomBounded
-instance Random CULLong    where randomR = randomIvalIntegral; random = randomBounded
-instance Random CIntPtr    where randomR = randomIvalIntegral; random = randomBounded
-instance Random CUIntPtr   where randomR = randomIvalIntegral; random = randomBounded
-instance Random CIntMax    where randomR = randomIvalIntegral; random = randomBounded
-instance Random CUIntMax   where randomR = randomIvalIntegral; random = randomBounded
+instance Random CChar      where randomR = bitmaskWithRejection; random = randomBounded
+instance Random CSChar     where randomR = bitmaskWithRejection; random = randomBounded
+instance Random CUChar     where randomR = bitmaskWithRejection; random = randomBounded
+instance Random CShort     where randomR = bitmaskWithRejection; random = randomBounded
+instance Random CUShort    where randomR = bitmaskWithRejection; random = randomBounded
+instance Random CInt       where randomR = bitmaskWithRejection; random = randomBounded
+instance Random CUInt      where randomR = bitmaskWithRejection; random = randomBounded
+instance Random CLong      where randomR = bitmaskWithRejection; random = randomBounded
+instance Random CULong     where randomR = bitmaskWithRejection; random = randomBounded
+instance Random CPtrdiff   where randomR = bitmaskWithRejection; random = randomBounded
+instance Random CSize      where randomR = bitmaskWithRejection; random = randomBounded
+instance Random CWchar     where randomR = bitmaskWithRejection; random = randomBounded
+instance Random CSigAtomic where randomR = bitmaskWithRejection; random = randomBounded
+instance Random CLLong     where randomR = bitmaskWithRejection; random = randomBounded
+instance Random CULLong    where randomR = bitmaskWithRejection; random = randomBounded
+instance Random CIntPtr    where randomR = bitmaskWithRejection; random = randomBounded
+instance Random CUIntPtr   where randomR = bitmaskWithRejection; random = randomBounded
+instance Random CIntMax    where randomR = bitmaskWithRejection; random = randomBounded
+instance Random CUIntMax   where randomR = bitmaskWithRejection; random = randomBounded
 
 instance Random Char where
   randomR (a,b) g = 
@@ -448,18 +425,29 @@ instance Random CDouble where
   -- random rng = case random rng of 
   -- 	         (x,rng') -> (realToFrac (x::Double), rng')
 
-mkStdRNG :: Integer -> IO StdGen
-mkStdRNG o = do
-    ct          <- getCPUTime
-    (sec, psec) <- getTime
-    return (createStdGen (sec * 12345 + psec + ct + o))
-
 randomBounded :: (RandomGen g, Random a, Bounded a) => g -> (a, g)
 randomBounded = randomR (minBound, maxBound)
 
 -- The two integer functions below take an [inclusive,inclusive] range.
-randomIvalIntegral :: (RandomGen g, Integral a) => (a, a) -> g -> (a, g)
-randomIvalIntegral (l,h) = randomIvalInteger (toInteger l, toInteger h)
+bitmaskWithRejection ::
+     (RandomGen g, FiniteBits a, Num a, Ord a, Random a)
+  => (a, a)
+  -> g
+  -> (a, g)
+bitmaskWithRejection (bottom, top)
+  | bottom > top = bitmaskWithRejection (top, bottom)
+  | bottom == top = (,) top
+  | otherwise = first (bottom +) . go
+  where
+    range = top - bottom
+    mask = complement zeroBits `shiftR` countLeadingZeros (range .|. 1)
+    go g =
+      let (x, g') = random g
+          x' = x .&. mask
+       in if x' >= range
+            then go g'
+            else (x', g')
+{-# INLINE bitmaskWithRejection #-}
 
 {-# SPECIALIZE randomIvalInteger :: (Num a) =>
     (Integer, Integer) -> StdGen -> (a, StdGen) #-}
@@ -513,36 +501,6 @@ int32Count = toInteger (maxBound::Int32) - toInteger (minBound::Int32) + 1  -- G
 stdRange :: (Int,Int)
 stdRange = (1, 2147483562)
 
-stdNext :: StdGen -> (Int, StdGen)
--- Returns values in the range stdRange
-stdNext (StdGen s1 s2) = (fromIntegral z', StdGen s1'' s2'')
-	where	z'   = if z < 1 then z + 2147483562 else z
-		z    = s1'' - s2''
-
-		k    = s1 `quot` 53668
-		s1'  = 40014 * (s1 - k * 53668) - k * 12211
-		s1'' = if s1' < 0 then s1' + 2147483563 else s1'
-    
-		k'   = s2 `quot` 52774
-		s2'  = 40692 * (s2 - k' * 52774) - k' * 3791
-		s2'' = if s2' < 0 then s2' + 2147483399 else s2'
-
-stdSplit            :: StdGen -> (StdGen, StdGen)
-stdSplit std@(StdGen s1 s2)
-                     = (left, right)
-                       where
-                        -- no statistical foundation for this!
-                        left    = StdGen new_s1 t2
-                        right   = StdGen t1 new_s2
-
-                        new_s1 | s1 == 2147483562 = 1
-                               | otherwise        = s1 + 1
-
-                        new_s2 | s2 == 1          = 2147483398
-                               | otherwise        = s2 - 1
-
-                        StdGen t1 t2 = snd (next std)
-
 -- The global random number generator
 
 {- $globalrng #globalrng#
@@ -564,7 +522,7 @@ getStdGen  = readIORef theStdGen
 
 theStdGen :: IORef StdGen
 theStdGen  = unsafePerformIO $ do
-   rng <- mkStdRNG 0
+   rng <- SM.initSMGen
    newIORef rng
 
 -- |Applies 'split' to the current global random generator,
