@@ -471,9 +471,6 @@ randomIvalDouble (l,h) fromDouble rng
 int32Count :: Integer
 int32Count = toInteger (maxBound::Int32) - toInteger (minBound::Int32) + 1  -- GHC ticket #3982
 
-stdRange :: (Int,Int)
-stdRange = (1, 2147483562)
-
 -- The global random number generator
 
 {- $globalrng #globalrng#
