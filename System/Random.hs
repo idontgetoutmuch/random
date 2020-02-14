@@ -206,10 +206,6 @@ instance SplittableGen SM.SMGen where
 #endif
   split = SM.splitSMGen
 
-{-
- If we cannot unravel the StdGen from a string, create
- one based on the string given.
--}
 stdFromString         :: String -> (StdGen, String)
 stdFromString s        = (mkStdGen num, rest)
 	where (cs, rest) = splitAt 6 s
@@ -241,10 +237,9 @@ Minimal complete definition: 'randomR' and 'random'.
 class Random a where
   -- | Takes a range /(lo,hi)/ and a random number generator
   -- /g/, and returns a random value uniformly distributed in the closed
-  -- interval /[lo,hi]/, together with a new generator. It is unspecified
-  -- what happens if /lo>hi/. For continuous types there is no requirement
-  -- that the values /lo/ and /hi/ are ever produced, but they may be,
-  -- depending on the implementation and the interval.
+  -- interval /[lo,hi]/, together with a new generator. For continuous types
+  -- there is no requirement that the values /lo/ and /hi/ are ever produced,
+  -- but they may be, depending on the implementation and the interval.
   randomR :: RandomGen g => (a,a) -> g -> (a,g)
 
   -- | The same as 'randomR', but using a default range determined by the type:
