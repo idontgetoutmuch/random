@@ -31,10 +31,7 @@
 --   instance of 'Random' allows one to generate random values of type
 --   'Float'.
 --
--- This implementation uses the Portable Combined Generator of L'Ecuyer
--- ["System.Random\#LEcuyer"] for 32-bit computers, transliterated by
--- Lennart Augustsson.  It has a period of roughly 2.30584e18.
---
+-- This implementation uses the SplitMix algorithm [1].
 -----------------------------------------------------------------------------
 
 #include "MachDeps.h"
@@ -180,23 +177,10 @@ class RandomGen g where
 class SplittableGen g where
 #endif
    -- |The 'split' operation allows one to obtain two distinct random number
-   -- generators. This is very useful in functional programs (for example, when
-   -- passing a random number generator down to recursive calls), but very
-   -- little work has been done on statistically robust implementations of
-   -- 'split' (["System.Random\#Burton", "System.Random\#Hellekalek"]
-   -- are the only examples we know of).
+   -- generators.
    split    :: g -> (g, g)
 
 {- |
-The 'StdGen' instance of 'RandomGen' has a 'genRange' of at least 30 bits.
-
-The result of repeatedly using 'next' should be at least as statistically
-robust as the /Minimal Standard Random Number Generator/ described by
-["System.Random\#Park", "System.Random\#Carta"].
-Until more is known about implementations of 'split', all we require is
-that 'split' deliver generators that are (a) not identical and
-(b) independently robust in the sense just given.
-
 The 'Show' and 'Read' instances of 'StdGen' provide a primitive way to save the
 state of a random number generator.
 It is required that @'read' ('show' g) == g@.
@@ -210,7 +194,6 @@ instance of 'StdGen' has the following properties:
 * It guarantees to consume only a finite portion of the string. 
 
 * Different argument strings are likely to result in different results.
-
 -}
 
 type StdGen = SM.SMGen
@@ -241,11 +224,6 @@ should be likely to produce distinct generators.
 mkStdGen :: Int -> StdGen -- why not Integer ?
 mkStdGen s = SM.mkSMGen $ fromIntegral s
 
-{-
-From ["System.Random\#LEcuyer"]: "The integer variables s1 and s2 ... must be
-initialized to values in the range [1, 2147483562] and [1, 2147483398]
-respectively."
--}
 mkStdGen32 :: Int32 -> StdGen
 mkStdGen32 s = SM.mkSMGen $ fromIntegral s
 
@@ -546,22 +524,10 @@ getStdRandom f = atomicModifyIORef' theStdGen (swap . f)
 
 {- $references
 
-1. FW #Burton# Burton and RL Page, /Distributed random number generation/,
-Journal of Functional Programming, 2(2):203-212, April 1992.
-
-2. SK #Park# Park, and KW Miller, /Random number generators -
-good ones are hard to find/, Comm ACM 31(10), Oct 1988, pp1192-1201.
-
-3. DG #Carta# Carta, /Two fast implementations of the minimal standard
-random number generator/, Comm ACM, 33(1), Jan 1990, pp87-88.
-
-4. P #Hellekalek# Hellekalek, /Don\'t trust parallel Monte Carlo/,
-Department of Mathematics, University of Salzburg,
-<http://random.mat.sbg.ac.at/~peter/pads98.ps>, 1998.
-
-5. Pierre #LEcuyer# L'Ecuyer, /Efficient and portable combined random
-number generators/, Comm ACM, 31(6), Jun 1988, pp742-749.
-
-The Web site <http://random.mat.sbg.ac.at/> is a great source of information.
+1. Guy L. Steele, Jr., Doug Lea, and Christine H. Flood. 2014. Fast splittable
+pseudorandom number generators. In Proceedings of the 2014 ACM International
+Conference on Object Oriented Programming Systems Languages & Applications
+(OOPSLA '14). ACM, New York, NY, USA, 453-472. DOI:
+https://doi.org/10.1145/2660193.2660195
 
 -}
