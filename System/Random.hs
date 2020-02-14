@@ -292,40 +292,40 @@ instance Random Integer where
   randomR ival g = randomIvalInteger ival g
   random g	 = randomR (toInteger (minBound::Int), toInteger (maxBound::Int)) g
 
-instance Random Int        where randomR = bitmaskWithRejection; random = randomBounded
-instance Random Int8       where randomR = bitmaskWithRejection; random = randomBounded
-instance Random Int16      where randomR = bitmaskWithRejection; random = randomBounded
-instance Random Int32      where randomR = bitmaskWithRejection; random = randomBounded
-instance Random Int64      where randomR = bitmaskWithRejection; random = randomBounded
+instance Random Int        where randomR = randomIvalIntegral; random = randomBounded
+instance Random Int8       where randomR = randomIvalIntegral; random = randomBounded
+instance Random Int16      where randomR = randomIvalIntegral; random = randomBounded
+instance Random Int32      where randomR = randomIvalIntegral; random = randomBounded
+instance Random Int64      where randomR = randomIvalIntegral; random = randomBounded
 
 #ifndef __NHC__
 -- Word is a type synonym in nhc98.
-instance Random Word       where randomR = bitmaskWithRejection; random = randomBounded
+instance Random Word       where randomR = randomIvalIntegral; random = randomBounded
 #endif
-instance Random Word8      where randomR = bitmaskWithRejection; random = randomBounded
-instance Random Word16     where randomR = bitmaskWithRejection; random = randomBounded
-instance Random Word32     where randomR = bitmaskWithRejection; random = randomBounded
-instance Random Word64     where randomR = bitmaskWithRejection; random = randomBounded
+instance Random Word8      where randomR = randomIvalIntegral; random = randomBounded
+instance Random Word16     where randomR = randomIvalIntegral; random = randomBounded
+instance Random Word32     where randomR = randomIvalIntegral; random = randomBounded
+instance Random Word64     where randomR = randomIvalIntegral; random = randomBounded
 
-instance Random CChar      where randomR = bitmaskWithRejection; random = randomBounded
-instance Random CSChar     where randomR = bitmaskWithRejection; random = randomBounded
-instance Random CUChar     where randomR = bitmaskWithRejection; random = randomBounded
-instance Random CShort     where randomR = bitmaskWithRejection; random = randomBounded
-instance Random CUShort    where randomR = bitmaskWithRejection; random = randomBounded
-instance Random CInt       where randomR = bitmaskWithRejection; random = randomBounded
-instance Random CUInt      where randomR = bitmaskWithRejection; random = randomBounded
-instance Random CLong      where randomR = bitmaskWithRejection; random = randomBounded
-instance Random CULong     where randomR = bitmaskWithRejection; random = randomBounded
-instance Random CPtrdiff   where randomR = bitmaskWithRejection; random = randomBounded
-instance Random CSize      where randomR = bitmaskWithRejection; random = randomBounded
-instance Random CWchar     where randomR = bitmaskWithRejection; random = randomBounded
-instance Random CSigAtomic where randomR = bitmaskWithRejection; random = randomBounded
-instance Random CLLong     where randomR = bitmaskWithRejection; random = randomBounded
-instance Random CULLong    where randomR = bitmaskWithRejection; random = randomBounded
-instance Random CIntPtr    where randomR = bitmaskWithRejection; random = randomBounded
-instance Random CUIntPtr   where randomR = bitmaskWithRejection; random = randomBounded
-instance Random CIntMax    where randomR = bitmaskWithRejection; random = randomBounded
-instance Random CUIntMax   where randomR = bitmaskWithRejection; random = randomBounded
+instance Random CChar      where randomR = randomIvalIntegral; random = randomBounded
+instance Random CSChar     where randomR = randomIvalIntegral; random = randomBounded
+instance Random CUChar     where randomR = randomIvalIntegral; random = randomBounded
+instance Random CShort     where randomR = randomIvalIntegral; random = randomBounded
+instance Random CUShort    where randomR = randomIvalIntegral; random = randomBounded
+instance Random CInt       where randomR = randomIvalIntegral; random = randomBounded
+instance Random CUInt      where randomR = randomIvalIntegral; random = randomBounded
+instance Random CLong      where randomR = randomIvalIntegral; random = randomBounded
+instance Random CULong     where randomR = randomIvalIntegral; random = randomBounded
+instance Random CPtrdiff   where randomR = randomIvalIntegral; random = randomBounded
+instance Random CSize      where randomR = randomIvalIntegral; random = randomBounded
+instance Random CWchar     where randomR = randomIvalIntegral; random = randomBounded
+instance Random CSigAtomic where randomR = randomIvalIntegral; random = randomBounded
+instance Random CLLong     where randomR = randomIvalIntegral; random = randomBounded
+instance Random CULLong    where randomR = randomIvalIntegral; random = randomBounded
+instance Random CIntPtr    where randomR = randomIvalIntegral; random = randomBounded
+instance Random CUIntPtr   where randomR = randomIvalIntegral; random = randomBounded
+instance Random CIntMax    where randomR = randomIvalIntegral; random = randomBounded
+instance Random CUIntMax   where randomR = randomIvalIntegral; random = randomBounded
 
 instance Random Char where
   randomR (a,b) g = 
@@ -402,25 +402,8 @@ randomBounded :: (RandomGen g, Random a, Bounded a) => g -> (a, g)
 randomBounded = randomR (minBound, maxBound)
 
 -- The two integer functions below take an [inclusive,inclusive] range.
-bitmaskWithRejection ::
-     (RandomGen g, FiniteBits a, Num a, Ord a, Random a)
-  => (a, a)
-  -> g
-  -> (a, g)
-bitmaskWithRejection (bottom, top)
-  | bottom > top = bitmaskWithRejection (top, bottom)
-  | bottom == top = (,) top
-  | otherwise = first (bottom +) . go
-  where
-    range = top - bottom
-    mask = complement zeroBits `shiftR` countLeadingZeros (range .|. 1)
-    go g =
-      let (x, g') = random g
-          x' = x .&. mask
-       in if x' >= range
-            then go g'
-            else (x', g')
-{-# INLINE bitmaskWithRejection #-}
+randomIvalIntegral :: (RandomGen g, Integral a) => (a, a) -> g -> (a, g)
+randomIvalIntegral (l,h) = randomIvalInteger (toInteger l, toInteger h)
 
 {-# SPECIALIZE randomIvalInteger :: (Num a) =>
     (Integer, Integer) -> StdGen -> (a, StdGen) #-}
