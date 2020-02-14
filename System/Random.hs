@@ -74,11 +74,11 @@ module System.Random
 
 import Prelude
 
-import Control.Arrow (first)
 import Data.Bits
 import Data.Int
 import Data.Word
 import Foreign.C.Types
+
 import qualified System.Random.SplitMix as SM
 
 #ifdef __NHC__
@@ -90,7 +90,7 @@ import System.CPUTime	( getCPUTime )
 import Data.Time	( getCurrentTime, UTCTime(..) )
 import Data.Ratio       ( numerator, denominator )
 #endif
-import Data.Char	( isSpace, chr, ord )
+import Data.Char	( chr, ord )
 import System.IO.Unsafe ( unsafePerformIO )
 import Data.IORef       ( IORef, newIORef, readIORef, writeIORef )
 #if MIN_VERSION_base (4,6,0)
@@ -98,7 +98,6 @@ import Data.IORef       ( atomicModifyIORef' )
 #else
 import Data.IORef       ( atomicModifyIORef )
 #endif
-import Numeric		( readDec )
 
 #ifdef __GLASGOW_HASKELL__
 import GHC.Exts         ( build )
