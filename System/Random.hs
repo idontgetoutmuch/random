@@ -474,9 +474,8 @@ getStdGen :: IO StdGen
 getStdGen  = readIORef theStdGen
 
 theStdGen :: IORef StdGen
-theStdGen  = unsafePerformIO $ do
-   rng <- SM.initSMGen
-   newIORef rng
+theStdGen  = unsafePerformIO $ SM.initSMGen >>= newIORef
+{-# NOINLINE theStdGen #-}
 
 -- |Applies 'split' to the current global random generator,
 -- updates it with one of the results, and returns the other.
