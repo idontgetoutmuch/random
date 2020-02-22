@@ -276,25 +276,25 @@ instance (MonadState g m, NoSplitGen g) => MonadRandom (GenState g) m where
   uniformWord32 _ = state genWord32
   uniformWord64 _ = state genWord64
 
-genRandom :: (RandomGen g, Random a, MonadState g m) => m a
+genRandom :: (NoSplitGen g, Random a, MonadState g m) => m a
 genRandom = randomM GenState
 
-genRandomR :: (RandomGen g, Random a, MonadState g m) => (a, a) -> m a
+genRandomR :: (NoSplitGen g, RandomR a, MonadState g m) => (a, a) -> m a
 genRandomR r = randomRM r GenState
 
-runStateGen :: RandomGen g => g -> State g a -> (a, g)
+runStateGen :: NoSplitGen g => g -> State g a -> (a, g)
 runStateGen = flip runState
 
-runStateGen_ :: RandomGen g => g -> State g a -> a
+runStateGen_ :: NoSplitGen g => g -> State g a -> a
 runStateGen_ g = fst . flip runState g
 
-runStateTGen :: RandomGen g => g -> StateT g m a -> m (a, g)
+runStateTGen :: NoSplitGen g => g -> StateT g m a -> m (a, g)
 runStateTGen = flip runStateT
 
-runStateTGen_ :: (RandomGen g, Functor f) => g -> StateT g f a -> f a
+runStateTGen_ :: (NoSplitGen g, Functor f) => g -> StateT g f a -> f a
 runStateTGen_ g = fmap fst . flip runStateT g
 
-randomList :: (Random a, RandomGen g, Num a) => Int -> g -> [a]
+randomList :: (Random a, NoSplitGen g, Num a) => Int -> g -> [a]
 randomList n g = runStateGen_ g $ replicateM n (genRandomR (1, 6))
 
 
@@ -422,11 +422,8 @@ Minimal complete definition: 'randomR' and 'random'.
 
 -}
 
-class Random a where
+class RandomR a where
   randomRM :: MonadRandom g m => (a, a) -> g -> m a
-
-  randomM :: MonadRandom g m => g -> m a
-
 
   -- | Takes a range /(lo,hi)/ and a random number generator
   -- /g/, and returns a random value uniformly distributed in the closed
@@ -435,8 +432,25 @@ class Random a where
   -- that the values /lo/ and /hi/ are ever produced, but they may be,
   -- depending on the implementation and the interval.
   {-# INLINE randomR #-}
-  randomR :: RandomGen g => (a, a) -> g -> (a, g)
+  randomR :: NoSplitGen g => (a, a) -> g -> (a, g)
   randomR r g = runStateGen g (genRandomR r)
+
+  -- | Plural variant of 'randomR', producing an infinite list of
+  -- random values instead of returning a new generator.
+  {-# INLINE randomRs #-}
+  randomRs :: NoSplitGen g => (a,a) -> g -> [a]
+  randomRs ival g = build (\cons _nil -> buildRandoms cons (randomR ival) g)
+
+  -- | A variant of 'randomR' that uses the global random number generator
+  -- (see "System.Random#globalrng").
+  randomRIO :: (a,a) -> IO a
+  randomRIO range  = getStdRandom (randomR range)
+
+
+class (Bounded a, RandomR a) => Random a where
+
+  randomM :: MonadRandom g m => g -> m a
+  randomM = randomRM (minBound, maxBound)
 
   -- | The same as 'randomR', but using a default range determined by the type:
   --
@@ -448,25 +462,14 @@ class Random a where
   --
   -- * For 'Integer', the range is (arbitrarily) the range of 'Int'.
   {-# INLINE random #-}
-  random  :: RandomGen g => g -> (a, g)
+  random  :: NoSplitGen g => g -> (a, g)
   random g = runStateGen g genRandom
-
-  -- | Plural variant of 'randomR', producing an infinite list of
-  -- random values instead of returning a new generator.
-  {-# INLINE randomRs #-}
-  randomRs :: RandomGen g => (a,a) -> g -> [a]
-  randomRs ival g = build (\cons _nil -> buildRandoms cons (randomR ival) g)
 
   -- | Plural variant of 'random', producing an infinite list of
   -- random values instead of returning a new generator.
   {-# INLINE randoms #-}
-  randoms  :: RandomGen g => g -> [a]
+  randoms  :: NoSplitGen g => g -> [a]
   randoms  g      = build (\cons _nil -> buildRandoms cons random g)
-
-  -- | A variant of 'randomR' that uses the global random number generator
-  -- (see "System.Random#globalrng").
-  randomRIO :: (a,a) -> IO a
-  randomRIO range  = getStdRandom (randomR range)
 
   -- | A variant of 'random' that uses the global random number generator
   -- (see "System.Random#globalrng").
@@ -475,10 +478,10 @@ class Random a where
 
 -- | Produce an infinite list-equivalent of random values.
 {-# INLINE buildRandoms #-}
-buildRandoms :: RandomGen g
+buildRandoms :: NoSplitGen g
              => (a -> as -> as)  -- ^ E.g. '(:)' but subject to fusion
              -> (g -> (a,g))     -- ^ E.g. 'random'
-             -> g                -- ^ A 'RandomGen' instance
+             -> g                -- ^ A 'NoSplitGen' instance
              -> as
 buildRandoms cons rand = go
   where
@@ -486,193 +489,229 @@ buildRandoms cons rand = go
     go g = x `seq` (x `cons` go g') where (x,g') = rand g
 
 
-instance Random Integer where
+instance RandomR Integer where
   randomR ival g = randomIvalInteger ival g
-  random g	 = randomR (toInteger (minBound::Int), toInteger (maxBound::Int)) g
 
+instance RandomR Int8       where
+  randomRM = bitmaskWithRejectionM
+  randomR = bitmaskWithRejection
 instance Random Int8       where
-  randomR = bitmaskWithRejection
-  random = first (fromIntegral :: Word8 -> Int8) . genWord8
   randomM = fmap (fromIntegral :: Word8 -> Int8) . uniformWord8
+  random = first (fromIntegral :: Word8 -> Int8) . genWord8
+
+instance RandomR Int16      where
   randomRM = bitmaskWithRejectionM
+  randomR = bitmaskWithRejection
 instance Random Int16      where
-  randomR = bitmaskWithRejection
-  random = first (fromIntegral :: Word16 -> Int16) . genWord16
   randomM = fmap (fromIntegral :: Word16 -> Int16) . uniformWord16
+  random = first (fromIntegral :: Word16 -> Int16) . genWord16
+
+instance RandomR Int32      where
   randomRM = bitmaskWithRejectionM
+  randomR = bitmaskWithRejection
 instance Random Int32      where
-  randomR = bitmaskWithRejection
-  random = first (fromIntegral :: Word32 -> Int32) . genWord32
   randomM = fmap (fromIntegral :: Word32 -> Int32) . uniformWord32
+  random = first (fromIntegral :: Word32 -> Int32) . genWord32
+
+instance RandomR Int64      where
   randomRM = bitmaskWithRejectionM
+  randomR = bitmaskWithRejection
 instance Random Int64      where
-  randomR = bitmaskWithRejection
-  random = first (fromIntegral :: Word64 -> Int64) . genWord64
   randomM = fmap (fromIntegral :: Word64 -> Int64) . uniformWord64
-  randomRM = bitmaskWithRejectionM
+  random = first (fromIntegral :: Word64 -> Int64) . genWord64
 
+instance RandomR Int        where
+  randomR = bitmaskWithRejection
+  randomRM = bitmaskWithRejectionM
 instance Random Int        where
-  randomR = bitmaskWithRejection
-  randomRM = bitmaskWithRejectionM
 #if WORD_SIZE_IN_BITS < 64
-  random = first (fromIntegral :: Word32 -> Int) . genWord32
   randomM = fmap (fromIntegral :: Word32 -> Int) . uniformWord32
+  random = first (fromIntegral :: Word32 -> Int) . genWord32
 #else
-  random = first (fromIntegral :: Word64 -> Int) . genWord64
   randomM = fmap (fromIntegral :: Word64 -> Int) . uniformWord64
+  random = first (fromIntegral :: Word64 -> Int) . genWord64
 #endif
 
-instance Random Word        where
-  randomR = bitmaskWithRejection
+instance RandomR Word        where
   randomRM = bitmaskWithRejectionM
+  randomR = bitmaskWithRejection
+instance Random Word        where
 #if WORD_SIZE_IN_BITS < 64
-  random = first (fromIntegral :: Word32 -> Word) . genWord32
   randomM = fmap (fromIntegral :: Word32 -> Word) . uniformWord32
+  random = first (fromIntegral :: Word32 -> Word) . genWord32
 #else
-  random = first (fromIntegral :: Word64 -> Word) . genWord64
   randomM = fmap (fromIntegral :: Word64 -> Word) . uniformWord64
+  random = first (fromIntegral :: Word64 -> Word) . genWord64
 #endif
 
-instance Random Word8      where
-  {-# INLINE randomR #-}
-  randomR     = bitmaskWithRejection
-  {-# INLINE random #-}
-  random      = genWord8
+instance RandomR Word8      where
   {-# INLINE randomRM #-}
   randomRM    = bitmaskWithRejectionM
+  {-# INLINE randomR #-}
+  randomR     = bitmaskWithRejection
+instance Random Word8      where
   {-# INLINE randomM #-}
   randomM     = uniformWord8
-instance Random Word16     where
-  {-# INLINE randomR #-}
-  randomR     = bitmaskWithRejection
   {-# INLINE random #-}
-  random      = genWord16
+  random      = genWord8
+instance RandomR Word16     where
   {-# INLINE randomRM #-}
   randomRM    = bitmaskWithRejectionM
+  {-# INLINE randomR #-}
+  randomR     = bitmaskWithRejection
+instance Random Word16     where
   {-# INLINE randomM #-}
   randomM     = uniformWord16
-instance Random Word32     where
+  {-# INLINE random #-}
+  random      = genWord16
+instance RandomR Word32     where
+  {-# INLINE randomRM #-}
+  randomRM = bitmaskWithRejectionM
   {-# INLINE randomR #-}
   randomR     = bitmaskWithRejection
-  {-# INLINE random #-}
-  random      = genWord32
+instance Random Word32     where
   {-# INLINE randomM #-}
   randomM  = uniformWord32
+  {-# INLINE random #-}
+  random      = genWord32
+instance RandomR Word64     where
   {-# INLINE randomRM #-}
   randomRM = bitmaskWithRejectionM
-instance Random Word64     where
   {-# INLINE randomR #-}
   randomR     = bitmaskWithRejection
-  {-# INLINE random #-}
-  random      = genWord64
+instance Random Word64     where
   {-# INLINE randomM #-}
   randomM  = uniformWord64
-  {-# INLINE randomRM #-}
-  randomRM = bitmaskWithRejectionM
+  {-# INLINE random #-}
+  random      = genWord64
 
-instance Random CChar      where
-  randomR (CChar b, CChar t)               = first CChar . randomR (b, t)
-  random                                   = first CChar . random
-  randomM                               = fmap CChar . randomM
+instance RandomR CChar      where
   randomRM (CChar b, CChar t)           = fmap CChar . randomRM (b, t)
-instance Random CSChar     where
-  randomR (CSChar b, CSChar t)             = first CSChar . randomR (b, t)
-  random                                   = first CSChar . random
-  randomM                               = fmap CSChar . randomM
+  randomR (CChar b, CChar t)            = first CChar . randomR (b, t)
+instance Random CChar      where
+  randomM                               = fmap CChar . randomM
+  random                                = first CChar . random
+instance RandomR CSChar     where
   randomRM (CSChar b, CSChar t)         = fmap CSChar . randomRM (b, t)
-instance Random CUChar     where
-  randomR (CUChar b, CUChar t)             = first CUChar . randomR (b, t)
-  random                                   = first CUChar . random
-  randomM                               = fmap CUChar . randomM
+  randomR (CSChar b, CSChar t)          = first CSChar . randomR (b, t)
+instance Random CSChar     where
+  randomM                               = fmap CSChar . randomM
+  random                                = first CSChar . random
+instance RandomR CUChar     where
   randomRM (CUChar b, CUChar t)         = fmap CUChar . randomRM (b, t)
-instance Random CShort     where
-  randomR (CShort b, CShort t)             = first CShort . randomR (b, t)
-  random                                   = first CShort . random
-  randomM                               = fmap CShort . randomM
+  randomR (CUChar b, CUChar t)          = first CUChar . randomR (b, t)
+instance Random CUChar     where
+  randomM                               = fmap CUChar . randomM
+  random                                = first CUChar . random
+instance RandomR CShort     where
   randomRM (CShort b, CShort t)         = fmap CShort . randomRM (b, t)
-instance Random CUShort    where
-  randomR (CUShort b, CUShort t)           = first CUShort . randomR (b, t)
-  random                                   = first CUShort . random
-  randomM                               = fmap CUShort . randomM
+  randomR (CShort b, CShort t)          = first CShort . randomR (b, t)
+instance Random CShort     where
+  randomM                               = fmap CShort . randomM
+  random                                = first CShort . random
+instance RandomR CUShort    where
   randomRM (CUShort b, CUShort t)       = fmap CUShort . randomRM (b, t)
-instance Random CInt       where
-  randomR (CInt b, CInt t)                 = first CInt . randomR (b, t)
-  random                                   = first CInt . random
-  randomM                               = fmap CInt . randomM
+  randomR (CUShort b, CUShort t)        = first CUShort . randomR (b, t)
+instance Random CUShort    where
+  randomM                               = fmap CUShort . randomM
+  random                                = first CUShort . random
+instance RandomR CInt       where
   randomRM (CInt b, CInt t)             = fmap CInt . randomRM (b, t)
-instance Random CUInt      where
-  randomR (CUInt b, CUInt t)               = first CUInt . randomR (b, t)
-  random                                   = first CUInt . random
-  randomM                               = fmap CUInt . randomM
-  randomRM (CUInt b, CUInt t)           = fmap CUInt . randomRM (b, t)
-instance Random CLong      where
-  randomR (CLong b, CLong t)               = first CLong . randomR (b, t)
-  random                                   = first CLong . random
-  randomM                               = fmap CLong . randomM
-  randomRM (CLong b, CLong t)           = fmap CLong . randomRM (b, t)
-instance Random CULong     where
-  randomR (CULong b, CULong t)             = first CULong . randomR (b, t)
-  random                                   = first CULong . random
-  randomM                               = fmap CULong . randomM
-  randomRM (CULong b, CULong t)         = fmap CULong . randomRM (b, t)
-instance Random CPtrdiff   where
-  randomR (CPtrdiff b, CPtrdiff t)         = first CPtrdiff . randomR (b, t)
-  random                                   = first CPtrdiff . random
-  randomM                               = fmap CPtrdiff . randomM
-  randomRM (CPtrdiff b, CPtrdiff t)     = fmap CPtrdiff . randomRM (b, t)
-instance Random CSize      where
-  randomR (CSize b, CSize t)               = first CSize . randomR (b, t)
-  random                                   = first CSize . random
-  randomM                               = fmap CSize . randomM
-  randomRM (CSize b, CSize t)           = fmap CSize . randomRM (b, t)
-instance Random CWchar     where
-  randomR (CWchar b, CWchar t)             = first CWchar . randomR (b, t)
-  random                                   = first CWchar . random
-  randomM                               = fmap CWchar . randomM
-  randomRM (CWchar b, CWchar t)         = fmap CWchar . randomRM (b, t)
-instance Random CSigAtomic where
-  randomR (CSigAtomic b, CSigAtomic t)     = first CSigAtomic . randomR (b, t)
-  random                                   = first CSigAtomic . random
-  randomM                               = fmap CSigAtomic . randomM
-  randomRM (CSigAtomic b, CSigAtomic t) = fmap CSigAtomic . randomRM (b, t)
-instance Random CLLong     where
-  randomR (CLLong b, CLLong t)             = first CLLong . randomR (b, t)
-  random                                   = first CLLong . random
-  randomM                               = fmap CLLong . randomM
-  randomRM (CLLong b, CLLong t)         = fmap CLLong . randomRM (b, t)
-instance Random CULLong    where
-  randomR (CULLong b, CULLong t)           = first CULLong . randomR (b, t)
-  random                                   = first CULLong . random
-  randomM                               = fmap CULLong . randomM
-  randomRM (CULLong b, CULLong t)       = fmap CULLong . randomRM (b, t)
-instance Random CIntPtr    where
-  randomR (CIntPtr b, CIntPtr t)           = first CIntPtr . randomR (b, t)
-  random                                   = first CIntPtr . random
-  randomM                               = fmap CIntPtr . randomM
-  randomRM (CIntPtr b, CIntPtr t)       = fmap CIntPtr . randomRM (b, t)
-instance Random CUIntPtr   where
-  randomR (CUIntPtr b, CUIntPtr t)         = first CUIntPtr . randomR (b, t)
-  random                                   = first CUIntPtr . random
-  randomM                               = fmap CUIntPtr . randomM
-  randomRM (CUIntPtr b, CUIntPtr t)     = fmap CUIntPtr . randomRM (b, t)
-instance Random CIntMax    where
-  randomR (CIntMax b, CIntMax t)           = first CIntMax . randomR (b, t)
-  random                                   = first CIntMax . random
-  randomM                               = fmap CIntMax . randomM
-  randomRM (CIntMax b, CIntMax t)       = fmap CIntMax . randomRM (b, t)
-instance Random CUIntMax   where
-  randomR (CUIntMax b, CUIntMax t)         = first CUIntMax . randomR (b, t)
-  random                                   = first CUIntMax . random
-  randomM                               = fmap CUIntMax . randomM
-  randomRM (CUIntMax b, CUIntMax t)     = fmap CUIntMax . randomRM (b, t)
+  randomR (CInt b, CInt t)              = first CInt . randomR (b, t)
+instance Random CInt       where
+  randomM                               = fmap CInt . randomM
+  random                                = first CInt . random
 
-instance Random Char where
+instance RandomR CUInt      where
+  randomRM (CUInt b, CUInt t)           = fmap CUInt . randomRM (b, t)
+  randomR (CUInt b, CUInt t)            = first CUInt . randomR (b, t)
+instance Random CUInt      where
+  randomM                               = fmap CUInt . randomM
+  random                                = first CUInt . random
+
+instance RandomR CLong      where
+  randomRM (CLong b, CLong t)           = fmap CLong . randomRM (b, t)
+  randomR (CLong b, CLong t)            = first CLong . randomR (b, t)
+instance Random CLong      where
+  randomM                               = fmap CLong . randomM
+  random                                = first CLong . random
+
+instance RandomR CULong     where
+  randomRM (CULong b, CULong t)         = fmap CULong . randomRM (b, t)
+  randomR (CULong b, CULong t)          = first CULong . randomR (b, t)
+instance Random CULong     where
+  randomM                               = fmap CULong . randomM
+  random                                = first CULong . random
+
+instance RandomR CPtrdiff   where
+  randomRM (CPtrdiff b, CPtrdiff t)     = fmap CPtrdiff . randomRM (b, t)
+  randomR (CPtrdiff b, CPtrdiff t)      = first CPtrdiff . randomR (b, t)
+instance Random CPtrdiff   where
+  randomM                               = fmap CPtrdiff . randomM
+  random                                = first CPtrdiff . random
+instance RandomR CSize      where
+  randomRM (CSize b, CSize t)           = fmap CSize . randomRM (b, t)
+  randomR (CSize b, CSize t)            = first CSize . randomR (b, t)
+instance Random CSize      where
+  randomM                               = fmap CSize . randomM
+  random                                = first CSize . random
+instance RandomR CWchar     where
+  randomRM (CWchar b, CWchar t)         = fmap CWchar . randomRM (b, t)
+  randomR (CWchar b, CWchar t)          = first CWchar . randomR (b, t)
+instance Random CWchar     where
+  randomM                               = fmap CWchar . randomM
+  random                                = first CWchar . random
+instance RandomR CSigAtomic where
+  randomRM (CSigAtomic b, CSigAtomic t) = fmap CSigAtomic . randomRM (b, t)
+  randomR (CSigAtomic b, CSigAtomic t)  = first CSigAtomic . randomR (b, t)
+instance Random CSigAtomic where
+  randomM                               = fmap CSigAtomic . randomM
+  random                                = first CSigAtomic . random
+instance RandomR CLLong     where
+  randomRM (CLLong b, CLLong t)         = fmap CLLong . randomRM (b, t)
+  randomR (CLLong b, CLLong t)          = first CLLong . randomR (b, t)
+instance Random CLLong     where
+  randomM                               = fmap CLLong . randomM
+  random                                = first CLLong . random
+instance RandomR CULLong    where
+  randomRM (CULLong b, CULLong t)       = fmap CULLong . randomRM (b, t)
+  randomR (CULLong b, CULLong t)        = first CULLong . randomR (b, t)
+instance Random CULLong    where
+  randomM                               = fmap CULLong . randomM
+  random                                = first CULLong . random
+instance RandomR CIntPtr    where
+  randomRM (CIntPtr b, CIntPtr t)       = fmap CIntPtr . randomRM (b, t)
+  randomR (CIntPtr b, CIntPtr t)        = first CIntPtr . randomR (b, t)
+instance Random CIntPtr    where
+  randomM                               = fmap CIntPtr . randomM
+  random                                = first CIntPtr . random
+instance RandomR CUIntPtr   where
+  randomRM (CUIntPtr b, CUIntPtr t)     = fmap CUIntPtr . randomRM (b, t)
+  randomR (CUIntPtr b, CUIntPtr t)      = first CUIntPtr . randomR (b, t)
+instance Random CUIntPtr   where
+  randomM                               = fmap CUIntPtr . randomM
+  random                                = first CUIntPtr . random
+instance RandomR CIntMax    where
+  randomRM (CIntMax b, CIntMax t)       = fmap CIntMax . randomRM (b, t)
+  randomR (CIntMax b, CIntMax t)        = first CIntMax . randomR (b, t)
+instance Random CIntMax    where
+  randomM                               = fmap CIntMax . randomM
+  random                                = first CIntMax . random
+instance RandomR CUIntMax   where
+  randomRM (CUIntMax b, CUIntMax t)     = fmap CUIntMax . randomRM (b, t)
+  randomR (CUIntMax b, CUIntMax t)      = first CUIntMax . randomR (b, t)
+instance Random CUIntMax   where
+  randomM                               = fmap CUIntMax . randomM
+  random                                = first CUIntMax . random
+
+instance RandomR Char where
   randomR (a,b) g = 
        case (randomIvalInteger (toInteger (ord a), toInteger (ord b)) g) of
          (x,g') -> (chr x, g')
+instance Random Char where
   random g	  = randomR (minBound,maxBound) g
 
-instance Random Bool where
+instance RandomR Bool where
   randomR (a,b) g = 
       case (randomIvalInteger (bool2Int a, bool2Int b) g) of
         (x, g') -> (int2Bool x, g')
@@ -685,49 +724,52 @@ instance Random Bool where
 	 int2Bool 0	= False
 	 int2Bool _	= True
 
+instance Random Bool where
   random g	  = randomR (minBound,maxBound) g
 
-{-# INLINE randomRFloating #-}
-randomRFloating :: (Fractional a, Num a, Ord a, Random a, RandomGen g) => (a, a) -> g -> (a, g)
-randomRFloating (l,h) g 
-    | l>h       = randomRFloating (h,l) g
-    | otherwise = let (coef,g') = random g in 
-		  (2.0 * (0.5*l + coef * (0.5*h - 0.5*l)), g')  -- avoid overflow
-
-instance Random Double where
-  randomR = randomRFloating
-  random = randomDouble
-
-randomDouble :: RandomGen b => b -> (Double, b)
-randomDouble rng =
-    case random rng of 
-      (x,rng') -> 
-          -- We use 53 bits of randomness corresponding to the 53 bit significand:
-          ((fromIntegral (mask53 .&. (x::Int64)) :: Double)  
-	   /  fromIntegral twoto53, rng')
-   where 
-    twoto53 = (2::Int64) ^ (53::Int64)
-    mask53 = twoto53 - 1
+{-# INLINE randomRFloat #-}
+randomRFloat :: (NoSplitGen g) => (Float, Float) -> g -> (Float, g)
+randomRFloat (l,h) g = undefined
+    -- | l>h       = randomRFloating (h,l) g
+    -- | otherwise = let (coef,g') = random g in 
+    --     	  (2.0 * (0.5*l + coef * (0.5*h - 0.5*l)), g')  -- avoid overflow
+{-# INLINE randomRDouble #-}
+randomRDouble :: (NoSplitGen g) => (Double, Double) -> g -> (Double, g)
+randomRDouble (l,h) g = undefined
 
 
-instance Random Float where
-  randomR = randomRFloating
-  random = randomFloat
+instance RandomR Double where
+  randomR = randomRDouble
 
-randomFloat :: RandomGen b => b -> (Float, b)
-randomFloat rng =
-    -- TODO: Faster to just use 'next' IF it generates enough bits of randomness.   
-    case random rng of 
-      (x,rng') -> 
-          -- We use 24 bits of randomness corresponding to the 24 bit significand:
-          ((fromIntegral (mask24 .&. (x::Int32)) :: Float) 
-	   /  fromIntegral twoto24, rng')
-	 -- Note, encodeFloat is another option, but I'm not seeing slightly
-	 --  worse performance with the following [2011.06.25]:
---         (encodeFloat rand (-24), rng')
-   where
-     mask24 = twoto24 - 1
-     twoto24 = (2::Int32) ^ (24::Int32)
+-- randomDouble :: NoSplitGen b => b -> (Double, b)
+-- randomDouble rng =
+--     case random rng of 
+--       (x,rng') -> 
+--           -- We use 53 bits of randomness corresponding to the 53 bit significand:
+--           ((fromIntegral (mask53 .&. (x::Int64)) :: Double)  
+-- 	   /  fromIntegral twoto53, rng')
+--    where 
+--     twoto53 = (2::Int64) ^ (53::Int64)
+--     mask53 = twoto53 - 1
+
+
+instance RandomR Float where
+  randomR = randomRFloat
+
+-- randomFloat :: NoSplitGen b => b -> (Float, b)
+-- randomFloat rng =
+--     -- TODO: Faster to just use 'next' IF it generates enough bits of randomness.   
+--     case random rng of 
+--       (x,rng') -> 
+--           -- We use 24 bits of randomness corresponding to the 24 bit significand:
+--           ((fromIntegral (mask24 .&. (x::Int32)) :: Float) 
+-- 	   /  fromIntegral twoto24, rng')
+-- 	 -- Note, encodeFloat is another option, but I'm not seeing slightly
+-- 	 --  worse performance with the following [2011.06.25]:
+-- --         (encodeFloat rand (-24), rng')
+--    where
+--      mask24 = twoto24 - 1
+--      twoto24 = (2::Int32) ^ (24::Int32)
 
 -- CFloat/CDouble are basically the same as a Float/Double:
 -- instance Random CFloat where
@@ -750,7 +792,7 @@ mkStdRNG o = do
     (sec, psec) <- getTime
     return (createStdGen (sec * 12345 + psec + ct + o))
 
-randomBounded :: (RandomGen g, Random a, Bounded a) => g -> (a, g)
+randomBounded :: (NoSplitGen g, Random a, Bounded a) => g -> (a, g)
 randomBounded = randomR (minBound, maxBound)
 
 -- The two integer functions below take an [inclusive,inclusive] range.
@@ -804,7 +846,7 @@ randomIvalDouble (l,h) fromDouble rng
 
 
 bitmaskWithRejection ::
-     (RandomGen g, FiniteBits a, Num a, Ord a, Random a)
+     (NoSplitGen g, FiniteBits a, Num a, Ord a, Random a)
   => (a, a)
   -> g
   -> (a, g)
