@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -50,12 +51,8 @@ module System.Random
 
 	-- * Random number generators
 
-#ifdef ENABLE_SPLITTABLEGEN
 	  RandomGen(..)
-	, SplittableGen(..)
-#else
-	  RandomGen(..)
-#endif
+	, NoSplitGen(..)
         , MonadRandom(..)
 	-- ** Standard random number generators
 	, StdGen
@@ -159,7 +156,7 @@ getTime = do
 -- Minimal complete definition: 'next' and 'split'.
 #endif
 
-class RandomGen g where
+class NoSplitGen g where
   type GenSeed g :: *
   type GenSeed g = Word64
 
@@ -171,7 +168,7 @@ class RandomGen g where
   -- in the range returned by 'genRange' (including both end points),
   -- and a new generator.
   next     :: g -> (Int, g)
-  -- `next` can be deprecated over time
+  --{-# DEPRECATED next "In favor of `genWord64` et al" #-}
 
   genWord8 :: g -> (Word8, g)
   genWord8 = first fromIntegral . genWord32R (fromIntegral (maxBound :: Word8))
@@ -213,19 +210,18 @@ class RandomGen g where
 
   -- default method
   genRange _ = (minBound, maxBound)
+  --{-# DEPRECATED genRange "In favor of `genWord64` et al" #-}
 
-#ifdef ENABLE_SPLITTABLEGEN
--- | The class 'SplittableGen' proivides a way to specify a random number
---   generator that can be split into two new generators.
-class SplittableGen g where
-#endif
+-- | The class provides a way to specify a way to split a random number
+--   generator into two new generators.
+class NoSplitGen g => RandomGen g where
   -- |The 'split' operation allows one to obtain two distinct random number
   -- generators. This is very useful in functional programs (for example, when
   -- passing a random number generator down to recursive calls), but very
   -- little work has been done on statistically robust implementations of
   -- 'split' (["System.Random\#Burton", "System.Random\#Hellekalek"]
   -- are the only examples we know of).
-  split    :: g -> (g, g)
+  split  :: g -> (g, g)
 
 
 class Monad m => MonadRandom g m where
@@ -269,7 +265,7 @@ instance (s ~ PrimState m, PrimMonad m) => MonadRandom (MWC.Gen s) m where
 -- | An opaque data type that carries the state of a pure generator at the type level
 data GenState g = GenState
 
-instance (MonadState g m, RandomGen g) => MonadRandom (GenState g) m where
+instance (MonadState g m, NoSplitGen g) => MonadRandom (GenState g) m where
   type Seed (GenState g) = GenSeed g
   restore s = GenState <$ put (mkGen s)
   save _ = saveGen <$> get
@@ -287,13 +283,13 @@ genRandomR :: (RandomGen g, Random a, MonadState g m) => (a, a) -> m a
 genRandomR r = randomRM r GenState
 
 runStateGen :: RandomGen g => g -> State g a -> (a, g)
-runStateGen g = flip runState g
+runStateGen = flip runState
 
 runStateGen_ :: RandomGen g => g -> State g a -> a
 runStateGen_ g = fst . flip runState g
 
 runStateTGen :: RandomGen g => g -> StateT g m a -> m (a, g)
-runStateTGen g = flip runStateT g
+runStateTGen = flip runStateT
 
 runStateTGen_ :: (RandomGen g, Functor f) => g -> StateT g f a -> f a
 runStateTGen_ g = fmap fst . flip runStateT g
@@ -355,7 +351,7 @@ instance of 'StdGen' has the following properties:
 data StdGen 
  = StdGen !Int32 !Int32
 
-instance RandomGen StdGen where
+instance NoSplitGen StdGen where
   type GenSeed StdGen = Int
   next  = stdNext
   genRange _ = stdRange
@@ -363,9 +359,7 @@ instance RandomGen StdGen where
   saveGen (StdGen h _) = fromIntegral h
   --                     ^  this is likely incorrect, but we'll switch to splitmix anyways
 
-#ifdef ENABLE_SPLITTABLEGEN
-instance SplittableGen StdGen where
-#endif
+instance RandomGen StdGen where
   split = stdSplit
 
 instance Show StdGen where
@@ -760,13 +754,12 @@ randomBounded :: (RandomGen g, Random a, Bounded a) => g -> (a, g)
 randomBounded = randomR (minBound, maxBound)
 
 -- The two integer functions below take an [inclusive,inclusive] range.
-randomIvalIntegral :: (RandomGen g, Integral a) => (a, a) -> g -> (a, g)
+randomIvalIntegral :: (NoSplitGen g, Integral a) => (a, a) -> g -> (a, g)
 randomIvalIntegral (l,h) = randomIvalInteger (toInteger l, toInteger h)
 
 {-# SPECIALIZE randomIvalInteger :: (Num a) =>
     (Integer, Integer) -> StdGen -> (a, StdGen) #-}
-        
-randomIvalInteger :: (RandomGen g, Num a) => (Integer, Integer) -> g -> (a, g)
+randomIvalInteger :: (NoSplitGen g, Num a) => (Integer, Integer) -> g -> (a, g)
 randomIvalInteger (l,h) rng
  | l > h     = randomIvalInteger (h,l) rng
  | otherwise = case (f 1 0 rng) of (v, rng') -> (fromInteger (l + v `mod` k), rng')
