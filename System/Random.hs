@@ -83,6 +83,9 @@ module System.Random
   , uniformByteStringPrim
   , genByteString
 
+  -- * Helpers for implementing random number generators
+  , defaultSplit
+
   -- * References
   -- $references
 
@@ -103,12 +106,15 @@ import Foreign.C.Types
 import Data.ByteString.Builder.Prim (word64LE)
 import Data.ByteString.Builder.Prim.Internal (runF)
 import Data.ByteString.Internal (ByteString(PS))
+import Data.ByteString.Lazy (fromStrict, toStrict)
 import Data.ByteString.Short.Internal (ShortByteString(SBS), fromShort)
 import Foreign.Marshal.Alloc (alloca)
 import Foreign.Ptr (plusPtr)
 import Foreign.Storable (peekByteOff, pokeByteOff)
 import GHC.ForeignPtr
 
+import Data.Binary.Get (Decoder(..), Get, runGetIncremental, getWord64le)
+import Data.Digest.Pure.SHA (bytestringDigest, sha256)
 import Data.IORef (IORef, newIORef, readIORef, writeIORef, atomicModifyIORef')
 import System.IO.Unsafe (unsafePerformIO)
 import qualified System.Random.SplitMix as SM
@@ -128,6 +134,9 @@ mutableByteArrayContentsCompat = mutableByteArrayContents
 -- generators.
 --
 class RandomGen g where
+  -- | Initialize this instance from a seed.
+  initialize :: Get g
+
   -- |The 'next' operation returns an 'Int' that is uniformly distributed
   -- in the range returned by 'genRange' (including both end points),
   -- and a new generator.
@@ -183,6 +192,25 @@ class RandomGen g where
   -- generators.
   split    :: g -> (g, g)
 
+
+-- | Default split function. This function should be safe to use as the 'split'
+-- function for most 'RandomGen' implementations.
+--
+-- It is recommended that you use a different 'split' implementation if the
+-- random number algorithm you are using has its own algorithm for 'split', or
+-- if you are implementing a cryptographic random number generator.
+defaultSplit :: RandomGen g => g -> (g, g)
+defaultSplit = go decoder where
+  decoder = runGetIncremental initialize
+
+  go :: RandomGen g => Decoder g -> g -> (g, g)
+  go (Done _leftover _consumed new) gen = (gen, new)
+  go (Partial k) gen = go (k (Just mixed)) gen' where
+    -- Generate 8 bytes at each step and mix then with sha256
+    (bs, gen') = genByteString 8 gen
+    mixed = toStrict . bytestringDigest . sha256 $ fromStrict bs
+  go (Fail _leftover _consumed msg) _gen = error msg -- initialize should never fail
+{-# INLINE defaultSplit #-}
 
 class Monad m => MonadRandom g m where
   type Seed g :: *
@@ -329,6 +357,10 @@ runStateTGen_ g = fmap fst . flip runStateT g
 type StdGen = SM.SMGen
 
 instance RandomGen StdGen where
+  initialize = do
+    i <- getWord64le
+    j <- getWord64le
+    return $ SM.seedSMGen i j
   next = SM.nextInt
   genWord32 = SM.nextWord32
   genWord64 = SM.nextWord64
