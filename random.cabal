@@ -31,6 +31,7 @@ Library
         System.Random
     ghc-options: -Wall
     build-depends: base >= 3 && < 5
+                 , binary
                  , bytestring
                  , primitive
                  , mtl

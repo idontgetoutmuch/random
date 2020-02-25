@@ -111,6 +111,7 @@ import Foreign.Ptr (plusPtr)
 import Foreign.Storable (peekByteOff, pokeByteOff)
 import GHC.ForeignPtr
 
+import Data.Binary.Get (Get, getWord64le)
 import Data.IORef (IORef, newIORef, readIORef, writeIORef, atomicModifyIORef')
 import System.IO.Unsafe (unsafePerformIO)
 import qualified System.Random.SplitMix as SM
@@ -130,6 +131,9 @@ mutableByteArrayContentsCompat = mutableByteArrayContents
 -- generators.
 --
 class RandomGen g where
+  -- | Initialize this instance from a seed.
+  initialize :: Get g
+
   -- |The 'next' operation returns an 'Int' that is uniformly distributed
   -- in the range returned by 'genRange' (including both end points),
   -- and a new generator.
@@ -331,6 +335,10 @@ runStateTGen_ g = fmap fst . flip runStateT g
 type StdGen = SM.SMGen
 
 instance RandomGen StdGen where
+  initialize = do
+    i <- getWord64le
+    j <- getWord64le
+    return $ SM.seedSMGen i j
   next = SM.nextInt
   genWord32 = SM.nextWord32
   genWord64 = SM.nextWord64
