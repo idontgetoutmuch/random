@@ -34,6 +34,7 @@ Library
                  , bytestring
                  , primitive
                  , time
+                 , transformers >= 0.2.0.0
                  , mtl
                  , mwc-random
 
