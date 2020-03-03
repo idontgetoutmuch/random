@@ -184,6 +184,7 @@ module System.Random
   , newStdGen
 
   -- * Random values of various types
+  -- $uniform
   , Uniform(..)
   , UniformRange(..)
   , Random(..)
@@ -616,9 +617,44 @@ should be likely to produce distinct generators.
 mkStdGen :: Int -> StdGen
 mkStdGen s = SM.mkSMGen $ fromIntegral s
 
+
+-- $uniform
+--
+-- Type classes 'Uniform' and 'UniformRange' are unrelated type
+-- classes. This is deliberate decision because there're types which
+-- could have instance for one type class but not the other.
+--
+-- For example: 'Integer', 'Float', 'Double' have instance for
+-- @UniformRange@ but there's no way to define @Uniform@.
+--
+-- Conversely there're types where @Uniform@ instance is possible
+-- while @UniformRange@ is not. One example is:
+--
+-- > instance (Uniform a, Uniform b) => Uniform (a,b)
+--
+-- This instance is very straightforward. @UniformRange@ isn't very
+-- sensible even if try to define one compatible with 'Ord' we'll run
+-- into problem that we don't know how many values inhabit @b@
+-- therefore we don't even know how many values we need to generate.
+--
+-- Another example is points on sphere cirle. Again @Uniform@ is
+-- obvious, while @UniformRange@ is impossible since there isn't even
+-- order between values.
+
+
+-- | Generate every possible value for data type with equal probability.
 class Uniform a where
   uniform :: MonadRandom g m => g -> m a
 
+-- | Generate every value in provided inclusive range with equal
+--   probability. So @uniformR (1,4)@ should generate values from set
+--   @[1,2,3,4]@. Inclusive range is used to allow to express any
+--   interval for fixed-size ints, enumerations etc.
+--
+--   Additionally in order to make function always defined order of
+--   elements in range shouldn't matter and following law should hold:
+--
+-- > uniformR (a,b) = uniform (b,a)
 class UniformRange a where
   uniformR :: MonadRandom g m => (a, a) -> g -> m a
 
@@ -626,6 +662,9 @@ class UniformRange a where
 {- |
 With a source of random number supply in hand, the 'Random' class allows the
 programmer to extract random values of a variety of types.
+
+Minimal complete definition: 'randomR' and 'random'.
+
 -}
 {-# DEPRECATED randomR "In favor of `uniformR`" #-}
 {-# DEPRECATED randomRIO "In favor of `uniformR`" #-}
