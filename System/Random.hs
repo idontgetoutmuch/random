@@ -113,8 +113,7 @@ import Data.IORef (IORef, newIORef, readIORef, writeIORef, atomicModifyIORef')
 import System.IO.Unsafe (unsafePerformIO)
 import qualified System.Random.SplitMix as SM
 
-import GHC.Exts (Ptr(..), build)
-
+import GHC.Exts (Ptr(..), build, byteArrayContents#, unsafeCoerce#)
 
 mutableByteArrayContentsCompat :: MutableByteArray s -> Ptr Word8
 {-# INLINE mutableByteArrayContentsCompat #-}
