@@ -20,6 +20,10 @@ source-repository head
     type:     git
     location: http://git.haskell.org/packages/random.git
 
+flag uniform_range_integer
+    description: Remove once 'instance UniformRange Integer' is defined
+    default:     False
+
 library
     exposed-modules: System.Random
     ghc-options:     -Wall
@@ -36,17 +40,20 @@ test-suite T7936
     hs-source-dirs: tests
     ghc-options:    -rtsopts -O2
     build-depends:
-        base >=3 && <5,
+        base -any,
         random -any
 
 test-suite TestRandomRs
     type:           exitcode-stdio-1.0
     main-is:        TestRandomRs.hs
     hs-source-dirs: tests
-    ghc-options:    -rtsopts -O2 -with-rtsopts=-M1M
+    ghc-options:    -rtsopts -O2 -with-rtsopts=-M10M
     build-depends:
-        base >=3 && <5,
+        base -any,
         random -any
+
+    if !flag(uniform_range_integer)
+        buildable: False
 
 test-suite TestRandomIOs
     type:           exitcode-stdio-1.0
@@ -54,5 +61,24 @@ test-suite TestRandomIOs
     hs-source-dirs: tests
     ghc-options:    -rtsopts -O2 -with-rtsopts=-M1M
     build-depends:
-        base >=3 && <5,
+        base -any,
+        random -any
+
+test-suite rangeTest
+    type:           exitcode-stdio-1.0
+    main-is:        rangeTest.hs
+    hs-source-dirs: tests
+    ghc-options:    -rtsopts -O2 -with-rtsopts=-M10M
+    build-depends:
+        base -any,
+        random -any
+
+test-suite random1283
+    type:           exitcode-stdio-1.0
+    main-is:        random1283.hs
+    hs-source-dirs: tests
+    ghc-options:    -rtsopts -O2 -with-rtsopts=-M10M
+    build-depends:
+        base -any,
+        containers -any,
         random -any
