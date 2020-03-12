@@ -1,62 +1,58 @@
-name:		random
-version:	1.2
-
-
-license:	BSD3
-license-file:	LICENSE
-maintainer:	core-libraries-committee@haskell.org
-bug-reports:	https://github.com/haskell/random/issues
-synopsis:	random number library
-category:       System
+cabal-version:      >=1.8
+name:               random
+version:            1.2
+license:            BSD3
+license-file:       LICENSE
+maintainer:         core-libraries-committee@haskell.org
+bug-reports:        https://github.com/haskell/random/issues
+synopsis:           random number library
 description:
-  This package provides a basic random number generation
-  library, including the ability to split random number
-  generators.
+    This package provides a basic random number generation library, including
+    the ability to split random number generators.
 
+category:           System
+build-type:         Simple
 extra-source-files:
-  README.md
-  CHANGELOG.md
-
-
-
-build-type: Simple
--- cabal-version 1.8 needed because "the field 'build-depends: random' refers
--- to a library which is defined within the same package"
-cabal-version: >= 1.8
-
-
-
-Library
-    exposed-modules:
-        System.Random
-    ghc-options: -Wall
-    build-depends: base >= 3 && < 5
-                 , bytestring
-                 , primitive
-                 , mtl
-                 , splitmix
+    README.md
+    CHANGELOG.md
 
 source-repository head
     type:     git
     location: http://git.haskell.org/packages/random.git
 
-Test-Suite T7936
+library
+    exposed-modules: System.Random
+    ghc-options:     -Wall
+    build-depends:
+        base >=3 && <5,
+        bytestring -any,
+        primitive -any,
+        mtl -any,
+        splitmix -any
+
+test-suite T7936
     type:           exitcode-stdio-1.0
     main-is:        T7936.hs
     hs-source-dirs: tests
-    build-depends:  base >= 3 && < 5, random
     ghc-options:    -rtsopts -O2
+    build-depends:
+        base >=3 && <5,
+        random -any
 
-Test-Suite TestRandomRs
+test-suite TestRandomRs
     type:           exitcode-stdio-1.0
     main-is:        TestRandomRs.hs
     hs-source-dirs: tests
-    build-depends:  base >= 3 && < 5, random
     ghc-options:    -rtsopts -O2 -with-rtsopts=-M1M
+    build-depends:
+        base >=3 && <5,
+        random -any
 
-Test-Suite TestRandomIOs
+test-suite TestRandomIOs
     type:           exitcode-stdio-1.0
     main-is:        TestRandomIOs.hs
     hs-source-dirs: tests
-    build-depends:  base >= 3 && < 5, random
     ghc-options:    -rtsopts -O2 -with-rtsopts=-M1M
+    build-depends:
+        base >=3 && <5,
+        random -any
