@@ -1,4 +1,7 @@
 {-# LANGUAGE CPP #-}
+
+module Legacy.RangeTest (main) where
+
 import Control.Monad
 import System.Random
 import Data.Int
