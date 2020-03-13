@@ -46,3 +46,19 @@ test-suite legacy
         base -any,
         random -any,
         containers -any
+
+test-suite spec
+    type:           exitcode-stdio-1.0
+    main-is:        Spec.hs
+    hs-source-dirs: tests
+    other-modules:
+        Spec.Bitmask
+        Spec.Range
+
+    ghc-options:    -Wall
+    build-depends:
+        base -any,
+        random -any,
+        tasty -any,
+        tasty-smallcheck -any,
+        tasty-expected-failure -any

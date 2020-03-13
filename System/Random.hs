@@ -90,6 +90,8 @@ module System.Random
   -- * References
   -- $references
 
+  -- * Internals
+  , bitmaskWithRejection -- FIXME Export this in a better way, e.g. in System.Random.Impl or something like that
   ) where
 
 import Prelude
