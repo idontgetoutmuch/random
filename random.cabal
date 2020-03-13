@@ -60,4 +60,5 @@ test-suite spec
         base -any,
         random -any,
         tasty -any,
-        tasty-smallcheck -any
+        tasty-smallcheck -any,
+        tasty-expected-failure -any

@@ -2,12 +2,14 @@
 
 module Main (main) where
 
+import Data.Word (Word32, Word64)
+import System.Random
+import Test.Tasty
+import Test.Tasty.ExpectedFailure (expectFail)
+import Test.Tasty.SmallCheck as SC
+
 import qualified Spec.Bitmask as Bitmask
 import qualified Spec.Bitmask as Range
-import System.Random
-import Data.Word (Word32, Word64)
-import Test.Tasty
-import Test.Tasty.SmallCheck as SC
 
 main :: IO ()
 main = defaultMain $ testGroup "Spec"
@@ -39,8 +41,7 @@ rangeSpecWord32 = testGroup "uniformR (Word32)"
 rangeSpecInt :: TestTree
 rangeSpecInt = testGroup "uniformR (Int)"
     [ SC.testProperty "(Int) symmetric" $ seeded $ Range.symmetric @StdGen @Int
-    -- FIXME Make this pass
-    -- , SC.testProperty "(Int) bounded" $ seeded $ Range.bounded @StdGen @Int
+    , expectFail $ SC.testProperty "(Int) bounded" $ seeded $ Range.bounded @StdGen @Int
     , SC.testProperty "(Int) singleton" $ seeded $ Range.singleton @StdGen @Int
     ]
 
