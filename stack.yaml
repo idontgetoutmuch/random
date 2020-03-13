@@ -1,0 +1,6 @@
+resolver: lts-15.2
+packages:
+  - .
+flags:
+  splitmix:
+    random: False
