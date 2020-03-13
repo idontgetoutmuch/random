@@ -115,11 +115,12 @@ import Data.IORef (IORef, newIORef, readIORef, writeIORef, atomicModifyIORef')
 import System.IO.Unsafe (unsafePerformIO)
 import qualified System.Random.SplitMix as SM
 
-import GHC.Exts (Ptr(..), build, byteArrayContents#, unsafeCoerce#)
+import GHC.Exts (Ptr(..), build)
 
 mutableByteArrayContentsCompat :: MutableByteArray s -> Ptr Word8
 {-# INLINE mutableByteArrayContentsCompat #-}
 #if !MIN_VERSION_primitive(0,7,0)
+import GHC.Exts (byteArrayContents#, unsafeCoerce#)
 mutableByteArrayContentsCompat (MutableByteArray arr#)
   = Ptr (byteArrayContents# (unsafeCoerce# arr#))
 #else
