@@ -35,6 +35,7 @@ library
         base >=3 && <5,
         bytestring -any,
         primitive -any,
+        microlens -any,
         mtl -any,
         splitmix -any
 

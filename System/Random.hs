@@ -2,6 +2,7 @@
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes #-}
@@ -203,6 +204,7 @@ module System.Random
 import Control.Arrow
 import Control.Monad.IO.Class
 import Control.Monad.Primitive
+import Control.Monad.Reader
 import Control.Monad.ST
 import Control.Monad.State.Strict
 import Data.Bits
@@ -222,6 +224,7 @@ import Foreign.Ptr (plusPtr)
 import Foreign.Storable (peekByteOff, pokeByteOff)
 import GHC.Exts (Ptr(..), build)
 import GHC.ForeignPtr
+import Lens.Micro
 import System.IO.Unsafe (unsafePerformIO)
 import qualified System.Random.SplitMix as SM
 
@@ -598,6 +601,63 @@ runMutGenIO g action = do
 -- | Same as `runMutGenIO`, but discard the resulting generator.
 runMutGenIO_ :: (Prim g, RandomGen g, MonadIO m) => g -> (MutGen RealWorld g -> m a) -> m a
 runMutGenIO_ g action = fst <$> runMutGenIO g action
+
+
+
+class HasGen env g | env -> g where
+  genL :: Lens' env g
+
+instance RandomGen g => HasGen (PureGen g) (PureGen g) where
+  genL = lens (const PureGenI) const
+
+instance RandomGen g => HasGen (PrimGen s g) (PrimGen s g) where
+  genL = id
+
+randomEnv :: (MonadReader env m, MonadRandom g m, HasGen env g, Random a) => m a
+randomEnv = do
+  env <- ask
+  randomM (env ^. genL)
+
+uniformEnv :: (MonadReader env m, MonadRandom g m, HasGen env g, Uniform a) => m a
+uniformEnv = do
+  env <- ask
+  uniform (env ^. genL)
+
+uniformRangeEnv :: (MonadReader env m, MonadRandom g m, HasGen env g, UniformRange a) => (a, a) -> m a
+uniformRangeEnv r = do
+  env <- ask
+  uniformR r (env ^. genL)
+
+runPureGenState ::
+     RandomGen g => g -> ReaderT (PureGen g) (State g) a -> (a, g)
+runPureGenState g = runGenState g . flip runReaderT PureGenI
+
+runPureGenStateT ::
+     RandomGen g => g -> ReaderT (PureGen g) (StateT g m) a -> m (a, g)
+runPureGenStateT g = runGenStateT g . flip runReaderT PureGenI
+
+foo :: (MonadReader env m, MonadRandom g m, HasGen env g) => m Int
+foo = do
+  x :: Int <- uniformEnv
+  y :: Int <- uniformEnv
+  pure (x + y)
+
+bazState :: StdGen -> (Int, StdGen)
+bazState g = runPureGenState g foo
+
+
+data MyEnvPrimGen = MyEnvPrimGen {
+  myEnvPrimGen :: PrimGen RealWorld StdGen
+  }
+
+instance HasGen MyEnvPrimGen (PrimGen RealWorld StdGen) where
+  genL = lens myEnvPrimGen (\e g -> e { myEnvPrimGen = g })
+
+bazPrim :: StdGen -> IO (Int, StdGen)
+bazPrim g = do
+  (res, PrimGen g') <-
+    withGenM (PrimGen g) $ \mg -> flip runReaderT (MyEnvPrimGen mg) foo
+  pure (res, g')
 
 type StdGen = SM.SMGen
 
