@@ -213,7 +213,12 @@ import Data.Int
 import Data.IORef (IORef, atomicModifyIORef', newIORef, readIORef, writeIORef)
 import Data.Primitive.ByteArray
 import Data.Primitive.MutVar
+#if MIN_VERSION_primitive(0,6,4)
 import Data.Primitive.Types as Primitive (Prim, sizeOf)
+#else
+import qualified Data.Primitive as Primitive (sizeOf)
+import Data.Primitive.Types (Prim)
+#endif
 import Data.Word
 import Foreign.C.Types
 import Foreign.Marshal.Alloc (alloca)
