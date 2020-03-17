@@ -120,7 +120,7 @@
 -- >>> :{
 -- let rolls :: [Word32]
 --     rolls = runGenState_
---               (PCGen 17 29)
+--               (PCGen' 17 29)
 --               (randomListM PureGen 10 >>= \xs -> return $ map ((+1) . (`mod` 6)) xs)
 -- :}
 --
