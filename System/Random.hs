@@ -31,10 +31,11 @@
 --
 -- The original library was and still is split into two layers:
 --
--- * A core /random number generator/ provides a supply of bits.
---   The class 'RandomGen' provides a common interface to such generators.
+-- * A core /random number generator/ provides a supply of bits.  The
+--   class 'RandomGen' provides a common interface to such generators.
 --   The library provides one instance of 'RandomGen', the abstract
---   data type 'StdGen'.  Programmers may, of course, supply their own
+--   data type 'StdGen'.  This implementation uses the SplitMix
+--   algorithm [1]. Programmers may, of course, supply their own
 --   instances of 'RandomGen'.
 --
 -- * The class 'Random' provides a way to extract values of a particular
@@ -42,7 +43,20 @@
 --   instance of 'Random' allows one to generate random values of type
 --   'Float'.
 --
--- This implementation uses the SplitMix algorithm [1].
+-- However, this, e.g. @random :: RandomGen g => g -> (a, g)@,
+-- interface means that any instance for @a@ must be able to use any
+-- generator @g@ forcing all such instances to use infinite precision
+-- 'Integer' with a consequent performance impact.
+--
+-- Thus, implementors are strongly encouraged to provide efficient
+-- versions of at least @genWord32@ and @genWord64@.
+--
+-- FIXME: I want to write that if the implementor just supplies 'next'
+-- then defaults are provided but these will go via an function
+-- (@randomIvalInteger@ which will not be named) which will use the
+-- available entropy to produce a 32 bit random value but will use
+-- 'Integer' to do this resulting in inefficient generation. BUT are
+-- we going keep @randomIvalInteger@????
 --
 -----------------------------------------------------------------------------
 
