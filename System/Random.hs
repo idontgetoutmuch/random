@@ -49,14 +49,18 @@
 -- 'Integer' with a consequent performance impact.
 --
 -- Thus, implementors are strongly encouraged to provide efficient
--- versions of at least @genWord32@ and @genWord64@.
+-- versions of at least 'genWord32' and 'genWord64'.
 --
 -- FIXME: I want to write that if the implementor just supplies 'next'
 -- then defaults are provided but these will go via an function
 -- (@randomIvalInteger@ which will not be named) which will use the
 -- available entropy to produce a 32 bit random value but will use
 -- 'Integer' to do this resulting in inefficient generation. BUT are
--- we going keep @randomIvalInteger@????
+-- we going to keep @randomIvalInteger@????
+--
+-- For users 'Random' and 'RandomGen' are provided mainly for
+-- backwards compatibility. Going forward, they are strongly
+-- encouraged to use 'Uniform', 'UniformRange' and 'MonadRandom'.
 --
 -----------------------------------------------------------------------------
 
@@ -154,6 +158,8 @@ import GHC.ForeignPtr
 import System.IO.Unsafe (unsafePerformIO)
 import qualified System.Random.SplitMix as SM
 
+import Data.Char        ( isSpace, chr, ord )
+
 #if !MIN_VERSION_primitive(0,7,0)
 import Data.Primitive.Types (Addr(..))
 
@@ -193,8 +199,8 @@ mutableByteArrayContentsCompat :: MutableByteArray s -> Ptr Word8
 --
 -- Suppose you want to use a [permuted congruential
 -- generator](https://en.wikipedia.org/wiki/Permuted_congruential_generator)
--- as the source of entropy (FIXME: is that the correct
--- terminology). You can make it an instance of `RandomGen`:
+-- as the source of entropy. You can make it an instance of
+-- `RandomGen`:
 --
 -- >>> data PCGen = PCGen !Word64 !Word64
 --
@@ -251,6 +257,9 @@ mutableByteArrayContentsCompat :: MutableByteArray s -> Ptr Word8
 -- :}
 --
 -- [/Example for RNG Users:/]
+--
+-- >>> setStdGen (mkStdGen 1729) >> replicateM 10 (randomRIO (1,6)) :: IO [Word32]
+-- [2,4,5,4,3,2,4,2,4,3]
 --
 -- Suppose you want to simulate rolls from a dice (yes I know it's a
 -- plural form but it's now common to use it as a singular form):
@@ -656,17 +665,17 @@ mkStdGen s = SM.mkSMGen $ fromIntegral s
 -- For example: 'Integer', 'Float', 'Double' have instance for
 -- @UniformRange@ but there's no way to define @Uniform@.
 --
--- Conversely there're types where @Uniform@ instance is possible
--- while @UniformRange@ is not. One example is tuples: @(a,b)@. While
+-- Conversely there are types where @Uniform@ instance is possible
+-- whereas @UniformRange@ is not. One example is tuples: @(a,b)@. While
 -- @Uniform@ instance is straightforward it's not clear how to define
 -- @UniformRange@. We could try to generate values that @a <= x <= b@
 -- But to do that we need to know number of elements of tuple's second
 -- type parameter @b@ which we don't have.
--- 
--- Or type could have no order at all. Take for example
+--
+-- Or the type could have no order at all. Take for example
 -- angle. Defining @Uniform@ instance is again straghtforward: just
 -- generate value in @[0,2π)@ range. But for any two pair of angles
--- there're two ranges: clockwise and counterclockwise.
+-- there are two ranges: clockwise and counterclockwise.
 
 
 -- | Generate every possible value for data type with equal probability.
@@ -990,7 +999,7 @@ instance Random Char where
 instance Uniform Char where
   uniform = uniformR (minBound, maxBound)
 instance UniformRange Char where
-  -- FIXME
+  uniformR (a, b) = fmap chr . uniformR (ord a, ord b)
 
 instance Random Bool where
   randomM = uniform
