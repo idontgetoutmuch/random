@@ -162,7 +162,8 @@ import GHC.ForeignPtr
 import System.IO.Unsafe (unsafePerformIO)
 import qualified System.Random.SplitMix as SM
 
-import Data.Char        (chr, ord)
+import Data.Char (chr, ord)
+import GHC.Float
 
 #if !MIN_VERSION_primitive(0,7,0)
 import Data.Primitive.Types (Addr(..))
@@ -1031,7 +1032,11 @@ instance Random Double where
   random = randomDouble
   randomM = uniformR (0, 1)
 
-instance UniformRange Double
+instance UniformRange Double where
+  uniformR (l, h) g = do
+    w64 <- uniformWord64 g
+    let x = castWord64ToDouble $ (w64 `shiftR` 12) .|. 0x3ff0000000000000
+    return $ (h - l) * (x - 1.0) + l
 
 randomDouble :: RandomGen b => b -> (Double, b)
 randomDouble rng =
@@ -1050,7 +1055,11 @@ instance Random Float where
   random = randomFloat
   randomM = uniformR (0, 1)
 
-instance UniformRange Float
+instance UniformRange Float where
+  uniformR (l, h) g = do
+    w32 <- uniformWord32 g
+    let x = castWord32ToFloat $ (w32 `shiftR` 9) .|. 0x3f800000
+    return $ (h - l) * (x - 1.0) + l
 
 randomFloat :: RandomGen b => b -> (Float, b)
 randomFloat rng =
