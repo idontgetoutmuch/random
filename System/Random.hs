@@ -35,8 +35,10 @@
 --   class 'RandomGen' provides a common interface to such generators.
 --   The library provides one instance of 'RandomGen', the abstract
 --   data type 'StdGen'.  This implementation uses the SplitMix
---   algorithm [1]. Programmers may, of course, supply their own
---   instances of 'RandomGen'.
+--   algorithm [1] which is provided by
+--   [splitmix](https://www.stackage.org/package/splitmix) package and
+--   thus 'StdGen' is just a synonym for 'SM.SMGen'. Programmers may, of
+--   course, supply their own instances of 'RandomGen'.
 --
 -- * The class 'Random' provides a way to extract values of a particular
 --   type from a random number generator.  For example, the 'Float'
@@ -49,18 +51,20 @@
 -- 'Integer' with a consequent performance impact.
 --
 -- Thus, implementors are strongly encouraged to provide efficient
--- versions of at least 'genWord32' and 'genWord64'.
+-- versions of at least 'genWord32' and 'genWord64'. If the
+-- implementor just supplies 'next' then defaults are provided but
+-- these will go via an function which will use the available entropy
+-- to produce a 32 bit random value but will use 'Integer' to do this
+-- resulting in inefficient generation.
 --
--- FIXME: I want to write that if the implementor just supplies 'next'
--- then defaults are provided but these will go via an function
--- (@randomIvalInteger@ which will not be named) which will use the
--- available entropy to produce a 32 bit random value but will use
--- 'Integer' to do this resulting in inefficient generation. BUT are
--- we going to keep @randomIvalInteger@????
+-- Implementors are also strongly encouraged to ...
 --
 -- For users 'Random' and 'RandomGen' are provided mainly for
 -- backwards compatibility. Going forward, they are strongly
--- encouraged to use 'Uniform', 'UniformRange' and 'MonadRandom'.
+-- encouraged to use 'Uniform', 'UniformRange' and
+-- 'MonadRandom'. These are capable of providing efficient
+-- implementations of random values of the types for which they have
+-- been defined.
 --
 -----------------------------------------------------------------------------
 
@@ -158,7 +162,7 @@ import GHC.ForeignPtr
 import System.IO.Unsafe (unsafePerformIO)
 import qualified System.Random.SplitMix as SM
 
-import Data.Char        ( isSpace, chr, ord )
+import Data.Char        (chr, ord)
 
 #if !MIN_VERSION_primitive(0,7,0)
 import Data.Primitive.Types (Addr(..))
