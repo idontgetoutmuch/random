@@ -468,7 +468,7 @@ genByteString n g = runPureGenST g (uniformByteStringPrim n)
 --
 -- @since 1.2
 runPureGenST :: RandomGen g => g -> (forall s . PureGen g -> StateT g (ST s) a) -> (a, g)
-runPureGenST g action = runST $ runGenStateT g $ action PureGenI
+runPureGenST g action = runST $ runGenStateT g $ action
 {-# INLINE runPureGenST #-}
 
 
@@ -490,8 +490,8 @@ instance (MonadState g m, RandomGen g) => MonadRandom (PureGen g) m where
 -- | Generate a random value in a state monad
 --
 -- @since 1.2
-genRandom :: (RandomGen g, Random a, MonadState g m) => m a
-genRandom = randomM PureGenI
+genRandom :: (RandomGen g, Random a, MonadState g m) => PureGen g -> m a
+genRandom = randomM
 
 -- | Split current generator and update the state with one part, while returning the other.
 --
@@ -499,17 +499,17 @@ genRandom = randomM PureGenI
 splitGen :: (MonadState g m, RandomGen g) => m g
 splitGen = state split
 
-runGenState :: RandomGen g => g -> State g a -> (a, g)
-runGenState = flip runState
+runGenState :: RandomGen g => g -> (PureGen g -> State g a) -> (a, g)
+runGenState g f = runState (f PureGenI) g
 
-runGenState_ :: RandomGen g => g -> State g a -> a
-runGenState_ g = fst . flip runState g
+runGenState_ :: RandomGen g => g -> (PureGen g -> State g a) -> a
+runGenState_ g = fst . runGenState g
 
-runGenStateT :: RandomGen g => g -> StateT g m a -> m (a, g)
-runGenStateT = flip runStateT
+runGenStateT :: RandomGen g => g -> (PureGen g -> StateT g m a) -> m (a, g)
+runGenStateT g f = runStateT (f PureGenI) g
 
-runGenStateT_ :: (RandomGen g, Functor f) => g -> StateT g f a -> f a
-runGenStateT_ g = fmap fst . flip runStateT g
+runGenStateT_ :: (RandomGen g, Functor f) => g -> (PureGen g -> StateT g f a) -> f a
+runGenStateT_ g = fmap fst . runGenStateT g
 
 -- | This is a wrapper wround pure generator that can be used in an effectful environment.
 -- It is safe in presence of concurrency since all operations are performed atomically.
@@ -721,7 +721,7 @@ class Random a where
   {-# INLINE randomR #-}
   randomR :: RandomGen g => (a, a) -> g -> (a, g)
   default randomR :: (RandomGen g, UniformRange a) => (a, a) -> g -> (a, g)
-  randomR r g = runGenState g (uniformR r PureGenI)
+  randomR r g = runGenState g (uniformR r)
 
   -- | The same as 'randomR', but using a default range determined by the type:
   --
