@@ -105,15 +105,15 @@ jobs:
   #   compiler: ": #stack 8.0.2"
   #   addons: {apt: {packages: [libgmp-dev]}}
 
-  - env: BUILD=stack ARGS="--resolver lts-11 --stack-yaml stack-old.yaml"
+  - env: BUILD=stack ARGS="--resolver lts-11.22 --stack-yaml stack-old.yaml"
     compiler: ": #stack 8.2.2"
     addons: {apt: {packages: [libgmp-dev]}}
 
-  - env: BUILD=stack ARGS="--resolver lts-12 --stack-yaml stack-old.yaml"
+  - env: BUILD=stack ARGS="--resolver lts-12.26 --stack-yaml stack-old.yaml"
     compiler: ": #stack 8.4.4"
     addons: {apt: {packages: [libgmp-dev]}}
 
-  - env: BUILD=stack ARGS="--resolver lts-14" COVERALLS_STACK_YAML="stack.yaml"
+  - env: BUILD=stack ARGS="--resolver lts-14.27" COVERALLS_STACK_YAML="stack-coveralls.yaml"
     compiler: ": #stack 8.6.5"
     addons: {apt: {packages: [libgmp-dev]}}
 
