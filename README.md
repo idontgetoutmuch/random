@@ -1,7 +1,8 @@
-The Haskell Standard Library -- Random Number Generation
-========================================================
+# The Haskell Standard Library
 
-## Status
+## Random Number Generation
+
+### Status
 
 | Language | Travis | Coveralls |
 |:--------:|:------:|:---------:|
@@ -12,7 +13,7 @@ The Haskell Standard Library -- Random Number Generation
 |  [`random`](https://github.com/idontgetoutmuch/random)| [![Hackage](https://img.shields.io/hackage/v/random.svg)](https://hackage.haskell.org/package/random)| [![Nightly](https://www.stackage.org/package/random/badge/nightly)](https://www.stackage.org/nightly/package/random)| [![Nightly](https://www.stackage.org/package/random/badge/lts)](https://www.stackage.org/lts/package/random)
 
 
-## Description
+### Description
 
 This library provides a basic interface for (splittable) random number generators.
 
