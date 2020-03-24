@@ -113,7 +113,7 @@ jobs:
     compiler: ": #stack 8.4.4"
     addons: {apt: {packages: [libgmp-dev]}}
 
-  - env: BUILD=stack ARGS="--resolver lts-14"
+  - env: BUILD=stack ARGS="--resolver lts-14" COVERALLS_STACK_YAML="stack.yaml"
     compiler: ": #stack 8.6.5"
     addons: {apt: {packages: [libgmp-dev]}}
 
@@ -236,7 +236,16 @@ script:
   set -ex
   case "$BUILD" in
     stack)
-      stack --no-terminal $ARGS test --bench --no-run-benchmarks --haddock --no-haddock-deps
+      BUILD_ARGS="--bench --no-run-benchmarks --haddock --no-haddock-deps"
+      if [ -n "${COVERALLS_STACK_YAML}" ] && [ -n "${COVERALLS_REPO_TOKEN}" ]; then
+         stack $ARGS --stack-yaml="$COVERALLS_STACK_YAML" test random:tests --coverage $BUILD_ARGS
+         stack $ARGS --stack-yaml="$COVERALLS_STACK_YAML" hpc report --all
+         travis_retry curl -L https://github.com/lehins/stack-hpc-coveralls/releases/download/0.0.5.0/shc.tar.gz | tar xz shc
+         STACK_YAML="$COVERALLS_STACK_YAML" ./shc --repo-token=$COVERALLS_REPO_TOKEN combined custom
+         stack $ARGS --stack-yaml="$COVERALLS_STACK_YAML" test random:doctests --coverage $BUILD_ARGS
+      else
+         stack --no-terminal $ARGS test $BUILD_ARGS
+      fi
       ;;
     cabal)
       cabal install --enable-tests --enable-benchmarks --force-reinstalls --ghc-options=-O0 --reorder-goals --max-backjumps=-1 $CABALARGS $PACKAGES
