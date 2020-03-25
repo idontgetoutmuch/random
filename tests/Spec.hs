@@ -16,7 +16,7 @@ import qualified Spec.Run as Run
 main :: IO ()
 main = defaultMain $ testGroup "Spec"
     [ bitmaskSpecWord32, bitmaskSpecWord64
-    , rangeSpecWord32, rangeSpecInt
+    , rangeSpecWord32, rangeSpecDouble, rangeSpecInt
     , runSpec
     ]
 
@@ -39,6 +39,11 @@ rangeSpecWord32 = testGroup "uniformR (Word32)"
     [ SC.testProperty "(Word32) symmetric" $ seeded $ Range.symmetric @StdGen @Word32
     , SC.testProperty "(Word32) bounded" $ seeded $ Range.bounded @StdGen @Word32
     , SC.testProperty "(Word32) singleton" $ seeded $ Range.singleton @StdGen @Word32
+    ]
+
+rangeSpecDouble :: TestTree
+rangeSpecDouble = testGroup "uniformR (Word32)"
+    [ SC.testProperty "(Double) uniform bounded" $ seeded $ Range.uniformBounded @StdGen @Double
     ]
 
 rangeSpecInt :: TestTree
