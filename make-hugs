@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+cd $(dirname $0)
+for i in $(find System -name '*.hs'); do
+  mkdir -p hugs/$(dirname $i)
+  cpphs --noline -DNO_GHC -DWORD_SIZE_IN_BITS=$(getconf LONG_BIT) $i > hugs/$i
+done
