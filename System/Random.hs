@@ -11,7 +11,9 @@
 {-# LANGUAGE Trustworthy #-}
 #endif
 
+#if !NO_GHC
 #include "MachDeps.h"
+#endif
 
 -----------------------------------------------------------------------------
 -- |
@@ -154,6 +156,8 @@ module System.Random
   , runGenStateT
   , runGenStateT_
   , runPureGenST
+
+#if !NO_GHC
   -- ** Based on PrimMonad
   -- *** PrimGen - boxed thread safe state
   , PrimGen
@@ -163,6 +167,7 @@ module System.Random
   , runPrimGenIO_
   , splitPrimGen
   , atomicPrimGen
+
   -- *** MutGen - unboxed mutable state
   , MutGen
   , runMutGenST
@@ -171,6 +176,7 @@ module System.Random
   , runMutGenIO_
   , splitMutGen
   , applyMutGen
+#endif
 
   -- ** The global random number generator
 
@@ -187,10 +193,12 @@ module System.Random
   , UniformRange(..)
   , Random(..)
 
+#if !NO_GHC
   -- * Generators for sequences of bytes
   , uniformByteArrayPrim
   , uniformByteStringPrim
   , genByteString
+#endif
 
   -- * References
   -- $references
@@ -201,19 +209,25 @@ module System.Random
 
 import Control.Arrow
 import Control.Monad.IO.Class
+#if !NO_GHC
 import Control.Monad.Primitive
+#endif
 import Control.Monad.ST
 import Control.Monad.State.Strict
 import Data.Bits
+#if !NO_GHC
 import Data.ByteString.Builder.Prim (word64LE)
 import Data.ByteString.Builder.Prim.Internal (runF)
 import Data.ByteString.Internal (ByteString(PS))
 import Data.ByteString.Short.Internal (ShortByteString(SBS), fromShort)
+#endif
 import Data.Int
 import Data.IORef (IORef, atomicModifyIORef', newIORef, readIORef, writeIORef)
+#if !NO_GHC
 import Data.Primitive.ByteArray
 import Data.Primitive.MutVar
 import Data.Primitive.Types as Primitive (Prim, sizeOf)
+#endif
 import Data.Word
 import Foreign.C.Types
 import Foreign.Marshal.Alloc (alloca)
@@ -224,6 +238,7 @@ import GHC.ForeignPtr
 import System.IO.Unsafe (unsafePerformIO)
 import qualified System.Random.SplitMix as SM
 
+#if !NO_GHC
 #if !MIN_VERSION_primitive(0,7,0)
 import Data.Primitive.Types (Addr(..))
 
@@ -235,6 +250,7 @@ mutableByteArrayContentsCompat = mutableByteArrayContents
 #endif
 mutableByteArrayContentsCompat :: MutableByteArray s -> Ptr Word8
 {-# INLINE mutableByteArrayContentsCompat #-}
+#endif
 
 -- $setup
 -- >>> import System.IO (IOMode(WriteMode), hPutStr, withBinaryFile)
@@ -304,9 +320,11 @@ class RandomGen g where
   genWord64R :: Word64 -> g -> (Word64, g)
   genWord64R m = randomIvalIntegral (minBound, m)
 
+#if !NO_GHC
   genByteArray :: Int -> g -> (ByteArray, g)
   genByteArray n g = runPureGenST g $ uniformByteArrayPrim n
   {-# INLINE genByteArray #-}
+#endif
 
   -- |The 'genRange' operation yields the range of values returned by
   -- the generator.
@@ -353,11 +371,12 @@ class Monad m => MonadRandom g m where
   uniformWord32 = uniformWord32R maxBound
   uniformWord64 :: g -> m Word64
   uniformWord64 = uniformWord64R maxBound
+#if !NO_GHC
   uniformByteArray :: Int -> g -> m ByteArray
   default uniformByteArray :: PrimMonad m => Int -> g -> m ByteArray
   uniformByteArray = uniformByteArrayPrim
   {-# INLINE uniformByteArray #-}
-
+#endif
 
 withGenM :: MonadRandom g m => Frozen g -> (g -> m a) -> m (a, Frozen g)
 withGenM fg action = do
@@ -366,7 +385,7 @@ withGenM fg action = do
   fg' <- freezeGen g
   pure (res, fg')
 
-
+#if !NO_GHC
 -- | This function will efficiently generate a sequence of random bytes in a platform
 -- independent manner. Memory allocated will be pinned, so it is safe to use for FFI
 -- calls.
@@ -433,6 +452,7 @@ uniformByteStringPrim n g = do
 genByteString :: RandomGen g => Int -> g -> (ByteString, g)
 genByteString n g = runPureGenST g (uniformByteStringPrim n)
 {-# INLINE genByteString #-}
+#endif
 
 -- | Run an effectful generating action in `ST` monad using a pure generator.
 --
@@ -455,7 +475,9 @@ instance (MonadState g m, RandomGen g) => MonadRandom (PureGen g) m where
   uniformWord16 _ = state genWord16
   uniformWord32 _ = state genWord32
   uniformWord64 _ = state genWord64
+#if !NO_GHC
   uniformByteArray n _ = state (genByteArray n)
+#endif
 
 -- | Generate a random value in a state monad
 --
@@ -481,6 +503,7 @@ runGenStateT g f = runStateT (f PureGenI) g
 runGenStateT_ :: (RandomGen g, Functor f) => g -> (PureGen g -> StateT g f a) -> f a
 runGenStateT_ g = fmap fst . runGenStateT g
 
+#if !NO_GHC
 -- | This is a wrapper wround pure generator that can be used in an effectful environment.
 -- It is safe in presence of concurrency since all operations are performed atomically.
 --
@@ -552,8 +575,9 @@ runPrimGenIO g action = do
 runPrimGenIO_ :: (RandomGen g, MonadIO m) => g -> (PrimGen RealWorld g -> m a) -> m a
 runPrimGenIO_ g action = fst <$> runPrimGenIO g action
 {-# INLINE runPrimGenIO_ #-}
+#endif
 
-
+#if !NO_GHC
 newtype MutGen s g = MutGenI (MutableByteArray s)
 
 instance (s ~ PrimState m, PrimMonad m, RandomGen g, Prim g) =>
@@ -609,6 +633,7 @@ runMutGenIO g action = do
 -- | Same as `runMutGenIO`, but discard the resulting generator.
 runMutGenIO_ :: (Prim g, RandomGen g, MonadIO m) => g -> (MutGen RealWorld g -> m a) -> m a
 runMutGenIO_ g action = fst <$> runMutGenIO g action
+#endif
 
 type StdGen = SM.SMGen
 
