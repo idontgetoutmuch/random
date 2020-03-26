@@ -31,6 +31,7 @@ library
     exposed-modules:  System.Random
     default-language: Haskell2010
     ghc-options:      -Wall
+    hs-source-dirs:   src
     build-depends:
         base >=4.10 && <5,
         bytestring -any,
