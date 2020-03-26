@@ -2,18 +2,20 @@
 
 module Main (main) where
 
-import Data.Word (Word32, Word64)
+import Data.Word (Word8, Word32, Word64)
 import System.Random
 import Test.Tasty
 import Test.Tasty.ExpectedFailure (expectFail)
 import Test.Tasty.SmallCheck as SC
 
 import qualified Spec.Bitmask as Bitmask
+import qualified Spec.Bitmask as BitmaskM
 import qualified Spec.Bitmask as Range
 
 main :: IO ()
 main = defaultMain $ testGroup "Spec"
     [ bitmaskSpecWord32, bitmaskSpecWord64
+    , bitmaskMSpecWord8, bitmaskMSpecWord64
     , rangeSpecWord32, rangeSpecDouble, rangeSpecFloat, rangeSpecInt
     ]
 
@@ -29,6 +31,18 @@ bitmaskSpecWord64 = testGroup "bitmaskWithRejection (Word64)"
     [ SC.testProperty "symmetric" $ seeded $ Bitmask.symmetric @StdGen @Word64
     , SC.testProperty "bounded" $ seeded $ Bitmask.bounded @StdGen @Word64
     , SC.testProperty "singleton" $ seeded $ Bitmask.singleton @StdGen @Word64
+    ]
+
+bitmaskMSpecWord8 :: TestTree
+bitmaskMSpecWord8 = testGroup "bitmaskWithRejectionM (Word8)"
+    [ SC.testProperty "bounded" $ seeded $ BitmaskM.bounded @StdGen @Word8
+    , SC.testProperty "singleton" $ seeded $ BitmaskM.singleton @StdGen @Word8
+    ]
+
+bitmaskMSpecWord64 :: TestTree
+bitmaskMSpecWord64 = testGroup "bitmaskWithRejectionM (Word64)"
+    [ SC.testProperty "bounded" $ seeded $ BitmaskM.bounded @StdGen @Word64
+    , SC.testProperty "singleton" $ seeded $ BitmaskM.singleton @StdGen @Word64
     ]
 
 rangeSpecWord32 :: TestTree

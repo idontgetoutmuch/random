@@ -341,10 +341,10 @@ class Monad m => MonadRandom g m where
   freezeGen :: g -> m (Frozen g)
   -- | Generate `Word32` up to and including the supplied max value
   uniformWord32R :: Word32 -> g -> m Word32
-  uniformWord32R = bitmaskWithRejection32M
+  uniformWord32R = bitmaskWithRejectionM uniformWord32
   -- | Generate `Word64` up to and including the supplied max value
   uniformWord64R :: Word64 -> g -> m Word64
-  uniformWord64R = bitmaskWithRejection64M
+  uniformWord64R = bitmaskWithRejectionM uniformWord64
 
   uniformWord8 :: g -> m Word8
   uniformWord8 = fmap fromIntegral . uniformWord32R (fromIntegral (maxBound :: Word8))
@@ -1176,13 +1176,7 @@ bitmaskWithRejectionM genUniform range gen = go
       if x' >= range
         then go
         else pure x'
-
-
-bitmaskWithRejection32M :: MonadRandom g m => Word32 -> g -> m Word32
-bitmaskWithRejection32M = bitmaskWithRejectionM uniformWord32
-
-bitmaskWithRejection64M :: MonadRandom g m => Word64 -> g -> m Word64
-bitmaskWithRejection64M = bitmaskWithRejectionM uniformWord64
+{-# INLINE bitmaskWithRejectionM #-}
 
 -- The global random number generator
 
