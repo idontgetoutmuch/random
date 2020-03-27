@@ -258,14 +258,18 @@ class RandomGen g where
   -- for more details. It is thus deprecated. If you need random
   -- values from other types you will need to construct a suitable
   -- conversion function.
+  --
+  -- Implementation note: the default implementation of 'next' ignores the
+  -- result of 'genRange'. It generates an 'Int' in the full domain of the
+  -- type. Instances of 'RandomGen' must implement both 'next' and 'genRange'
+  -- or neither. Implementing only 'genRange' but not 'next' or vice versa will
+  -- lead to unexpected results.
   next :: g -> (Int, g)
-  next g = (minR + fromIntegral w, g') where
-    (minR, maxR) = genRange g
-    range = fromIntegral $ maxR - minR
+  next g = (fromIntegral w, g') where
 #if WORD_SIZE_IN_BITS == 32
-    (w, g') = genWord32R range g
+    (w, g') = genWord32 g
 #elif WORD_SIZE_IN_BITS == 64
-    (w, g') = genWord64R range g
+    (w, g') = genWord64 g
 #else
 -- https://hackage.haskell.org/package/ghc-prim-0.5.3/docs/GHC-Prim.html#g:1
 -- GHC always implements Int using the primitive type Int#, whose size equals
