@@ -606,6 +606,8 @@ type StdGen = SM.SMGen
 
 instance RandomGen StdGen where
   next = SM.nextInt
+  genWord8  = first fromIntegral . SM.nextWord32
+  genWord16 = first fromIntegral . SM.nextWord32
   genWord32 = SM.nextWord32
   genWord64 = SM.nextWord64
   split = SM.splitSMGen
