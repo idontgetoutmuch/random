@@ -7,6 +7,8 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE GHCForeignImportPrim #-}
+{-# LANGUAGE UnliftedFFITypes #-}
 #if __GLASGOW_HASKELL__ >= 701
 {-# LANGUAGE Trustworthy #-}
 #endif
@@ -59,12 +61,57 @@
 --
 -- Implementors are also strongly encouraged to ...
 --
+<<<<<<< variant A
 -- For users 'Random' and 'RandomGen' are provided mainly for
 -- backwards compatibility. Going forward, they are strongly
 -- encouraged to use 'Uniform', 'UniformRange' and
 -- 'MonadRandom'. These are capable of providing efficient
 -- implementations of random values of the types for which they have
 -- been defined.
+>>>>>>> variant B
+-- Instead we should define (where e.g. @unBuildWord32 :: Word32 ->
+-- (Word16, Word16)@ is a function to pull apart a 'Word32' into a
+-- pair of 'Word16'):
+--
+-- >>> newtype PCGen' = PCGen' { unPCGen :: PCGen }
+--
+-- >>> let stepGen' = second PCGen' . stepGen . unPCGen
+--
+-- >>> :{
+-- instance RandomGen PCGen' where
+--   genWord8 = first fromIntegral . stepGen'
+--   genWord16 = first fromIntegral . stepGen'
+--   genWord32 = stepGen'
+--   genWord64 g = (buildWord64 x y, g'')
+--       where
+--       (x, g') = stepGen' g
+--       (y, g'') = stepGen' g'
+--       buildWord64 w0 w1 = ((fromIntegral w1) `shiftL` 32) .|. (fromIntegral w0)
+-- :}
+--
+-- [/Example for RNG Users:/]
+--
+-- Suppose you want to simulate rolls from a dice (yes I know it's a
+-- plural form but it's now common to use it as a singular form):
+--
+-- >>> :{
+-- let randomListM :: (MonadRandom g m, Num a, Uniform a) => g -> Int -> m [a]
+--     randomListM gen n = replicateM n (uniform gen)
+-- :}
+--
+-- >>> :{
+-- let rolls :: [Word32]
+--     rolls = runGenState_
+--               (PCGen 17 29)
+--               (\g -> randomListM g 10 >>= \xs -> return $ map ((+1) . (`mod` 6)) xs)
+-- :}
+--
+-- >>> rolls
+-- [1,4,2,4,2,2,3,1,5,1]
+--
+-- FIXME: What should we say about generating values from types other
+-- than Word8 etc?
+======= end
 --
 -----------------------------------------------------------------------------
 
@@ -157,10 +204,13 @@ import Foreign.C.Types
 import Foreign.Marshal.Alloc (alloca)
 import Foreign.Ptr (plusPtr)
 import Foreign.Storable (peekByteOff, pokeByteOff)
-import GHC.Exts (Ptr(..), build)
+import GHC.Exts (Ptr(..))
 import GHC.ForeignPtr
 import System.IO.Unsafe (unsafePerformIO)
 import qualified System.Random.SplitMix as SM
+import GHC.Base
+import GHC.Word
+
 
 import Data.Char (chr, ord)
 import GHC.Float
@@ -178,25 +228,13 @@ mutableByteArrayContentsCompat :: MutableByteArray s -> Ptr Word8
 {-# INLINE mutableByteArrayContentsCompat #-}
 
 -- $setup
+-- >>> import Control.Arrow (first, second)
+-- >>> import Control.Monad (replicateM)
+-- >>> import Data.Bits
+-- >>> import Data.Word
 -- >>> import System.IO (IOMode(WriteMode), hPutStr, withBinaryFile)
 -- >>> :set -XFlexibleContexts
 -- >>> :set -fno-warn-missing-methods
--- >>> :{
--- unBuildWord32 :: Word32 -> (Word16, Word16)
--- unBuildWord32 w = (fromIntegral (shiftR w 16),
---                    fromIntegral (fromIntegral (maxBound :: Word16) .&. w))
--- :}
---
--- >>> :{
--- unBuildWord16 :: Word16 -> (Word8, Word8)
--- unBuildWord16 w = (fromIntegral (shiftR w 8),
---                    fromIntegral (fromIntegral (maxBound :: Word8) .&. w))
--- :}
---
--- >>> :{
--- buildWord64 :: Word32 -> Word32 -> Word64
--- buildWord64 w0 w1 = ((fromIntegral w1) `shiftL` 32) .|. (fromIntegral w0)
--- :}
 
 -- $randomgen
 --
@@ -292,6 +330,7 @@ mutableByteArrayContentsCompat :: MutableByteArray s -> Ptr Word8
 {-# DEPRECATED next "Use genWord32[R] or genWord64[R]" #-}
 {-# DEPRECATED genRange "Use genWord32[R] or genWord64[R]" #-}
 class RandomGen g where
+  {-# MINIMAL (next,genRange)|((genWord32|genWord32R),(genWord64|genWord64R)) #-}
   -- |The 'next' operation returns an 'Int' that is uniformly
   -- distributed in the range returned by 'genRange' (including both
   -- end points), and a new generator. Using 'next' is inefficient as
@@ -564,7 +603,7 @@ runPrimGenST_ g action = fst $ runPrimGenST g action
 -- | Functions like 'runPrimGenIO' are necessary for example if you
 -- wish to write a function like
 --
--- >>> let ioGen gen = withBinaryFile "foo.txt" WriteMode $ \h -> ((randomM gen) :: IO Word32) >>= (hPutStr h . show)
+-- >>> let ioGen gen = withBinaryFile "foo.txt" WriteMode $ \h -> ((uniform gen) :: IO Word32) >>= (hPutStr h . show)
 --
 -- and then run it
 --
@@ -1035,8 +1074,42 @@ instance Random Double where
 instance UniformRange Double where
   uniformR (l, h) g = do
     w64 <- uniformWord64 g
+<<<<<<< variant A
     let x = castWord64ToDouble $ (w64 `shiftR` 12) .|. 0x3ff0000000000000
     return $ (h - l) * (x - 1.0) + l
+>>>>>>> variant B
+    let x = word64ToDoubleInUnitInterval w64
+    return $ (h - l) * x + l
+
+-- | Turns a given uniformly distributed 'Word64' value into a uniformly
+-- distributed 'Double' value in the range [0, 1).
+word64ToDoubleInUnitInterval :: Word64 -> Double
+word64ToDoubleInUnitInterval w64 = between1and2 - 1.0
+  where
+    between1and2 = castWord64ToDouble $ (w64 `unsafeShiftR` 12) .|. 0x3ff0000000000000
+{-# INLINE word64ToDoubleInUnitInterval #-}
+
+-- | These are now in 'GHC.Float' but unpatched in some versions so
+-- for now we roll our own. See
+-- https://gitlab.haskell.org/ghc/ghc/-/blob/6d172e63f3dd3590b0a57371efb8f924f1fcdf05/libraries/base/GHC/Float.hs
+{-# INLINE castWord32ToFloat #-}
+castWord32ToFloat :: Word32 -> Float
+castWord32ToFloat (W32# w#) = F# (stgWord32ToFloat w#)
+
+foreign import prim "stg_word32ToFloatyg"
+    stgWord32ToFloat :: Word# -> Float#
+
+{-# INLINE castWord64ToDouble #-}
+castWord64ToDouble :: Word64 -> Double
+castWord64ToDouble (W64# w) = D# (stgWord64ToDouble w)
+
+foreign import prim "stg_word64ToDoubleyg"
+#if WORD_SIZE_IN_BITS == 64
+    stgWord64ToDouble :: Word# -> Double#
+#else
+    stgWord64ToDouble :: Word64# -> Double#
+#endif
+======= end
 
 randomDouble :: RandomGen b => b -> (Double, b)
 randomDouble rng =
@@ -1058,8 +1131,21 @@ instance Random Float where
 instance UniformRange Float where
   uniformR (l, h) g = do
     w32 <- uniformWord32 g
+<<<<<<< variant A
     let x = castWord32ToFloat $ (w32 `shiftR` 9) .|. 0x3f800000
     return $ (h - l) * (x - 1.0) + l
+>>>>>>> variant B
+    let x = word32ToFloatInUnitInterval w32
+    return $ (h - l) * x + l
+
+-- | Turns a given uniformly distributed 'Word32' value into a uniformly
+-- distributed 'Float' value in the range [0,1).
+word32ToFloatInUnitInterval :: Word32 -> Float
+word32ToFloatInUnitInterval w32 = between1and2 - 1.0
+  where
+    between1and2 = castWord32ToFloat $ (w32 `unsafeShiftR` 9) .|. 0x3f800000
+{-# INLINE word32ToFloatInUnitInterval #-}
+======= end
 
 randomFloat :: RandomGen b => b -> (Float, b)
 randomFloat rng =
