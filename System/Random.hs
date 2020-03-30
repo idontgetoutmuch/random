@@ -151,8 +151,8 @@ module System.Random
   , runGenStateT_
   , runPureGenST
   -- ** Based on PrimMonad
-  -- *** MutGen - boxed thread safe state
-  , MutGen
+  -- *** MutVar - boxed thread safe state
+  , MutVar
   , runMutGenST
   , runMutGenST_
   , runMutGenIO
@@ -206,7 +206,6 @@ import Data.ByteString.Builder.Prim.Internal (runF)
 import Data.ByteString.Internal (ByteString(PS))
 import Data.ByteString.Short.Internal (ShortByteString(SBS), fromShort)
 import Data.Int
-import Data.IORef (IORef, atomicModifyIORef', newIORef, readIORef, writeIORef)
 import Data.Primitive.ByteArray
 import Data.Primitive.MutVar
 import Data.Primitive.Types as Primitive (Prim, sizeOf)
@@ -473,13 +472,11 @@ runGenStateT_ g = fmap fst . runGenStateT g
 -- It is safe in presence of concurrency since all operations are performed atomically.
 --
 -- @since 1.2
-newtype MutGen s g = MutGenI (MutVar s g)
-
 instance (s ~ PrimState m, PrimMonad m, RandomGen g) =>
-         MonadRandom (MutGen s g) m where
-  newtype Frozen (MutGen s g) = MutGen g
-  thawGen (MutGen g) = fmap MutGenI (newMutVar g)
-  freezeGen (MutGenI gVar) = fmap MutGen (readMutVar gVar)
+         MonadRandom (MutVar s g) m where
+  newtype Frozen (MutVar s g) = MutGen g
+  thawGen (MutGen g) = newMutVar g
+  freezeGen = fmap MutGen . readMutVar
   uniformWord32R r = atomicMutGen (genWord32R r)
   uniformWord64R r = atomicMutGen (genWord64R r)
   uniformWord8 = atomicMutGen genWord8
@@ -490,8 +487,8 @@ instance (s ~ PrimState m, PrimMonad m, RandomGen g) =>
   uniformByteArray n = atomicMutGen (genByteArray n)
 
 -- | Apply a pure operation to generator atomically.
-atomicMutGen :: PrimMonad m => (g -> (a, g)) -> MutGen (PrimState m) g -> m a
-atomicMutGen op (MutGenI gVar) =
+atomicMutGen :: PrimMonad m => (g -> (a, g)) -> MutVar (PrimState m) g -> m a
+atomicMutGen op gVar =
   atomicModifyMutVar' gVar $ \g ->
     case op g of
       (a, g') -> (g', a)
@@ -504,11 +501,11 @@ atomicMutGen op (MutGenI gVar) =
 -- @since 1.2
 splitMutGen ::
      (RandomGen g, PrimMonad m)
-  => MutGen (PrimState m) g
-  -> m (MutGen (PrimState m) g)
+  => MutVar (PrimState m) g
+  -> m (MutVar (PrimState m) g)
 splitMutGen = atomicMutGen split >=> thawGen . MutGen
 
-runMutGenST :: RandomGen g => g -> (forall s . MutGen s g -> ST s a) -> (a, g)
+runMutGenST :: RandomGen g => g -> (forall s . MutVar s g -> ST s a) -> (a, g)
 runMutGenST g action = runST $ do
   mutGen <- thawGen $ MutGen g
   res <- action mutGen
@@ -516,7 +513,7 @@ runMutGenST g action = runST $ do
   pure (res, g')
 
 -- | Same as `runMutGenST`, but discard the resulting generator.
-runMutGenST_ :: RandomGen g => g -> (forall s . MutGen s g -> ST s a) -> a
+runMutGenST_ :: RandomGen g => g -> (forall s . MutVar s g -> ST s a) -> a
 runMutGenST_ g action = fst $ runMutGenST g action
 
 -- | Functions like 'runMutGenIO' are necessary for example if you
@@ -528,7 +525,7 @@ runMutGenST_ g action = fst $ runMutGenST g action
 --
 -- >>> runMutGenIO_ (mkStdGen 1729) ioGen
 --
-runMutGenIO :: (RandomGen g, MonadIO m) => g -> (MutGen RealWorld g -> m a) -> m (a, g)
+runMutGenIO :: (RandomGen g, MonadIO m) => g -> (MutVar RealWorld g -> m a) -> m (a, g)
 runMutGenIO g action = do
   mutGen <- liftIO $ thawGen $ MutGen g
   res <- action mutGen
@@ -537,7 +534,7 @@ runMutGenIO g action = do
 {-# INLINE runMutGenIO #-}
 
 -- | Same as `runMutGenIO`, but discard the resulting generator.
-runMutGenIO_ :: (RandomGen g, MonadIO m) => g -> (MutGen RealWorld g -> m a) -> m a
+runMutGenIO_ :: (RandomGen g, MonadIO m) => g -> (MutVar RealWorld g -> m a) -> m a
 runMutGenIO_ g action = fst <$> runMutGenIO g action
 {-# INLINE runMutGenIO_ #-}
 
@@ -1191,20 +1188,20 @@ deterministic behaviour, use 'setStdGen'.
 
 -- |Sets the global random number generator.
 setStdGen :: StdGen -> IO ()
-setStdGen sgen = writeIORef theStdGen sgen
+setStdGen sgen = writeMutVar theStdGen sgen
 
 -- |Gets the global random number generator.
 getStdGen :: IO StdGen
-getStdGen  = readIORef theStdGen
+getStdGen = readMutVar theStdGen
 
-theStdGen :: IORef StdGen
-theStdGen  = unsafePerformIO $ SM.initSMGen >>= newIORef
+theStdGen :: MutVar RealWorld StdGen
+theStdGen = unsafePerformIO $ SM.initSMGen >>= thawGen . MutGen
 {-# NOINLINE theStdGen #-}
 
 -- |Applies 'split' to the current global random generator,
 -- updates it with one of the results, and returns the other.
 newStdGen :: IO StdGen
-newStdGen = atomicModifyIORef' theStdGen split
+newStdGen = atomicMutGen split theStdGen
 
 {- |Uses the supplied function to get a value from the current global
 random generator, and updates the global generator with the new generator
@@ -1216,9 +1213,8 @@ between 1 and 6:
 
 -}
 
-getStdRandom :: (StdGen -> (a,StdGen)) -> IO a
-getStdRandom f = atomicModifyIORef' theStdGen (swap . f)
-  where swap (v,g) = (g,v)
+getStdRandom :: (StdGen -> (a, StdGen)) -> IO a
+getStdRandom f = atomicMutGen f theStdGen
 
 {- $references
 
