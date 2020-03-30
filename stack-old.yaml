@@ -50,7 +50,7 @@ extra-deps:
   # Not contained in all snapshots we want to test against
 - doctest-0.16.2@sha256:2f96e9bbe9aee11b47453c82c24b3dc76cdbb8a2a7c984dfd60b4906d08adf68,6942
 - cabal-doctest-1.0.8@sha256:34dff6369d417df2699af4e15f06bc181d495eca9c51efde173deae2053c197c,1491
-- primitive-0.6.4.0@sha256:5b6a2c3cc70a35aabd4565fcb9bb1dd78fe2814a36e62428a9a1aae8c32441a1,2079
+- pvar-0.1.1.0@sha256:4715f603c0e87dbccdd49e1958554f8771f7730c8a61561552690b929223aa8f,1798
 
 # Override default flag values for local packages and extra-deps
 flags:

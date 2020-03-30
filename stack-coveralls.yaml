@@ -1,7 +1,8 @@
 resolver: lts-14.27
 packages:
 - .
-extra-deps: []
+extra-deps:
+- pvar-0.1.1.0@sha256:4715f603c0e87dbccdd49e1958554f8771f7730c8a61561552690b929223aa8f,1798
 flags:
   splitmix:
     random: false

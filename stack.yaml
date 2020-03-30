@@ -34,7 +34,8 @@ packages:
 # Dependency packages to be pulled from upstream that are not in the resolver.
 # These entries can reference officially published versions as well as
 # forks / in-progress versions pinned to a git hash. For example:
-extra-deps: []
+extra-deps:
+- pvar-0.1.1.0@sha256:4715f603c0e87dbccdd49e1958554f8771f7730c8a61561552690b929223aa8f,1798
 
 # Override default flag values for local packages and extra-deps
 flags:
