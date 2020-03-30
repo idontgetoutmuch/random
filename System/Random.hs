@@ -68,6 +68,7 @@
 -- >>> fst $ stepGen $ snd $ stepGen (PCGen 17 29)
 -- 3288430965
 --
+-- >>> import System.Random
 -- >>> :{
 -- instance RandomGen PCGen where
 --   next g = (fromIntegral y, h)
