@@ -117,7 +117,7 @@ module System.Random
 
   -- * Stateful interface for pure generators
   -- ** Based on StateT
-  , PureGen
+  , PureGen(..)
   , splitGen
   , genRandom
   , runGenState
@@ -127,7 +127,7 @@ module System.Random
   , runPureGenST
   -- ** Based on PrimMonad
   -- *** MutGen - boxed thread safe state
-  , MutGen
+  , MutGen(..)
   , runMutGenST
   , runMutGenST_
   , runMutGenIO
@@ -135,7 +135,7 @@ module System.Random
   , splitMutGen
   , atomicMutGen
   -- *** PrimGen - unboxed mutable state
-  , PrimGen
+  , PrimGen(..)
   , runPrimGenST
   , runPrimGenST_
   , runPrimGenIO
