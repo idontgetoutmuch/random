@@ -432,11 +432,10 @@ runGenState g f = runState (f StateGenM) g
 runGenState_ :: RandomGen g => g -> (GenM (State g) (PureGen g) -> State g a) -> a
 runGenState_ g = fst . runGenState g
 
-runGenStateT :: RandomGen g => g -> (GenM (StateT g m) (PureGen g) -> StateT g m a) -> m (a, g)
+runGenStateT :: (RandomGen g, m ~ StateT g f) => g -> (GenM m (PureGen g) -> m a) -> f (a, g)
 runGenStateT g f = runStateT (f StateGenM) g
 
-runGenStateT_ :: (RandomGen g, Functor f) =>
-  g -> (GenM (StateT g f) (PureGen g) -> StateT g f a) -> f a
+runGenStateT_ :: (RandomGen g, Functor f, m ~ StateT g f) => g -> (GenM m (PureGen g) -> m a) -> f a
 runGenStateT_ g = fmap fst . runGenStateT g
 
 -- | This is a wrapper wround pure generator that can be used in an effectful environment.
