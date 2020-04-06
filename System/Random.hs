@@ -955,17 +955,24 @@ instance Random CDouble where
 instance UniformRange CDouble where
   uniformR (CDouble l, CDouble h) = fmap CDouble . uniformR (l, h)
 
+-- Every 'Char' is representable by a 'Word32', so we have the following:
+--
+-- > word32ToChar . charToWord32 == id
+-- > charToWord32 . word32ToChar == id
+word32ToChar :: Word32 -> Char
+word32ToChar = toEnum . fromIntegral
+{-# INLINE word32ToChar #-}
+
+charToWord32 :: Char -> Word32
+charToWord32 = fromIntegral. fromEnum
+{-# INLINE charToWord32 #-}
 
 instance Random Char where
   randomM = uniform
 instance Uniform Char where
-  uniform = uniformR (minBound, maxBound)
+  uniform g = word32ToChar <$> unsignedBitmaskWithRejectionM uniformWord32 (charToWord32 maxBound) g
 instance UniformRange Char where
-  uniformR (l, h) g = toChar <$> unsignedBitmaskWithRejectionRM (fromChar l, fromChar h) g
-    where
-      fromChar (C# c#) = W# (int2Word# (ord# c#))
-      toChar (W# w#) = C# (chr# (word2Int# w#))
-
+  uniformR (l, h) g = word32ToChar <$> unsignedBitmaskWithRejectionRM (charToWord32 l, charToWord32 h) g
 
 instance Random Bool where
   randomM = uniform
