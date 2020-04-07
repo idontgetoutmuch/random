@@ -61,9 +61,9 @@ import System.CPUTime (cpuTimePrecision, getCPUTime)
 #endif
 
 -- $setup
--- >>> import Text.Read (readMaybe)
--- >>> import Data.List (unfoldr)
--- >>> import Text.Printf (printf)
+-- > import Text.Read (readMaybe)
+-- > import Data.List (unfoldr)
+-- > import Text.Printf (printf)
 
 -------------------------------------------------------------------------------
 -- Generator
@@ -78,13 +78,13 @@ instance NFData SMGen where
 
 -- |
 --
--- >>> readMaybe "SMGen 1 1" :: Maybe SMGen
+-- > readMaybe "SMGen 1 1" :: Maybe SMGen
 -- Just (SMGen 1 1)
 --
--- >>> readMaybe "SMGen 1 2" :: Maybe SMGen
+-- > readMaybe "SMGen 1 2" :: Maybe SMGen
 -- Nothing
 --
--- >>> readMaybe (show (mkSMGen 42)) :: Maybe SMGen
+-- > readMaybe (show (mkSMGen 42)) :: Maybe SMGen
 -- Just (SMGen 9297814886316923340 13679457532755275413)
 --
 instance Read SMGen where
@@ -102,7 +102,7 @@ instance Read SMGen where
 
 -- | Generate a 'Word64'.
 --
--- >>> take 3 $ map (printf "%x") $ unfoldr (Just . nextWord64) (mkSMGen 1337) :: [String]
+-- > take 3 $ map (printf "%x") $ unfoldr (Just . nextWord64) (mkSMGen 1337) :: [String]
 -- ["b5c19e300e8b07b3","d600e0e216c0ac76","c54efc3b3cc5af29"]
 --
 nextWord64 :: SMGen -> (Word64, SMGen)
@@ -176,7 +176,7 @@ shiftXorMultiply n k w = shiftXor n w * k
 
 -- | Create 'SMGen' using seed and gamma.
 --
--- >>> seedSMGen 2 2
+-- > seedSMGen 2 2
 -- SMGen 2 3
 --
 seedSMGen
@@ -195,7 +195,7 @@ unseedSMGen (SMGen seed gamma) = (seed, gamma)
 
 -- | Preferred way to deterministically construct 'SMGen'.
 --
--- >>> mkSMGen 42
+-- > mkSMGen 42
 -- SMGen 9297814886316923340 13679457532755275413
 --
 mkSMGen :: Word64 -> SMGen
@@ -226,7 +226,7 @@ mkSeedTime = do
     return $ fromIntegral hi `shiftL` 32 .|. fromIntegral lo
 
 -------------------------------------------------------------------------------
--- System.Random
+-- Prim instance
 -------------------------------------------------------------------------------
 
 instance Prim SMGen where
@@ -250,8 +250,6 @@ instance Prim SMGen where
   {-# INLINE readOffAddr# #-}
   {-# INLINE writeOffAddr# #-}
   {-# INLINE setOffAddr# #-}
-
-
 
 {-# INLINE sizeOf128# #-}
 sizeOf128# :: SMGen -> Int#
