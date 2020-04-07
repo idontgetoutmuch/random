@@ -57,18 +57,13 @@ module System.Random.SplitMix (
     ) where
 
 import Control.DeepSeq       (NFData (..))
-import Data.Bits             (complement, shiftL, shiftR, xor, (.&.), (.|.))
-import Data.Bits.Compat      (countLeadingZeros, popCount, zeroBits)
+import Data.Bits             (complement, countLeadingZeros, popCount, shiftL, shiftR, xor, zeroBits, (.&.), (.|.))
 import Data.IORef            (IORef, atomicModifyIORef, newIORef)
 import Data.Time.Clock.POSIX (getPOSIXTime)
 import Data.Word             (Word32, Word64)
 import System.IO.Unsafe      (unsafePerformIO)
 import Data.Primitive.Types
 import GHC.Exts
-
-#ifdef MIN_VERSION_random
-import qualified System.Random as R
-#endif
 
 #if !__GHCJS__
 import System.CPUTime (cpuTimePrecision, getCPUTime)
@@ -334,17 +329,6 @@ mkSeedTime = do
 -------------------------------------------------------------------------------
 -- System.Random
 -------------------------------------------------------------------------------
-
-#ifdef MIN_VERSION_random
-instance R.RandomGen SMGen where
-    -- type GenSeed SMGen = (Word64, Word64)
-    next = nextInt
-    split = splitSMGen
-    genWord32R = bitmaskWithRejection32
-    genWord64R = bitmaskWithRejection64
-    genWord32 = nextWord32
-    genWord64 = nextWord64
-#endif
 
 instance Prim SMGen where
   sizeOf#         = sizeOf128#
