@@ -959,10 +959,9 @@ runSTGen_ g action = fst $ runSTGen g action
 type StdGen = SM.SMGen
 
 instance RandomGen StdGen where
-  next = SM.nextInt
-  split = SM.splitSMGen
   genWord32 = SM.nextWord32
   genWord64 = SM.nextWord64
+  split = SM.splitSMGen
 
 {- |
 The function 'mkStdGen' provides an alternative way of producing an initial
