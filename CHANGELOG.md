@@ -24,7 +24,7 @@ bump for bug fixes,
 # 1.0.0.4
 bumped version for float/double range bugfix
 
-# 1.2
+# 2.0
 
 1. Breaking change which mostly maintains backwards compatibility.
 2. Faster by more x10 (depending on the type) - see below for benchmarks.
@@ -48,10 +48,10 @@ bumped version for float/double range bugfix
 
 ## Benchmarks
 
-These are **not** percentage (%) increases. Random `Int`s are produced 48.9 times faster!
-
-* The only type for which generation is slower is for `Integer`s (on ranges); in the version 1.1 the generation for `Integer` was biased.
-
+1. These are **not** percentage (%) increases. Random `Int`s are produced 48.9 times faster!
+2. The only type for which generation is slower is for `Integer`s (on
+   ranges); in the version 1.1 the generation for `Integer` was
+   biased.
 
 ### Without Specifying Ranges
 
