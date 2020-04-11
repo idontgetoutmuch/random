@@ -44,7 +44,7 @@ bumped version for float/double range bugfix
 5. Unbiased generation of ranges.
 6. Updated tests and benchmarks.
 7. [Conntinuous integration](https://travis-ci.org/github/idontgetoutmuch/random).
-8. Fully documented - for more details see the [haddock]()
+8. Fully documented - for more details see the [haddock](https://htmlpreview.github.io/?https://github.com/idontgetoutmuch/random/blob/release-notes/docs/System-Random.html).
 
 ## Benchmarks
 
