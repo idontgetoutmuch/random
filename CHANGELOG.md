@@ -48,6 +48,8 @@ bumped version for float/double range bugfix
 
 ## Benchmarks
 
+### Notes
+
 1. These are **not** percentage (%) increases. Random `Int`s are produced 48.9 times faster!
 2. The only type for which generation is slower is for `Integer`s (on
    ranges); in the version 1.1 the generation for `Integer` was
