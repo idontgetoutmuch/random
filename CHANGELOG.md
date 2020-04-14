@@ -24,7 +24,7 @@ bump for bug fixes,
 # 1.0.0.4
 bumped version for float/double range bugfix
 
-# 2.0
+# 1.2
 
 1. Breaking change which mostly maintains backwards compatibility.
 2. Faster by more x10 (depending on the type) - see below for benchmarks.
