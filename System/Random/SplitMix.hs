@@ -47,7 +47,6 @@ module System.Random.SplitMix (
     unseedSMGen,
     ) where
 
-import Control.DeepSeq       (NFData (..))
 import Data.Bits             (popCount, shiftL, shiftR, xor, (.|.))
 import Data.IORef            (IORef, atomicModifyIORef, newIORef)
 import Data.Time.Clock.POSIX (getPOSIXTime)
@@ -70,9 +69,6 @@ import System.CPUTime (cpuTimePrecision, getCPUTime)
 -- | SplitMix generator state.
 data SMGen = SMGen !Word64 !Word64 -- seed and gamma; gamma is odd
   deriving Show
-
-instance NFData SMGen where
-    rnf (SMGen _ _) = ()
 
 -- |
 --
