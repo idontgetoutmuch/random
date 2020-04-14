@@ -37,7 +37,6 @@ library
         bytestring -any,
         deepseq -any,
         mtl -any,
-        primitive >= 0.6.4.0 && <8,
         time -any
     c-sources: cbits/CastFloatWord.cmm
 
