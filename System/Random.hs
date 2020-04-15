@@ -143,7 +143,7 @@
 -- = How to generate random values in monadic code
 --
 -- In monadic code, use the relevant 'Uniform' and 'UniformRange' instances to
--- generate random values via 'uniform' and 'uniformRM', respectively.
+-- generate random values via 'uniformM' and 'uniformRM', respectively.
 --
 -- As an example, @rolls@ generates @n@ random values of @Word8@ in the range
 -- @[1, 6]@.
