@@ -11,7 +11,6 @@ module Main (main) where
 import Data.Coerce
 import Data.Word
 import Data.Int
-import System.Random
 import Test.Tasty
 import Test.Tasty.SmallCheck as SC
 import Test.SmallCheck.Series as SC
@@ -20,6 +19,7 @@ import Foreign.C.Types
 
 #include "HsBaseConfig.h"
 
+import System.Random.Monad
 import qualified Spec.Range as Range
 import qualified Spec.Run as Run
 
