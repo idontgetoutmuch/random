@@ -5,10 +5,12 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE GHCForeignImportPrim #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UnboxedTuples #-}
@@ -140,6 +142,8 @@ import qualified System.Random.SplitMix as SM
 import qualified System.Random.SplitMix32 as SM32
 import GHC.Word
 import GHC.IO (IO(..))
+
+import System.Random.Internal
 
 -- $introduction
 --
@@ -461,7 +465,7 @@ instance RandomGen r => RandomGenM STGen r s (ST s) where
 --
 -- >>> import Data.Int (Int8)
 -- >>> runGenM (IOGen (mkStdGen 217)) (`uniformListM` 5) :: IO ([Int8], Frozen (IOGen StdGen))
--- ([-74,37,-50,-2,3],IOGen {unIOGen = SMGen 4273268533320920145 15251669095119325999})
+-- ([-74,37,-50,-2,3],IOGen {unIOGen = StdGen {unStdGen = SMGen 4273268533320920145 15251669095119325999}})
 --
 -- @since 1.2
 runGenM :: MonadRandom g s m => Frozen g -> (g s -> m a) -> m (a, Frozen g)
@@ -788,10 +792,7 @@ runSTGen g action = unSTGen <$> runST (runGenM (STGen g) action)
 runSTGen_ :: RandomGen g => g -> (forall s . STGen g s -> ST s a) -> a
 runSTGen_ g action = fst $ runSTGen g action
 
--- | The standard pseudo-random number generator.
-type StdGen = SM.SMGen
-
-instance RandomGen StdGen where
+instance RandomGen SM.SMGen where
   next = SM.nextInt
   genWord32 = SM.nextWord32
   genWord64 = SM.nextWord64
@@ -803,9 +804,11 @@ instance RandomGen SM32.SMGen where
   genWord64 = SM32.nextWord64
   split = SM32.splitSMGen
 
+deriving instance RandomGen StdGen
+
 -- | Constructs a 'StdGen' deterministically.
 mkStdGen :: Int -> StdGen
-mkStdGen s = SM.mkSMGen $ fromIntegral s
+mkStdGen = StdGen . SM.mkSMGen . fromIntegral
 
 
 -- $uniform
@@ -1453,7 +1456,7 @@ getStdGen :: IO StdGen
 getStdGen  = readIORef theStdGen
 
 theStdGen :: IORef StdGen
-theStdGen  = unsafePerformIO $ SM.initSMGen >>= newIORef
+theStdGen = unsafePerformIO $ SM.initSMGen >>= newIORef . StdGen
 {-# NOINLINE theStdGen #-}
 
 -- |Applies 'split' to the current global pseudo-random generator,
