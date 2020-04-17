@@ -12,11 +12,11 @@ module System.Random.Monad
   -- $introduction
 
   -- * Usage
-  -- ** How to generate pseudo-random values in monadic code
-  -- $usagemonadic
-
   -- ** How to generate pseudo-random values in pure code
   -- $usagepure
+
+  -- ** How to generate pseudo-random values in monadic code
+  -- $usagemonadic
 
   -- * Pure and monadic pseudo-random number generator interfaces
   -- $interfaces
@@ -129,40 +129,62 @@ import System.Random.Internal
 --     This library provides instances of 'Uniform' for many common bounded
 --     numeric datatypes.
 --
+-- $usagepure
+--
+-- In pure code, use 'uniform' and 'uniformR' to generate pseudo-random values
+-- with a pure pseudo-random number generator like 'StdGen'.
+--
+-- >>> :{
+-- let rolls :: RandomGen g => Int -> g -> [Word8]
+--     rolls n = take n . unfoldr (\g -> Just (uniformR g (1, 6)))
+--     pureGen = mkStdGen 42
+-- in
+--     rolls 10 pureGen :: [Word8]
+-- :}
+-- [1,1,3,2,4,5,3,4,6,2]
+--
+-- To run use a /monadic/ pseudo-random computation in pure code with a pure
+-- pseudo-random number generator, use 'runGenState' and its variants.
+--
+-- >>> :{
+-- let rollsM :: MonadRandom g s m => Int -> g s -> m [Word8]
+--     rollsM n = replicateM n . uniformRM (1, 6)
+--     pureGen = mkStdGen 42
+-- in
+--     runGenState_ pureGen (rollsM 10) :: [Word8]
+-- :}
+-- [1,1,3,2,4,5,3,4,6,2]
+--
 -- $usagemonadic
 --
 -- In monadic code, use the relevant 'Uniform' and 'UniformRange' instances to
 -- generate pseudo-random values via 'uniformM' and 'uniformRM', respectively.
 --
--- As an example, @rolls@ generates @n@ pseudo-random values of @Word8@ in the
--- range @[1, 6]@.
+-- As an example, @rollsM@ generates @n@ pseudo-random values of @Word8@ in the
+-- range @[1, 6]@ in a 'MonadRandom' context; given a /monadic/ pseudo-random
+-- number generator, you can run this probabilistic computation as follows:
 --
--- > rolls :: MonadRandom g s m => Int -> g s -> m [Word8]
--- > rolls n = replicateM n . uniformR (1, 6)
---
--- Given a /monadic/ pseudo-random number generator, you can run this
--- probabilistic computation as follows:
---
--- >>> monadicGen <- MWC.create
--- >>> rolls 10 monadicGen :: IO [Word8]
+-- >>> :{
+-- let rollsM :: MonadRandom g s m => Int -> g s -> m [Word8]
+--     rollsM n = replicateM n . uniformRM (1, 6)
+-- in do
+--     monadicGen <- MWC.create
+--     rollsM 10 monadicGen :: IO [Word8]
+-- :}
 -- [2,3,6,6,4,4,3,1,5,4]
 --
--- Given a /pure/ pseudo-random number generator, you can run it in an 'IO' or
--- 'ST' context by first applying a monadic adapter like 'AtomicGen', 'IOGen'
--- or 'STGen' and then running it with 'runGenM'.
+-- Given a /pure/ pseudo-random number generator, you can run the monadic
+-- pseudo-random number computation @rollsM@ in an 'IO' or 'ST' context by
+-- first applying a monadic adapter like 'AtomicGen', 'IOGen' or 'STGen' to the
+-- pure pseudo-random number generator and then running it with 'runGenM'.
 --
--- >>> let pureGen = mkStdGen 42
--- >>> runGenM_ (IOGen pureGen) (rolls 10) :: IO [Word8]
--- [1,1,3,2,4,5,3,4,6,2]
---
--- $usagepure
---
--- In pure code, use 'runGenState' and its variants to extract the pure
--- pseudo-random value from a monadic computation based on a pure pseudo-random
--- number generator.
---
--- >>> let pureGen = mkStdGen 42
--- >>> runGenState_ pureGen (rolls 10) :: [Word8]
+-- >>> :{
+-- let rollsM :: MonadRandom g s m => Int -> g s -> m [Word8]
+--     rollsM n = replicateM n . uniformRM (1, 6)
+--     pureGen = mkStdGen 42
+-- in
+--     runGenM_ (IOGen pureGen) (rollsM 10) :: IO [Word8]
+-- :}
 -- [1,1,3,2,4,5,3,4,6,2]
 --
 -- $interfaces
@@ -483,6 +505,7 @@ import System.Random.Internal
 -- >>> import Control.Monad.Primitive
 -- >>> import Data.Bits
 -- >>> import Data.Int (Int32)
+-- >>> import Data.List (unfoldr)
 -- >>> import Data.Word (Word8, Word16, Word32, Word64)
 -- >>> import System.IO (IOMode(WriteMode), withBinaryFile)
 -- >>> import qualified System.Random.MWC as MWC
@@ -512,9 +535,4 @@ import System.Random.Internal
 --   uniformWord32 = MWC.uniform
 --   uniformWord64 = MWC.uniform
 --   uniformShortByteString n g = unsafeSTToPrim (genShortByteStringST n (MWC.uniform g))
--- :}
---
--- >>> :{
--- let rolls :: MonadRandom g s m => Int -> g s -> m [Word8]
---     rolls n = replicateM n . uniformRM (1, 6)
 -- :}
