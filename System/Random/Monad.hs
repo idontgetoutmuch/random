@@ -204,6 +204,7 @@ import System.Random.Internal
 --     'STGen' is safe in the presence of exceptions, but not concurrency.
 --
 -- $uniform
+--
 -- This library provides two type classes to generate pseudo-random values:
 --
 -- *   'UniformRange' is used to generate a value of a datatype uniformly
