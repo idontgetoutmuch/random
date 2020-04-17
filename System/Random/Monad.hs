@@ -65,9 +65,9 @@ module System.Random.Monad
 
   -- * Pseudo-random values of various types
   -- $uniform
-  , Uniform(..)
   , uniform
   , uniformR
+  , Uniform(..)
   , uniformListM
   , UniformRange(..)
   , Random(..)
@@ -118,16 +118,16 @@ import System.Random.Internal
 --     'RandomGen' instance into a 'MonadRandom' instance.
 --
 -- [Drawing from a range] 'UniformRange' is used to generate a value of a
---     datatype uniformly within an inclusive range.
+--     type uniformly within a range.
 --
 --     This library provides instances of 'UniformRange' for many common
---     numeric datatypes.
+--     numeric types.
 --
 -- [Drawing from the entire domain of a type] 'Uniform' is used to generate a
---     value of a datatype uniformly over all possible values of that datatype.
+--     value of a type uniformly over all possible values of that type.
 --
 --     This library provides instances of 'Uniform' for many common bounded
---     numeric datatypes.
+--     numeric types.
 --
 -- $usagemonadic
 --
@@ -206,10 +206,10 @@ import System.Random.Internal
 -- $uniform
 -- This library provides two type classes to generate pseudo-random values:
 --
--- *   'UniformRange' is used to generate a value of a datatype uniformly
---     within an inclusive range.
--- *   'Uniform' is used to generate a value of a datatype uniformly over all
---     possible values of that datatype.
+-- *   'UniformRange' is used to generate a value of a type uniformly within a
+--     range.
+-- *   'Uniform' is used to generate a value of a type uniformly over all
+--     possible values of that type.
 --
 -- Types may have instances for both or just one of 'UniformRange' and
 -- 'Uniform'. A few examples illustrate this:
@@ -382,18 +382,18 @@ import System.Random.Internal
 --     implement word-based methods instead. See below for more information
 --     about how to write a 'RandomGen' instance.
 --
--- *   This library provides instances for 'Random' for some unbounded datatypes
---     for backwards compatibility. For an unbounded datatype, there is no way
---     to generate a value with uniform probability out of its entire domain, so
---     the 'random' implementation for unbounded datatypes actually generates a
+-- *   This library provides instances for 'Random' for some unbounded types
+--     for backwards compatibility. For an unbounded type, there is no way
+--     to generate a value with uniform probability out of its entire domain,
+--     so the 'random' implementation for unbounded types actually generates a
 --     value based on some fixed range.
 --
---     For 'Integer', 'random' generates a value in the 'Int' range. For 'Float'
---     and 'Double', 'random' generates a floating point value in the range @[0,
---     1)@.
+--     For 'Integer', 'random' generates a value in the 'Int' range. For
+--     'Float' and 'Double', 'random' generates a floating point value in the
+--     range @[0, 1)@.
 --
 --     This library does not provide 'Uniform' instances for any unbounded
---     datatypes.
+--     types.
 --
 -- $reproducibility
 --
