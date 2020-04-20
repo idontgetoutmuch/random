@@ -1224,13 +1224,14 @@ instance UniformRange Float where
 geometricDistr :: MonadRandom g s m => Int -> g s -> m Int
 geometricDistr limit g = go 0
   where
-    go acc
+    go !acc
       | acc >= limit = return limit
       | otherwise = do
           w <- uniformWord64 g
           if w /= 0
             then return $ acc + countLeadingZeros w
             else go (acc + finiteBitSize w)
+{-# INLINE geometricDistr #-}
 
 -- | Generates a 'Float' in [0,1].
 floatInUnitIntervalM :: MonadRandom g s m => g s -> m Float
@@ -1242,12 +1243,13 @@ floatInUnitIntervalM g = do
 
   w <- uniformWord32 g
   let m = w .&. mantissaMask
-  let carry = if (m == 0) && (0 /= w .&. carryMask) then 1 else 0
+  let carry = if (m /= 0) then 0 else ((w .&. carryMask) `unsafeShiftR` mantissaBits)
 
   d <- geometricDistr maxExp g
   let e = fromIntegral (maxExp - d) + carry
 
   return $ castWord32ToFloat $ (e `unsafeShiftL` mantissaBits) .|. m
+{-# INLINE floatInUnitIntervalM #-}
 
 -- | Generates a 'Double' in [0,1].
 doubleInUnitIntervalM :: MonadRandom g s m => g s -> m Double
@@ -1259,12 +1261,13 @@ doubleInUnitIntervalM g = do
 
   w <- uniformWord64 g
   let m = w .&. mantissaMask
-  let carry = if (m == 0) && (0 /= w .&. carryMask) then 1 else 0
+  let carry = if (m /= 0) then 0 else ((w .&. carryMask) `unsafeShiftR` mantissaBits)
 
   d <- geometricDistr maxExp g
   let e = fromIntegral (maxExp - d) + carry
 
   return $ castWord64ToDouble $ (e `unsafeShiftL` mantissaBits) .|. m
+{-# INLINE doubleInUnitIntervalM #-}
 
 -- The two integer functions below take an [inclusive,inclusive] range.
 randomIvalIntegral :: (RandomGen g, Integral a) => (a, a) -> g -> (a, g)
