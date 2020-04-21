@@ -247,6 +247,8 @@ main = do
    let 
        randInt     = random :: RandomGen g => g -> (Int,g)
        randWord16  = random :: RandomGen g => g -> (Word16,g)
+       randWord32  = random :: RandomGen g => g -> (Word32,g)
+       randWord64  = random :: RandomGen g => g -> (Word64,g)
        randFloat   = random :: RandomGen g => g -> (Float,g)
        randCFloat  = random :: RandomGen g => g -> (CFloat,g)
        randDouble  = random :: RandomGen g => g -> (Double,g)
@@ -264,6 +266,8 @@ main = do
 	 putStrLn$ "\n  Second, timing System.Random.random at different types:"
 	 timeit th freq "System.Random Ints"     gen   randInt
 	 timeit th freq "System.Random Word16"   gen   randWord16
+	 timeit th freq "System.Random Word32"   gen   randWord32
+	 timeit th freq "System.Random Word64"   gen   randWord64
 	 timeit th freq "System.Random Floats"   gen   randFloat
 	 timeit th freq "System.Random CFloats"  gen   randCFloat
 	 timeit th freq "System.Random Doubles"  gen   randDouble
@@ -295,6 +299,8 @@ main = do
 	 putStrLn$ "\n  Next timing range-restricted System.Random.randomR:"
 	 timeit th freq "System.Random Ints"     gen   (randomR (-100, 100::Int))
 	 timeit th freq "System.Random Word16s"  gen   (randomR (-100, 100::Word16))
+	 timeit th freq "System.Random Word32s"  gen   (randomR (-100, 100::Word32))
+	 timeit th freq "System.Random Word64s"  gen   (randomR (-100, 100::Word64))
 	 timeit th freq "System.Random Floats"   gen   (randomR (-100, 100::Float))
 	 timeit th freq "System.Random CFloats"  gen   (randomR (-100, 100::CFloat))
 	 timeit th freq "System.Random Doubles"  gen   (randomR (-100, 100::Double))
