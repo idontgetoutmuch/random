@@ -519,108 +519,108 @@ instance UniformRange Word64 where
 instance Uniform CBool where
   uniformM = fmap CBool . uniformM
 instance UniformRange CBool where
-  uniformRM (CBool b, CBool t) = fmap CBool . uniformRM (b, t)
+  uniformRM r = fmap CBool . uniformRM (coerce r)
 
 instance Uniform CChar where
   uniformM = fmap CChar . uniformM
 instance UniformRange CChar where
-  uniformRM (CChar b, CChar t) = fmap CChar . uniformRM (b, t)
+  uniformRM r = fmap CChar . uniformRM (coerce r)
 
 instance Uniform CSChar where
   uniformM = fmap CSChar . uniformM
 instance UniformRange CSChar where
-  uniformRM (CSChar b, CSChar t) = fmap CSChar . uniformRM (b, t)
+  uniformRM r = fmap CSChar . uniformRM (coerce r)
 
 instance Uniform CUChar where
   uniformM = fmap CUChar . uniformM
 instance UniformRange CUChar where
-  uniformRM (CUChar b, CUChar t) = fmap CUChar . uniformRM (b, t)
+  uniformRM r = fmap CUChar . uniformRM (coerce r)
 
 instance Uniform CShort where
   uniformM = fmap CShort . uniformM
 instance UniformRange CShort where
-  uniformRM (CShort b, CShort t) = fmap CShort . uniformRM (b, t)
+  uniformRM r = fmap CShort . uniformRM (coerce r)
 
 instance Uniform CUShort where
   uniformM = fmap CUShort . uniformM
 instance UniformRange CUShort where
-  uniformRM (CUShort b, CUShort t) = fmap CUShort . uniformRM (b, t)
+  uniformRM r = fmap CUShort . uniformRM (coerce r)
 
 instance Uniform CInt where
   uniformM = fmap CInt . uniformM
 instance UniformRange CInt where
-  uniformRM (CInt b, CInt t) = fmap CInt . uniformRM (b, t)
+  uniformRM r = fmap CInt . uniformRM (coerce r)
 
 instance Uniform CUInt where
   uniformM = fmap CUInt . uniformM
 instance UniformRange CUInt where
-  uniformRM (CUInt b, CUInt t) = fmap CUInt . uniformRM (b, t)
+  uniformRM r = fmap CUInt . uniformRM (coerce r)
 
 instance Uniform CLong where
   uniformM = fmap CLong . uniformM
 instance UniformRange CLong where
-  uniformRM (CLong b, CLong t) = fmap CLong . uniformRM (b, t)
+  uniformRM r = fmap CLong . uniformRM (coerce r)
 
 instance Uniform CULong where
   uniformM = fmap CULong . uniformM
 instance UniformRange CULong where
-  uniformRM (CULong b, CULong t) = fmap CULong . uniformRM (b, t)
+  uniformRM r = fmap CULong . uniformRM (coerce r)
 
 instance Uniform CPtrdiff where
   uniformM = fmap CPtrdiff . uniformM
 instance UniformRange CPtrdiff where
-  uniformRM (CPtrdiff b, CPtrdiff t) = fmap CPtrdiff . uniformRM (b, t)
+  uniformRM r = fmap CPtrdiff . uniformRM (coerce r)
 
 instance Uniform CSize where
   uniformM = fmap CSize . uniformM
 instance UniformRange CSize where
-  uniformRM (CSize b, CSize t) = fmap CSize . uniformRM (b, t)
+  uniformRM r = fmap CSize . uniformRM (coerce r)
 
 instance Uniform CWchar where
   uniformM = fmap CWchar . uniformM
 instance UniformRange CWchar where
-  uniformRM (CWchar b, CWchar t) = fmap CWchar . uniformRM (b, t)
+  uniformRM r = fmap CWchar . uniformRM (coerce r)
 
 instance Uniform CSigAtomic where
   uniformM = fmap CSigAtomic . uniformM
 instance UniformRange CSigAtomic where
-  uniformRM (CSigAtomic b, CSigAtomic t) = fmap CSigAtomic . uniformRM (b, t)
+  uniformRM r = fmap CSigAtomic . uniformRM (coerce r)
 
 instance Uniform CLLong where
   uniformM = fmap CLLong . uniformM
 instance UniformRange CLLong where
-  uniformRM (CLLong b, CLLong t) = fmap CLLong . uniformRM (b, t)
+  uniformRM r = fmap CLLong . uniformRM (coerce r)
 
 instance Uniform CULLong where
   uniformM = fmap CULLong . uniformM
 instance UniformRange CULLong where
-  uniformRM (CULLong b, CULLong t) = fmap CULLong . uniformRM (b, t)
+  uniformRM r = fmap CULLong . uniformRM (coerce r)
 
 instance Uniform CIntPtr where
   uniformM                         = fmap CIntPtr . uniformM
 instance UniformRange CIntPtr where
-  uniformRM (CIntPtr b, CIntPtr t) = fmap CIntPtr . uniformRM (b, t)
+  uniformRM r = fmap CIntPtr . uniformRM (coerce r)
 
 instance Uniform CUIntPtr where
   uniformM = fmap CUIntPtr . uniformM
 instance UniformRange CUIntPtr where
-  uniformRM (CUIntPtr b, CUIntPtr t) = fmap CUIntPtr . uniformRM (b, t)
+  uniformRM r = fmap CUIntPtr . uniformRM (coerce r)
 
 instance Uniform CIntMax where
   uniformM = fmap CIntMax . uniformM
 instance UniformRange CIntMax where
-  uniformRM (CIntMax b, CIntMax t) = fmap CIntMax . uniformRM (b, t)
+  uniformRM r = fmap CIntMax . uniformRM (coerce r)
 
 instance Uniform CUIntMax where
   uniformM = fmap CUIntMax . uniformM
 instance UniformRange CUIntMax where
-  uniformRM (CUIntMax b, CUIntMax t) = fmap CUIntMax . uniformRM (b, t)
+  uniformRM r = fmap CUIntMax . uniformRM (coerce r)
 
 instance UniformRange CFloat where
-  uniformRM (CFloat l, CFloat h) = fmap CFloat . uniformRM (l, h)
+  uniformRM r = fmap CFloat . uniformRM (coerce r)
 
 instance UniformRange CDouble where
-  uniformRM (CDouble l, CDouble h) = fmap CDouble . uniformRM (l, h)
+  uniformRM r = fmap CDouble . uniformRM (coerce r)
 
 
 -- The `chr#` and `ord#` are the prim functions that will be called, regardless of which
