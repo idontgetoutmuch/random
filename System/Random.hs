@@ -101,13 +101,14 @@ import qualified System.Random.SplitMix as SM
 -- @since 1.2
 uniform :: (RandomGen g, Uniform a) => g -> (a, g)
 uniform g = runGenState g uniformM
-
+{-# INLINE uniform #-}
 
 -- | Pure version of `uniformRM` that works with instances of `RandomGen`
 --
 -- @since 1.2
 uniformR :: (RandomGen g, UniformRange a) => (a, a) -> g -> (a, g)
 uniformR r g = runGenState g (uniformRM r)
+{-# INLINE uniformR #-}
 
 -- | Generates a 'ByteString' of the specified size using a pure pseudo-random
 -- number generator. See 'uniformByteString' for the monadic version.
@@ -138,7 +139,7 @@ class Random a where
   {-# INLINE randomR #-}
   randomR :: RandomGen g => (a, a) -> g -> (a, g)
   default randomR :: (RandomGen g, UniformRange a) => (a, a) -> g -> (a, g)
-  randomR r g = runGenState g (uniformRM r)
+  randomR = uniformR
 
   -- | The same as 'randomR', but using a default range determined by the type:
   --
@@ -152,7 +153,7 @@ class Random a where
   {-# INLINE random #-}
   random  :: RandomGen g => g -> (a, g)
   default random :: (RandomGen g, Uniform a) => g -> (a, g)
-  random g = runGenState g uniformM
+  random = uniform
 
   -- | Plural variant of 'randomR', producing an infinite list of
   -- pseudo-random values instead of returning a new generator.
