@@ -230,10 +230,10 @@ instance Random Char
 instance Random Bool
 instance Random Double where
   randomR r g = runGenState g (uniformRM r)
-  random g = runGenState g (uniformRM (0, 1))
+  random g = runGenState g doubleInUnitIntervalM
 instance Random Float where
   randomR r g = runGenState g (uniformRM r)
-  random g = runGenState g (uniformRM (0, 1))
+  random g = runGenState g floatInUnitIntervalM
 
 -------------------------------------------------------------------------------
 -- Global pseudo-random number generator

@@ -49,6 +49,8 @@ module System.Random.Internal
   , Uniform(..)
   , UniformRange(..)
   , uniformByteString
+  , floatInUnitIntervalM
+  , doubleInUnitIntervalM
 
   -- * Generators for sequences of pseudo-random bytes
   , genShortByteStringIO
@@ -668,17 +670,8 @@ instance UniformRange Bool where
 
 instance UniformRange Double where
   uniformRM (l, h) g = do
-    w64 <- uniformWord64 g
-    let x = word64ToDoubleInUnitInterval w64
+    x <- doubleInUnitIntervalM g
     return $ (h - l) * x + l
-
--- | Turns a given uniformly distributed 'Word64' value into a uniformly
--- distributed 'Double' value in the range [0, 1).
-word64ToDoubleInUnitInterval :: Word64 -> Double
-word64ToDoubleInUnitInterval w64 = between1and2 - 1.0
-  where
-    between1and2 = castWord64ToDouble $ (w64 `unsafeShiftR` 12) .|. 0x3ff0000000000000
-{-# INLINE word64ToDoubleInUnitInterval #-}
 
 -- | These are now in 'GHC.Float' but unpatched in some versions so
 -- for now we roll our own. See
@@ -701,20 +694,66 @@ foreign import prim "stg_word64ToDoubleyg"
     stgWord64ToDouble :: Word64# -> Double#
 #endif
 
-
 instance UniformRange Float where
   uniformRM (l, h) g = do
-    w32 <- uniformWord32 g
-    let x = word32ToFloatInUnitInterval w32
+    x <- floatInUnitIntervalM g
     return $ (h - l) * x + l
 
--- | Turns a given uniformly distributed 'Word32' value into a uniformly
--- distributed 'Float' value in the range [0,1).
-word32ToFloatInUnitInterval :: Word32 -> Float
-word32ToFloatInUnitInterval w32 = between1and2 - 1.0
+-- | Counts the number of failed Bernoulli trials with p=0.5 before the first
+-- success, up to the given limit.
+geometricDistr :: MonadRandom g s m => Int -> Int -> g s -> m Int
+geometricDistr start limit g = go start
   where
-    between1and2 = castWord32ToFloat $ (w32 `unsafeShiftR` 9) .|. 0x3f800000
-{-# INLINE word32ToFloatInUnitInterval #-}
+    go !acc
+      | acc >= limit = return limit
+      | otherwise = do
+          w <- uniformWord64 g
+          if w /= 0
+            then return $ acc + countLeadingZeros w
+            else go (acc + finiteBitSize w)
+{-# INLINE geometricDistr #-}
+
+-- | Generates a 'Float' in [0,1].
+floatInUnitIntervalM :: MonadRandom g s m => g s -> m Float
+floatInUnitIntervalM g = do
+  let maxExp = 126 -- exponent of 1.0, decremented by one
+  let mantissaBits = 23
+  let bernoulliBits = 64 - mantissaBits - 1
+  let carryMask = 2 ^ mantissaBits
+  let mantissaMask = (2 ^ mantissaBits) - 1
+
+  w <- uniformWord64 g
+  let m = w .&. mantissaMask
+  let carry = if (m /= 0) then 0 else ((w .&. carryMask) `unsafeShiftR` mantissaBits)
+
+  d <- case countLeadingZeros w of
+    b | b < bernoulliBits -> return b
+    _ -> geometricDistr bernoulliBits maxExp g
+  let e = fromIntegral (maxExp - d) + carry
+
+  return $ castWord32ToFloat $ fromIntegral $ (e `unsafeShiftL` mantissaBits) .|. m
+{-# INLINE floatInUnitIntervalM #-}
+
+-- | Generates a 'Double' in [0,1].
+doubleInUnitIntervalM :: MonadRandom g s m => g s -> m Double
+doubleInUnitIntervalM g = do
+  let maxExp = 1022 -- exponent of 1.0, decremented by one
+  let mantissaBits = 52
+  let bernoulliBits = 64 - mantissaBits - 1
+  let carryMask = 2 ^ mantissaBits
+  let mantissaMask = (2 ^ mantissaBits) - 1
+
+  w <- uniformWord64 g
+  let m = w .&. mantissaMask
+  let carry = if (m /= 0) then 0 else ((w .&. carryMask) `unsafeShiftR` mantissaBits)
+
+  d <- case countLeadingZeros w of
+    b | b < bernoulliBits -> return b
+    _ -> geometricDistr bernoulliBits maxExp g
+  let e = fromIntegral (maxExp - d) + carry
+
+  return $ castWord64ToDouble $ (e `unsafeShiftL` mantissaBits) .|. m
+{-# INLINE doubleInUnitIntervalM #-}
 
 -- The two integer functions below take an [inclusive,inclusive] range.
 randomIvalIntegral :: (RandomGen g, Integral a) => (a, a) -> g -> (a, g)
