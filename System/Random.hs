@@ -1233,22 +1233,18 @@ geometricDistr start limit g = go start
             else go (acc + finiteBitSize w)
 {-# INLINE geometricDistr #-}
 
-unWord# :: Word -> Word#
-unWord# (W# w#) = w#
-
 -- | Generates a 'Float' in [0,1].
 floatInUnitIntervalM :: MonadRandom g s m => g s -> m Float
 floatInUnitIntervalM g = do
   let maxExp = 126 -- exponent of 1.0, decremented by one
   let mantissaBits = 23
-  let bernoulliBits = (finiteBitSize (undefined :: Word)) - mantissaBits - 1
+  let bernoulliBits = 64 - mantissaBits - 1
   let carryMask = 2 ^ mantissaBits
   let mantissaMask = (2 ^ mantissaBits) - 1
 
-  w <- uniformM g
+  w <- uniformWord64 g
   let m = w .&. mantissaMask
-  let mIsZero# = (unWord# m) `eqWord#` (unWord# zeroBits)
-  let carry = (W# (int2Word# mIsZero#)) .&. ((w .&. carryMask) `unsafeShiftR` mantissaBits)
+  let carry = if (m /= 0) then 0 else ((w .&. carryMask) `unsafeShiftR` mantissaBits)
 
   d <- case countLeadingZeros w of
     b | b < bernoulliBits -> return b
