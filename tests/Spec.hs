@@ -1,5 +1,6 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -11,7 +12,7 @@ module Main (main) where
 import Data.Coerce
 import Data.Word
 import Data.Int
-import System.Random
+import System.Random.Monad
 import Test.Tasty
 import Test.Tasty.SmallCheck as SC
 import Test.SmallCheck.Series as SC
@@ -89,7 +90,7 @@ showsType = showsTypeRep (typeRep (Proxy :: Proxy t))
 
 rangeSpec ::
      forall a.
-     (SC.Serial IO a, Typeable a, Ord a, Random a, UniformRange a, Show a)
+     (SC.Serial IO a, Typeable a, Ord a, Random a, UniformRange 'Inclusive 'Inclusive a, Show a)
   => TestTree
 rangeSpec =
   testGroup ("Range (" ++ showsType @a ")")
@@ -98,7 +99,7 @@ rangeSpec =
 
 integralSpec ::
      forall a.
-     (SC.Serial IO a, Typeable a, Ord a, Random a, UniformRange a, Show a)
+     (SC.Serial IO a, Typeable a, Ord a, Random a, UniformRange 'Inclusive 'Inclusive a, Show a)
   => TestTree
 integralSpec  =
   testGroup ("(" ++ showsType @a ")")
@@ -111,7 +112,7 @@ integralSpec  =
 
 floatingSpec ::
      forall a.
-     (SC.Serial IO a, Typeable a, Num a, Ord a, Random a, UniformRange a, Show a)
+     (SC.Serial IO a, Typeable a, Num a, Ord a, Random a, UniformRange 'Inclusive 'Exclusive a, Show a)
   => TestTree
 floatingSpec  =
   testGroup ("(" ++ showsType @a ")")
@@ -128,10 +129,14 @@ seeded :: (StdGen -> a) -> Int -> a
 seeded f = f . mkStdGen
 
 
+instance (Monad m, Serial m a) => Serial m (Inc a) where
+  series = coerce <$> (series :: Series m a)
+instance (Monad m, Serial m a) => Serial m (Exc a) where
+  series = coerce <$> (series :: Series m a)
 instance Monad m => Serial m CFloat where
-  series = coerce <$> (series :: Series m Float)
+  series = coerce <$> (series :: Series m HTYPE_FLOAT)
 instance Monad m => Serial m CDouble where
-  series = coerce <$> (series :: Series m Double)
+  series = coerce <$> (series :: Series m HTYPE_DOUBLE)
 instance Monad m => Serial m CBool where
   series = coerce <$> (series :: Series m HTYPE_BOOL)
 instance Monad m => Serial m CChar where

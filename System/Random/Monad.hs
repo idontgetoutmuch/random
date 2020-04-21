@@ -62,6 +62,10 @@ module System.Random.Monad
   , Uniform(..)
   , uniformListM
   , UniformRange(..)
+  , Clusivity(..)
+  , Bound
+  , Exc(..)
+  , Inc(..)
 
   -- * Generators for sequences of pseudo-random bytes
   , genShortByteStringIO
@@ -119,7 +123,7 @@ import System.Random.Internal
 --
 -- >>> :{
 -- let rolls :: MonadRandom g s m => Int -> g s -> m [Word8]
---     rolls n = replicateM n . uniformRM (1, 6)
+--     rolls n = replicateM n . uniformRM (Inc 1, Inc 6)
 -- :}
 --
 -- Given a /monadic/ pseudo-random number generator, you can run this
@@ -294,7 +298,7 @@ applyAtomicGen op (AtomicGenI gVar) =
 --
 -- >>> import UnliftIO.Temporary (withSystemTempFile)
 -- >>> import Data.ByteString (hPutStr)
--- >>> let ioGen g = withSystemTempFile "foo.bin" $ \_ h -> uniformRM (0, 100) g >>= flip uniformByteString g >>= hPutStr h
+-- >>> let ioGen g = withSystemTempFile "foo.bin" $ \_ h -> uniformRM (Inc 0, Inc 100) g >>= flip uniformByteString g >>= hPutStr h
 --
 -- and then run it:
 --

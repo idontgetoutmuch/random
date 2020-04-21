@@ -1,4 +1,7 @@
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE Trustworthy #-}
 
 -- |
@@ -106,7 +109,7 @@ uniform g = runGenState g uniformM
 -- | Pure version of `uniformRM` that works with instances of `RandomGen`
 --
 -- @since 1.2
-uniformR :: (RandomGen g, UniformRange a) => (a, a) -> g -> (a, g)
+uniformR :: (RandomGen g, UniformRange l u a) => (Bound l a, Bound u a) -> g -> (a, g)
 uniformR r g = runGenState g (uniformRM r)
 {-# INLINE uniformR #-}
 
@@ -138,8 +141,8 @@ class Random a where
   -- depending on the implementation and the interval.
   {-# INLINE randomR #-}
   randomR :: RandomGen g => (a, a) -> g -> (a, g)
-  default randomR :: (RandomGen g, UniformRange a) => (a, a) -> g -> (a, g)
-  randomR = uniformR
+  default randomR :: (RandomGen g, UniformRange 'Inclusive 'Inclusive a) => (a, a) -> g -> (a, g)
+  randomR (l, u) = uniformR (Inc l, Inc u)
 
   -- | The same as 'randomR', but using a default range determined by the type:
   --
@@ -223,20 +226,20 @@ instance Random CUIntPtr
 instance Random CIntMax
 instance Random CUIntMax
 instance Random CFloat where
-  randomR (CFloat l, CFloat h) = first CFloat . randomR (l, h)
+  randomR r = first CFloat . randomR (coerce r)
   random = first CFloat . random
 instance Random CDouble where
-  randomR (CDouble l, CDouble h) = first CDouble . randomR (l, h)
+  randomR r = first CDouble . randomR (coerce r)
   random = first CDouble . random
 
 instance Random Char
 instance Random Bool
 instance Random Double where
-  randomR r g = runGenState g (uniformRM r)
-  random g = runGenState g (uniformRM (0, 1))
+  randomR (l, u) g = runGenState g (uniformRM (Inc l, Exc u))
+  random g = runGenState g (uniformRM (Inc 0, Exc 1))
 instance Random Float where
-  randomR r g = runGenState g (uniformRM r)
-  random g = runGenState g (uniformRM (0, 1))
+  randomR (l, u) g = runGenState g (uniformRM (Inc l, Exc u))
+  random g = runGenState g (uniformRM (Inc 0, Exc 1))
 
 -------------------------------------------------------------------------------
 -- Global pseudo-random number generator
