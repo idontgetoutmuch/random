@@ -1221,8 +1221,8 @@ instance UniformRange Float where
 
 -- | Counts the number of failed Bernoulli trials with p=0.5 before the first
 -- success, up to the given limit.
-geometricDistr :: MonadRandom g s m => Int -> g s -> m Int
-geometricDistr limit g = go 0
+geometricDistr :: MonadRandom g s m => Int -> Int -> g s -> m Int
+geometricDistr start limit g = go start
   where
     go !acc
       | acc >= limit = return limit
@@ -1238,24 +1238,7 @@ floatInUnitIntervalM :: MonadRandom g s m => g s -> m Float
 floatInUnitIntervalM g = do
   let maxExp = 126 -- exponent of 1.0, decremented by one
   let mantissaBits = 23
-  let carryMask = 2 ^ mantissaBits
-  let mantissaMask = (2 ^ mantissaBits) - 1
-
-  w <- uniformWord32 g
-  let m = w .&. mantissaMask
-  let carry = if (m /= 0) then 0 else ((w .&. carryMask) `unsafeShiftR` mantissaBits)
-
-  d <- geometricDistr maxExp g
-  let e = fromIntegral (maxExp - d) + carry
-
-  return $ castWord32ToFloat $ (e `unsafeShiftL` mantissaBits) .|. m
-{-# INLINE floatInUnitIntervalM #-}
-
--- | Generates a 'Double' in [0,1].
-doubleInUnitIntervalM :: MonadRandom g s m => g s -> m Double
-doubleInUnitIntervalM g = do
-  let maxExp = 1022 -- exponent of 1.0, decremented by one
-  let mantissaBits = 52
+  let bernoulliBits = 64 - mantissaBits - 1
   let carryMask = 2 ^ mantissaBits
   let mantissaMask = (2 ^ mantissaBits) - 1
 
@@ -1263,7 +1246,30 @@ doubleInUnitIntervalM g = do
   let m = w .&. mantissaMask
   let carry = if (m /= 0) then 0 else ((w .&. carryMask) `unsafeShiftR` mantissaBits)
 
-  d <- geometricDistr maxExp g
+  d <- case countLeadingZeros w of
+    b | b < bernoulliBits -> return b
+    _ -> geometricDistr bernoulliBits maxExp g
+  let e = fromIntegral (maxExp - d) + carry
+
+  return $ castWord32ToFloat $ fromIntegral $ (e `unsafeShiftL` mantissaBits) .|. m
+{-# INLINE floatInUnitIntervalM #-}
+
+-- | Generates a 'Double' in [0,1].
+doubleInUnitIntervalM :: MonadRandom g s m => g s -> m Double
+doubleInUnitIntervalM g = do
+  let maxExp = 1022 -- exponent of 1.0, decremented by one
+  let mantissaBits = 52
+  let bernoulliBits = 64 - mantissaBits - 1
+  let carryMask = 2 ^ mantissaBits
+  let mantissaMask = (2 ^ mantissaBits) - 1
+
+  w <- uniformWord64 g
+  let m = w .&. mantissaMask
+  let carry = if (m /= 0) then 0 else ((w .&. carryMask) `unsafeShiftR` mantissaBits)
+
+  d <- case countLeadingZeros w of
+    b | b < bernoulliBits -> return b
+    _ -> geometricDistr bernoulliBits maxExp g
   let e = fromIntegral (maxExp - d) + carry
 
   return $ castWord64ToDouble $ (e `unsafeShiftL` mantissaBits) .|. m
