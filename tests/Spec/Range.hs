@@ -1,3 +1,6 @@
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
+
 module Spec.Range
   ( symmetric
   , bounded
@@ -23,12 +26,20 @@ singleton g x = result == x
   where
     result = fst (randomR (x, x) g)
 
-uniformRangeWithin :: (RandomGen g, UniformRange a, Ord a) => g -> (a, a) -> Bool
-uniformRangeWithin gen (l, r) =
+uniformRangeWithin ::
+     (RandomGen g, UniformRange 'Inclusive 'Inclusive a, Ord a)
+  => g
+  -> (Inc a, Inc a)
+  -> Bool
+uniformRangeWithin gen r@(Inc l, Inc u) =
   runGenState_ gen $ \g ->
-    (\result -> min l r <= result && result <= max l r) <$> uniformRM (l, r) g
+    (\result -> min l u <= result && result <= max l u) <$> uniformRM r g
 
-uniformRangeWithinExcluded :: (RandomGen g, UniformRange a, Ord a) => g -> (a, a) -> Bool
-uniformRangeWithinExcluded gen (l, r) =
+uniformRangeWithinExcluded ::
+     (RandomGen g, UniformRange 'Inclusive 'Exclusive a, Ord a)
+  => g
+  -> (Inc a, Exc a)
+  -> Bool
+uniformRangeWithinExcluded gen r@(Inc l, Exc u) =
   runGenState_ gen $ \g ->
-    (\result -> min l r <= result && (l == r || result < max l r)) <$> uniformRM (l, r) g
+    (\result -> min l u <= result && (l == u || result < max l u)) <$> uniformRM r g

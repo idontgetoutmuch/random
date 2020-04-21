@@ -1,21 +1,25 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE GHCForeignImportPrim #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE UnboxedTuples #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE UnliftedFFITypes #-}
 {-# OPTIONS_HADDOCK hide, not-home #-}
 #include "MachDeps.h"
+#include "HsBaseConfig.h"
 
 -- |
 -- Module      :  System.Random.Internal
@@ -48,6 +52,10 @@ module System.Random.Internal
   -- * Pseudo-random values of various types
   , Uniform(..)
   , UniformRange(..)
+  , Clusivity(..)
+  , Bound
+  , Exc(..)
+  , Inc(..)
   , uniformByteString
 
   -- * Generators for sequences of pseudo-random bytes
@@ -92,7 +100,7 @@ class RandomGen g where
   -- [here](https://alexey.kuleshevi.ch/blog/2019/12/21/random-benchmarks) for
   -- more details. It is thus deprecated.
   next :: g -> (Int, g)
-  next g = runGenState g (uniformRM (genRange g))
+  next g = runGenState g (uniformRM (coerce (genRange g) :: (Inc Int, Inc Int)))
 
   -- | Returns a 'Word8' that is uniformly distributed over the entire 'Word8'
   -- range.
@@ -440,31 +448,93 @@ class Uniform a where
 -- > uniformRM (a,b) = uniformM (b,a)
 --
 -- @since 1.2
-class UniformRange a where
-  uniformRM :: MonadRandom g s m => (a, a) -> g s -> m a
+class UniformRange (l :: Clusivity) (u :: Clusivity) a where
+  uniformRM :: MonadRandom g s m => (Bound l a, Bound u a) -> g s -> m a
 
-instance UniformRange Integer where
+data Clusivity = Inclusive | Exclusive
+
+type family Bound (c :: Clusivity) = r | r -> c where
+  Bound 'Inclusive = Inc
+  Bound 'Exclusive = Exc
+
+newtype Inc a =
+  Inc { unInc :: a }
+  deriving (Num, Show, Eq, Ord, Integral, Floating, Real, Fractional, Bounded, Enum)
+
+newtype Exc a =
+  Exc { unExc :: a }
+  deriving (Num, Show, Eq, Ord, Integral, Floating, Real, Fractional, Bounded, Enum)
+
+
+
+
+uniformIntegralExcExcRM ::
+     (MonadRandom g s m, UniformRange 'Inclusive 'Inclusive a, Integral a)
+  => (Bound 'Exclusive a, Bound 'Exclusive a)
+  -> g s
+  -> m a
+uniformIntegralExcExcRM (Exc l, Exc u) = uniformRM (Inc (l + 1), Inc (u - 1))
+
+uniformIntegralIncExcRM ::
+     (MonadRandom g s m, UniformRange 'Inclusive 'Inclusive a, Integral a)
+  => (Bound 'Inclusive a, Bound 'Exclusive a)
+  -> g s
+  -> m a
+uniformIntegralIncExcRM (l, Exc u) = uniformRM (l, Inc (u - 1))
+
+uniformIntegralExcIncRM ::
+     (MonadRandom g s m, UniformRange 'Inclusive 'Inclusive a, Integral a)
+  => (Bound 'Exclusive a, Bound 'Inclusive a)
+  -> g s
+  -> m a
+uniformIntegralExcIncRM (Exc l, u) = uniformRM (Inc (l + 1), u)
+
+instance UniformRange 'Inclusive 'Inclusive Integer where
   uniformRM = uniformIntegerM
 
 instance Uniform Int8 where
   uniformM = fmap (fromIntegral :: Word8 -> Int8) . uniformWord8
-instance UniformRange Int8 where
+instance UniformRange 'Inclusive 'Inclusive Int8 where
   uniformRM = signedBitmaskWithRejectionRM (fromIntegral :: Int8 -> Word8) fromIntegral
+instance UniformRange 'Exclusive 'Exclusive Int8 where
+  uniformRM = uniformIntegralExcExcRM
+instance UniformRange 'Exclusive 'Inclusive Int8 where
+  uniformRM = uniformIntegralExcIncRM
+instance UniformRange 'Inclusive 'Exclusive Int8 where
+  uniformRM = uniformIntegralIncExcRM
 
 instance Uniform Int16 where
   uniformM = fmap (fromIntegral :: Word16 -> Int16) . uniformWord16
-instance UniformRange Int16 where
+instance UniformRange 'Inclusive 'Inclusive Int16 where
   uniformRM = signedBitmaskWithRejectionRM (fromIntegral :: Int16 -> Word16) fromIntegral
+instance UniformRange 'Exclusive 'Exclusive Int16 where
+  uniformRM = uniformIntegralExcExcRM
+instance UniformRange 'Exclusive 'Inclusive Int16 where
+  uniformRM = uniformIntegralExcIncRM
+instance UniformRange 'Inclusive 'Exclusive Int16 where
+  uniformRM = uniformIntegralIncExcRM
 
 instance Uniform Int32 where
   uniformM = fmap (fromIntegral :: Word32 -> Int32) . uniformWord32
-instance UniformRange Int32 where
+instance UniformRange 'Inclusive 'Inclusive Int32 where
   uniformRM = signedBitmaskWithRejectionRM (fromIntegral :: Int32 -> Word32) fromIntegral
+instance UniformRange 'Exclusive 'Exclusive Int32 where
+  uniformRM = uniformIntegralExcExcRM
+instance UniformRange 'Exclusive 'Inclusive Int32 where
+  uniformRM = uniformIntegralExcIncRM
+instance UniformRange 'Inclusive 'Exclusive Int32 where
+  uniformRM = uniformIntegralIncExcRM
 
 instance Uniform Int64 where
   uniformM = fmap (fromIntegral :: Word64 -> Int64) . uniformWord64
-instance UniformRange Int64 where
+instance UniformRange 'Inclusive 'Inclusive Int64 where
   uniformRM = signedBitmaskWithRejectionRM (fromIntegral :: Int64 -> Word64) fromIntegral
+instance UniformRange 'Exclusive 'Exclusive Int64 where
+  uniformRM = uniformIntegralExcExcRM
+instance UniformRange 'Exclusive 'Inclusive Int64 where
+  uniformRM = uniformIntegralExcIncRM
+instance UniformRange 'Inclusive 'Exclusive Int64 where
+  uniformRM = uniformIntegralIncExcRM
 
 instance Uniform Int where
 #if WORD_SIZE_IN_BITS < 64
@@ -473,9 +543,15 @@ instance Uniform Int where
   uniformM = fmap (fromIntegral :: Word64 -> Int) . uniformWord64
 #endif
   {-# INLINE uniformM #-}
-instance UniformRange Int where
+instance UniformRange 'Inclusive 'Inclusive Int where
   uniformRM = signedBitmaskWithRejectionRM (fromIntegral :: Int -> Word) fromIntegral
   {-# INLINE uniformRM #-}
+instance UniformRange 'Exclusive 'Exclusive Int where
+  uniformRM = uniformIntegralExcExcRM
+instance UniformRange 'Exclusive 'Inclusive Int where
+  uniformRM = uniformIntegralExcIncRM
+instance UniformRange 'Inclusive 'Exclusive Int where
+  uniformRM = uniformIntegralIncExcRM
 
 instance Uniform Word where
 #if WORD_SIZE_IN_BITS < 64
@@ -483,144 +559,288 @@ instance Uniform Word where
 #else
   uniformM = fmap (fromIntegral :: Word64 -> Word) . uniformWord64
 #endif
-instance UniformRange Word where
+instance UniformRange 'Inclusive 'Inclusive Word where
   {-# INLINE uniformRM #-}
   uniformRM = unsignedBitmaskWithRejectionRM
+instance UniformRange 'Exclusive 'Exclusive Word where
+  uniformRM = uniformIntegralExcExcRM
+instance UniformRange 'Exclusive 'Inclusive Word where
+  uniformRM = uniformIntegralExcIncRM
+instance UniformRange 'Inclusive 'Exclusive Word where
+  uniformRM = uniformIntegralIncExcRM
 
 instance Uniform Word8 where
   {-# INLINE uniformM #-}
   uniformM = uniformWord8
-instance UniformRange Word8 where
+instance UniformRange 'Inclusive 'Inclusive Word8 where
   {-# INLINE uniformRM #-}
   uniformRM = unsignedBitmaskWithRejectionRM
+instance UniformRange 'Exclusive 'Exclusive Word8 where
+  uniformRM = uniformIntegralExcExcRM
+instance UniformRange 'Exclusive 'Inclusive Word8 where
+  uniformRM = uniformIntegralExcIncRM
+instance UniformRange 'Inclusive 'Exclusive Word8 where
+  uniformRM = uniformIntegralIncExcRM
 
 instance Uniform Word16 where
   {-# INLINE uniformM #-}
   uniformM = uniformWord16
-instance UniformRange Word16 where
+instance UniformRange 'Inclusive 'Inclusive Word16 where
   {-# INLINE uniformRM #-}
   uniformRM = unsignedBitmaskWithRejectionRM
+instance UniformRange 'Exclusive 'Exclusive Word16 where
+  uniformRM = uniformIntegralExcExcRM
+instance UniformRange 'Exclusive 'Inclusive Word16 where
+  uniformRM = uniformIntegralExcIncRM
+instance UniformRange 'Inclusive 'Exclusive Word16 where
+  uniformRM = uniformIntegralIncExcRM
 
 instance Uniform Word32 where
   {-# INLINE uniformM #-}
   uniformM  = uniformWord32
-instance UniformRange Word32 where
+instance UniformRange 'Inclusive 'Inclusive Word32 where
   {-# INLINE uniformRM #-}
-  uniformRM (b, t) g | b > t     = (+t) <$> unbiasedWordMult32 (b - t) g
-                     | otherwise = (+b) <$> unbiasedWordMult32 (t - b) g
+  uniformRM (Inc b, Inc t) g | b > t     = (+t) <$> unbiasedWordMult32 (b - t) g
+                             | otherwise = (+b) <$> unbiasedWordMult32 (t - b) g
+instance UniformRange 'Exclusive 'Exclusive Word32 where
+  uniformRM = uniformIntegralExcExcRM
+instance UniformRange 'Exclusive 'Inclusive Word32 where
+  uniformRM = uniformIntegralExcIncRM
+instance UniformRange 'Inclusive 'Exclusive Word32 where
+  uniformRM = uniformIntegralIncExcRM
 
 instance Uniform Word64 where
   {-# INLINE uniformM #-}
   uniformM  = uniformWord64
-instance UniformRange Word64 where
+instance UniformRange 'Inclusive 'Inclusive Word64 where
   {-# INLINE uniformRM #-}
   uniformRM = unsignedBitmaskWithRejectionRM
+instance UniformRange 'Exclusive 'Exclusive Word64 where
+  uniformRM = uniformIntegralExcExcRM
+instance UniformRange 'Exclusive 'Inclusive Word64 where
+  uniformRM = uniformIntegralExcIncRM
+instance UniformRange 'Inclusive 'Exclusive Word64 where
+  uniformRM = uniformIntegralIncExcRM
 
 instance Uniform CBool where
   uniformM = fmap CBool . uniformM
-instance UniformRange CBool where
-  uniformRM (CBool b, CBool t) = fmap CBool . uniformRM (b, t)
+instance UniformRange 'Inclusive 'Inclusive CBool where
+  uniformRM r = fmap CBool . uniformRM (coerce r :: (Inc HTYPE_BOOL, Inc HTYPE_BOOL))
 
 instance Uniform CChar where
   uniformM = fmap CChar . uniformM
-instance UniformRange CChar where
-  uniformRM (CChar b, CChar t) = fmap CChar . uniformRM (b, t)
+instance UniformRange 'Inclusive 'Inclusive CChar where
+  uniformRM r = fmap CChar . uniformRM (coerce r :: (Inc HTYPE_CHAR, Inc HTYPE_CHAR))
+instance UniformRange 'Exclusive 'Exclusive CChar where
+  uniformRM = uniformIntegralExcExcRM
+instance UniformRange 'Exclusive 'Inclusive CChar where
+  uniformRM = uniformIntegralExcIncRM
+instance UniformRange 'Inclusive 'Exclusive CChar where
+  uniformRM = uniformIntegralIncExcRM
 
 instance Uniform CSChar where
   uniformM = fmap CSChar . uniformM
-instance UniformRange CSChar where
-  uniformRM (CSChar b, CSChar t) = fmap CSChar . uniformRM (b, t)
+instance UniformRange 'Inclusive 'Inclusive CSChar where
+  uniformRM r = fmap CSChar . uniformRM (coerce r :: (Inc HTYPE_SIGNED_CHAR, Inc HTYPE_SIGNED_CHAR))
+instance UniformRange 'Exclusive 'Exclusive CSChar where
+  uniformRM = uniformIntegralExcExcRM
+instance UniformRange 'Exclusive 'Inclusive CSChar where
+  uniformRM = uniformIntegralExcIncRM
+instance UniformRange 'Inclusive 'Exclusive CSChar where
+  uniformRM = uniformIntegralIncExcRM
 
 instance Uniform CUChar where
   uniformM = fmap CUChar . uniformM
-instance UniformRange CUChar where
-  uniformRM (CUChar b, CUChar t) = fmap CUChar . uniformRM (b, t)
+instance UniformRange 'Inclusive 'Inclusive CUChar where
+  uniformRM r = fmap CUChar . uniformRM (coerce r :: (Inc HTYPE_UNSIGNED_CHAR, Inc HTYPE_UNSIGNED_CHAR))
+instance UniformRange 'Exclusive 'Exclusive CUChar where
+  uniformRM = uniformIntegralExcExcRM
+instance UniformRange 'Exclusive 'Inclusive CUChar where
+  uniformRM = uniformIntegralExcIncRM
+instance UniformRange 'Inclusive 'Exclusive CUChar where
+  uniformRM = uniformIntegralIncExcRM
 
 instance Uniform CShort where
   uniformM = fmap CShort . uniformM
-instance UniformRange CShort where
-  uniformRM (CShort b, CShort t) = fmap CShort . uniformRM (b, t)
+instance UniformRange 'Inclusive 'Inclusive CShort where
+  uniformRM r = fmap CShort . uniformRM (coerce r :: (Inc HTYPE_SHORT, Inc HTYPE_SHORT))
+instance UniformRange 'Exclusive 'Exclusive CShort where
+  uniformRM = uniformIntegralExcExcRM
+instance UniformRange 'Exclusive 'Inclusive CShort where
+  uniformRM = uniformIntegralExcIncRM
+instance UniformRange 'Inclusive 'Exclusive CShort where
+  uniformRM = uniformIntegralIncExcRM
 
 instance Uniform CUShort where
   uniformM = fmap CUShort . uniformM
-instance UniformRange CUShort where
-  uniformRM (CUShort b, CUShort t) = fmap CUShort . uniformRM (b, t)
+instance UniformRange 'Inclusive 'Inclusive CUShort where
+  uniformRM r = fmap CUShort . uniformRM (coerce r :: (Inc HTYPE_UNSIGNED_SHORT, Inc HTYPE_UNSIGNED_SHORT))
+instance UniformRange 'Exclusive 'Exclusive CUShort where
+  uniformRM = uniformIntegralExcExcRM
+instance UniformRange 'Exclusive 'Inclusive CUShort where
+  uniformRM = uniformIntegralExcIncRM
+instance UniformRange 'Inclusive 'Exclusive CUShort where
+  uniformRM = uniformIntegralIncExcRM
 
 instance Uniform CInt where
   uniformM = fmap CInt . uniformM
-instance UniformRange CInt where
-  uniformRM (CInt b, CInt t) = fmap CInt . uniformRM (b, t)
+instance UniformRange 'Inclusive 'Inclusive CInt where
+  uniformRM r = fmap CInt . uniformRM (coerce r :: (Inc HTYPE_INT, Inc HTYPE_INT))
+instance UniformRange 'Exclusive 'Exclusive CInt where
+  uniformRM = uniformIntegralExcExcRM
+instance UniformRange 'Exclusive 'Inclusive CInt where
+  uniformRM = uniformIntegralExcIncRM
+instance UniformRange 'Inclusive 'Exclusive CInt where
+  uniformRM = uniformIntegralIncExcRM
 
 instance Uniform CUInt where
   uniformM = fmap CUInt . uniformM
-instance UniformRange CUInt where
-  uniformRM (CUInt b, CUInt t) = fmap CUInt . uniformRM (b, t)
+instance UniformRange 'Inclusive 'Inclusive CUInt where
+  uniformRM r = fmap CUInt . uniformRM (coerce r :: (Inc HTYPE_UNSIGNED_INT, Inc HTYPE_UNSIGNED_INT))
+instance UniformRange 'Exclusive 'Exclusive CUInt where
+  uniformRM = uniformIntegralExcExcRM
+instance UniformRange 'Exclusive 'Inclusive CUInt where
+  uniformRM = uniformIntegralExcIncRM
+instance UniformRange 'Inclusive 'Exclusive CUInt where
+  uniformRM = uniformIntegralIncExcRM
 
 instance Uniform CLong where
   uniformM = fmap CLong . uniformM
-instance UniformRange CLong where
-  uniformRM (CLong b, CLong t) = fmap CLong . uniformRM (b, t)
+instance UniformRange 'Inclusive 'Inclusive CLong where
+  uniformRM r = fmap CLong . uniformRM (coerce r :: (Inc HTYPE_LONG, Inc HTYPE_LONG))
+instance UniformRange 'Exclusive 'Exclusive CLong where
+  uniformRM = uniformIntegralExcExcRM
+instance UniformRange 'Exclusive 'Inclusive CLong where
+  uniformRM = uniformIntegralExcIncRM
+instance UniformRange 'Inclusive 'Exclusive CLong where
+  uniformRM = uniformIntegralIncExcRM
 
 instance Uniform CULong where
   uniformM = fmap CULong . uniformM
-instance UniformRange CULong where
-  uniformRM (CULong b, CULong t) = fmap CULong . uniformRM (b, t)
+instance UniformRange 'Inclusive 'Inclusive CULong where
+  uniformRM r = fmap CULong . uniformRM (coerce r :: (Inc HTYPE_UNSIGNED_LONG, Inc HTYPE_UNSIGNED_LONG))
+instance UniformRange 'Exclusive 'Exclusive CULong where
+  uniformRM = uniformIntegralExcExcRM
+instance UniformRange 'Exclusive 'Inclusive CULong where
+  uniformRM = uniformIntegralExcIncRM
+instance UniformRange 'Inclusive 'Exclusive CULong where
+  uniformRM = uniformIntegralIncExcRM
 
 instance Uniform CPtrdiff where
   uniformM = fmap CPtrdiff . uniformM
-instance UniformRange CPtrdiff where
-  uniformRM (CPtrdiff b, CPtrdiff t) = fmap CPtrdiff . uniformRM (b, t)
+instance UniformRange 'Inclusive 'Inclusive CPtrdiff where
+  uniformRM r = fmap CPtrdiff . uniformRM (coerce r :: (Inc HTYPE_PTRDIFF_T, Inc HTYPE_PTRDIFF_T))
+instance UniformRange 'Exclusive 'Exclusive CPtrdiff where
+  uniformRM = uniformIntegralExcExcRM
+instance UniformRange 'Exclusive 'Inclusive CPtrdiff where
+  uniformRM = uniformIntegralExcIncRM
+instance UniformRange 'Inclusive 'Exclusive CPtrdiff where
+  uniformRM = uniformIntegralIncExcRM
 
 instance Uniform CSize where
   uniformM = fmap CSize . uniformM
-instance UniformRange CSize where
-  uniformRM (CSize b, CSize t) = fmap CSize . uniformRM (b, t)
+instance UniformRange 'Inclusive 'Inclusive CSize where
+  uniformRM r = fmap CSize . uniformRM (coerce r :: (Inc HTYPE_SIZE_T, Inc HTYPE_SIZE_T))
+instance UniformRange 'Exclusive 'Exclusive CSize where
+  uniformRM = uniformIntegralExcExcRM
+instance UniformRange 'Exclusive 'Inclusive CSize where
+  uniformRM = uniformIntegralExcIncRM
+instance UniformRange 'Inclusive 'Exclusive CSize where
+  uniformRM = uniformIntegralIncExcRM
 
 instance Uniform CWchar where
   uniformM = fmap CWchar . uniformM
-instance UniformRange CWchar where
-  uniformRM (CWchar b, CWchar t) = fmap CWchar . uniformRM (b, t)
+instance UniformRange 'Inclusive 'Inclusive CWchar where
+  uniformRM r = fmap CWchar . uniformRM (coerce r :: (Inc HTYPE_WCHAR_T, Inc HTYPE_WCHAR_T))
+instance UniformRange 'Exclusive 'Exclusive CWchar where
+  uniformRM = uniformIntegralExcExcRM
+instance UniformRange 'Exclusive 'Inclusive CWchar where
+  uniformRM = uniformIntegralExcIncRM
+instance UniformRange 'Inclusive 'Exclusive CWchar where
+  uniformRM = uniformIntegralIncExcRM
 
 instance Uniform CSigAtomic where
   uniformM = fmap CSigAtomic . uniformM
-instance UniformRange CSigAtomic where
-  uniformRM (CSigAtomic b, CSigAtomic t) = fmap CSigAtomic . uniformRM (b, t)
+instance UniformRange 'Inclusive 'Inclusive CSigAtomic where
+  uniformRM r = fmap CSigAtomic . uniformRM (coerce r :: (Inc HTYPE_SIG_ATOMIC_T, Inc HTYPE_SIG_ATOMIC_T))
+instance UniformRange 'Exclusive 'Exclusive CSigAtomic where
+  uniformRM = uniformIntegralExcExcRM
+instance UniformRange 'Exclusive 'Inclusive CSigAtomic where
+  uniformRM = uniformIntegralExcIncRM
+instance UniformRange 'Inclusive 'Exclusive CSigAtomic where
+  uniformRM = uniformIntegralIncExcRM
 
 instance Uniform CLLong where
   uniformM = fmap CLLong . uniformM
-instance UniformRange CLLong where
-  uniformRM (CLLong b, CLLong t) = fmap CLLong . uniformRM (b, t)
+instance UniformRange 'Inclusive 'Inclusive CLLong where
+  uniformRM r = fmap CLLong . uniformRM (coerce r :: (Inc HTYPE_LONG_LONG, Inc HTYPE_LONG_LONG))
+instance UniformRange 'Exclusive 'Exclusive CLLong where
+  uniformRM = uniformIntegralExcExcRM
+instance UniformRange 'Exclusive 'Inclusive CLLong where
+  uniformRM = uniformIntegralExcIncRM
+instance UniformRange 'Inclusive 'Exclusive CLLong where
+  uniformRM = uniformIntegralIncExcRM
 
 instance Uniform CULLong where
   uniformM = fmap CULLong . uniformM
-instance UniformRange CULLong where
-  uniformRM (CULLong b, CULLong t) = fmap CULLong . uniformRM (b, t)
+instance UniformRange 'Inclusive 'Inclusive CULLong where
+  uniformRM r = fmap CULLong . uniformRM (coerce r :: (Inc HTYPE_UNSIGNED_LONG_LONG, Inc HTYPE_UNSIGNED_LONG_LONG))
+instance UniformRange 'Exclusive 'Exclusive CULLong where
+  uniformRM = uniformIntegralExcExcRM
+instance UniformRange 'Exclusive 'Inclusive CULLong where
+  uniformRM = uniformIntegralExcIncRM
+instance UniformRange 'Inclusive 'Exclusive CULLong where
+  uniformRM = uniformIntegralIncExcRM
 
 instance Uniform CIntPtr where
-  uniformM                         = fmap CIntPtr . uniformM
-instance UniformRange CIntPtr where
-  uniformRM (CIntPtr b, CIntPtr t) = fmap CIntPtr . uniformRM (b, t)
+  uniformM = fmap CIntPtr . uniformM
+instance UniformRange 'Inclusive 'Inclusive CIntPtr where
+  uniformRM r = fmap CIntPtr . uniformRM (coerce r :: (Inc HTYPE_INTPTR_T, Inc HTYPE_INTPTR_T))
+instance UniformRange 'Exclusive 'Exclusive CIntPtr where
+  uniformRM = uniformIntegralExcExcRM
+instance UniformRange 'Exclusive 'Inclusive CIntPtr where
+  uniformRM = uniformIntegralExcIncRM
+instance UniformRange 'Inclusive 'Exclusive CIntPtr where
+  uniformRM = uniformIntegralIncExcRM
 
 instance Uniform CUIntPtr where
   uniformM = fmap CUIntPtr . uniformM
-instance UniformRange CUIntPtr where
-  uniformRM (CUIntPtr b, CUIntPtr t) = fmap CUIntPtr . uniformRM (b, t)
+instance UniformRange 'Inclusive 'Inclusive CUIntPtr where
+  uniformRM r = fmap CUIntPtr . uniformRM (coerce r :: (Inc HTYPE_UINTPTR_T, Inc HTYPE_UINTPTR_T))
+instance UniformRange 'Exclusive 'Exclusive CUIntPtr where
+  uniformRM = uniformIntegralExcExcRM
+instance UniformRange 'Exclusive 'Inclusive CUIntPtr where
+  uniformRM = uniformIntegralExcIncRM
+instance UniformRange 'Inclusive 'Exclusive CUIntPtr where
+  uniformRM = uniformIntegralIncExcRM
 
 instance Uniform CIntMax where
   uniformM = fmap CIntMax . uniformM
-instance UniformRange CIntMax where
-  uniformRM (CIntMax b, CIntMax t) = fmap CIntMax . uniformRM (b, t)
+instance UniformRange 'Inclusive 'Inclusive CIntMax where
+  uniformRM r = fmap CIntMax . uniformRM (coerce r :: (Inc HTYPE_INTMAX_T, Inc HTYPE_INTMAX_T))
+instance UniformRange 'Exclusive 'Exclusive CIntMax where
+  uniformRM = uniformIntegralExcExcRM
+instance UniformRange 'Exclusive 'Inclusive CIntMax where
+  uniformRM = uniformIntegralExcIncRM
+instance UniformRange 'Inclusive 'Exclusive CIntMax where
+  uniformRM = uniformIntegralIncExcRM
 
 instance Uniform CUIntMax where
   uniformM = fmap CUIntMax . uniformM
-instance UniformRange CUIntMax where
-  uniformRM (CUIntMax b, CUIntMax t) = fmap CUIntMax . uniformRM (b, t)
+instance UniformRange 'Inclusive 'Inclusive CUIntMax where
+  uniformRM r = fmap CUIntMax . uniformRM (coerce r :: (Inc HTYPE_UINTMAX_T, Inc HTYPE_UINTMAX_T))
+instance UniformRange 'Exclusive 'Exclusive CUIntMax where
+  uniformRM = uniformIntegralExcExcRM
+instance UniformRange 'Exclusive 'Inclusive CUIntMax where
+  uniformRM = uniformIntegralExcIncRM
+instance UniformRange 'Inclusive 'Exclusive CUIntMax where
+  uniformRM = uniformIntegralIncExcRM
 
-instance UniformRange CFloat where
-  uniformRM (CFloat l, CFloat h) = fmap CFloat . uniformRM (l, h)
+instance UniformRange 'Inclusive 'Exclusive CFloat where
+  uniformRM r = fmap CFloat . uniformRM (coerce r :: (Inc HTYPE_FLOAT, Exc HTYPE_FLOAT))
 
-instance UniformRange CDouble where
-  uniformRM (CDouble l, CDouble h) = fmap CDouble . uniformRM (l, h)
+instance UniformRange 'Inclusive 'Exclusive CDouble where
+  uniformRM r = fmap CDouble . uniformRM (coerce r :: (Inc HTYPE_DOUBLE, Exc HTYPE_DOUBLE))
 
 
 -- The `chr#` and `ord#` are the prim functions that will be called, regardless of which
@@ -640,21 +860,23 @@ charToWord32 (C# c#) = W32# (int2Word# (ord# c#))
 instance Uniform Char where
   uniformM g = word32ToChar <$> unsignedBitmaskWithRejectionM uniformM (charToWord32 maxBound) g
   {-# INLINE uniformM #-}
-instance UniformRange Char where
-  uniformRM (l, h) g =
-    word32ToChar <$> unsignedBitmaskWithRejectionRM (charToWord32 l, charToWord32 h) g
+instance UniformRange 'Inclusive 'Inclusive Char where
+  uniformRM (Inc l, Inc h) g =
+    word32ToChar <$> unsignedBitmaskWithRejectionRM (Inc (charToWord32 l), Inc (charToWord32 h)) g
   {-# INLINE uniformRM #-}
 
 instance Uniform Bool where
   uniformM = fmap wordToBool . uniformWord8
     where wordToBool w = (w .&. 1) /= 0
-instance UniformRange Bool where
-  uniformRM (False, False) _g = return False
-  uniformRM (True, True)   _g = return True
-  uniformRM _               g = uniformM g
+instance UniformRange 'Inclusive 'Inclusive Bool where
+  uniformRM r g =
+    case coerce r of
+      (False, False) -> return False
+      (True, True)   -> return True
+      _              -> uniformM g
 
-instance UniformRange Double where
-  uniformRM (l, h) g = do
+instance UniformRange 'Inclusive 'Exclusive Double where
+  uniformRM (Inc l, Exc h) g = do
     w64 <- uniformWord64 g
     let x = word64ToDoubleInUnitInterval w64
     return $ (h - l) * x + l
@@ -689,8 +911,8 @@ foreign import prim "stg_word64ToDoubleyg"
 #endif
 
 
-instance UniformRange Float where
-  uniformRM (l, h) g = do
+instance UniformRange 'Inclusive 'Exclusive Float where
+  uniformRM (Inc l, Exc h) g = do
     w32 <- uniformWord32 g
     let x = word32ToFloatInUnitInterval w32
     return $ (h - l) * x + l
@@ -736,20 +958,23 @@ randomIvalInteger (l,h) rng
 
 -- | Generate an 'Integer' in the range @[l, h]@ if @l <= h@ and @[h, l]@
 -- otherwise.
-uniformIntegerM :: (MonadRandom g s m) => (Integer, Integer) -> g s -> m Integer
-uniformIntegerM (l, h) gen = case l `compare` h of
-  LT -> do
-    let limit = h - l
-    let limitAsWord64 :: Word64 = fromIntegral limit
+uniformIntegerM :: (MonadRandom g s m) => (Inc Integer, Inc Integer) -> g s -> m Integer
+uniformIntegerM (Inc l, Inc h) gen
+  | l == h = pure l
+  | otherwise = do
+    let (limit, low) =
+          if l < h
+            then (h - l, l)
+            else (l - h, h)
+        limitAsWord64 :: Word64 = fromIntegral limit
     bounded <-
-      if (toInteger limitAsWord64) == limit
+      if toInteger limitAsWord64 == limit
         -- Optimisation: if 'limit' fits into 'Word64', generate a bounded
         -- 'Word64' and then convert to 'Integer'
-        then toInteger <$> unsignedBitmaskWithRejectionM uniformWord64 limitAsWord64 gen
+        then toInteger <$>
+             unsignedBitmaskWithRejectionM uniformWord64 limitAsWord64 gen
         else boundedExclusiveIntegerM (limit + 1) gen
-    return $ l + bounded
-  GT -> uniformIntegerM (h, l) gen
-  EQ -> pure l
+    return $ low + bounded
 {-# INLINE uniformIntegerM #-}
 
 -- | Generate an 'Integer' in the range @[0, s)@ using a variant of Lemire's
@@ -829,19 +1054,19 @@ unbiasedWordMult32Exclusive r g = go
           l :: Word32
           l = fromIntegral m
       if (l >= t) then return (fromIntegral $ m `shiftR` 32) else go
+{-# INLINE unbiasedWordMult32Exclusive #-}
 
 -- | This only works for unsigned integrals
 unsignedBitmaskWithRejectionRM ::
      (MonadRandom g s m, FiniteBits a, Num a, Ord a, Uniform a)
-  => (a, a)
+  => (Inc a, Inc a)
   -> g s
   -> m a
-unsignedBitmaskWithRejectionRM (bottom, top) gen
-  | bottom > top = unsignedBitmaskWithRejectionRM (top, bottom) gen
+unsignedBitmaskWithRejectionRM (Inc bottom, Inc top) gen
   | bottom == top = pure top
-  | otherwise = (bottom +) <$> unsignedBitmaskWithRejectionM uniformM range gen
+  | otherwise = (b +) <$> unsignedBitmaskWithRejectionM uniformM r gen
   where
-    range = top - bottom
+    (b, r) = if bottom > top then (top, bottom - top) else (bottom, top - bottom)
 {-# INLINE unsignedBitmaskWithRejectionRM #-}
 
 -- | This works for signed integrals by explicit conversion to unsigned and abusing overflow
@@ -849,17 +1074,19 @@ signedBitmaskWithRejectionRM ::
      (Num a, Num b, Ord b, Ord a, FiniteBits a, MonadRandom g s f, Uniform a)
   => (b -> a)
   -> (a -> b)
-  -> (b, b)
+  -> (Inc b, Inc b)
   -> g s
   -> f b
-signedBitmaskWithRejectionRM toUnsigned fromUnsigned (bottom, top) gen
-  | bottom > top = signedBitmaskWithRejectionRM toUnsigned fromUnsigned (top, bottom) gen
+signedBitmaskWithRejectionRM toUnsigned fromUnsigned (Inc bottom, Inc top) gen
   | bottom == top = pure top
-  | otherwise = (bottom +) . fromUnsigned <$>
-    unsignedBitmaskWithRejectionM uniformM range gen
-    where
-      -- This works in all cases, see Appendix 1 at the end of the file.
-      range = toUnsigned top - toUnsigned bottom
+  | otherwise =
+    (b +) . fromUnsigned <$> unsignedBitmaskWithRejectionM uniformM r gen
+    -- This works in all cases, see Appendix 1 at the end of the file.
+  where
+    (b, r) =
+      if bottom > top
+        then (top, toUnsigned bottom - toUnsigned top)
+        else (bottom, toUnsigned top - toUnsigned bottom)
 {-# INLINE signedBitmaskWithRejectionRM #-}
 
 unsignedBitmaskWithRejectionM :: (Ord a, FiniteBits a, Num a, MonadRandom g s m) => (g s -> m a) -> a -> g s -> m a
