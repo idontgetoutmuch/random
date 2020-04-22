@@ -716,15 +716,18 @@ geometricDistr start limit g = go start
 -- | Generates a 'Float' in [0,1].
 floatInUnitIntervalM :: MonadRandom g s m => g s -> m Float
 floatInUnitIntervalM g = do
+  let entropyBits = 64 -- bit size of the word generated initially
   let maxExp = 126 -- exponent of 1.0, decremented by one
   let mantissaBits = 23
-  let bernoulliBits = 64 - mantissaBits - 1
   let carryMask = 2 ^ mantissaBits
   let mantissaMask = (2 ^ mantissaBits) - 1
 
   w <- uniformWord64 g
   let m = w .&. mantissaMask
-  let carry = if (m /= 0) then 0 else ((w .&. carryMask) `unsafeShiftR` mantissaBits)
+  let (carry, bernoulliBits) =
+        if m /= 0
+          then (0, entropyBits - mantissaBits)
+          else (((w .&. carryMask) `unsafeShiftR` mantissaBits), entropyBits - mantissaBits - 1)
 
   d <- case countLeadingZeros w of
     b | b < bernoulliBits -> return b
@@ -737,15 +740,18 @@ floatInUnitIntervalM g = do
 -- | Generates a 'Double' in [0,1].
 doubleInUnitIntervalM :: MonadRandom g s m => g s -> m Double
 doubleInUnitIntervalM g = do
+  let entropyBits = 64 -- bit size of the word generated initially
   let maxExp = 1022 -- exponent of 1.0, decremented by one
   let mantissaBits = 52
-  let bernoulliBits = 64 - mantissaBits - 1
   let carryMask = 2 ^ mantissaBits
   let mantissaMask = (2 ^ mantissaBits) - 1
 
   w <- uniformWord64 g
   let m = w .&. mantissaMask
-  let carry = if (m /= 0) then 0 else ((w .&. carryMask) `unsafeShiftR` mantissaBits)
+  let (carry, bernoulliBits) =
+        if m /= 0
+          then (0, entropyBits - mantissaBits)
+          else (((w .&. carryMask) `unsafeShiftR` mantissaBits), entropyBits - mantissaBits - 1)
 
   d <- case countLeadingZeros w of
     b | b < bernoulliBits -> return b
