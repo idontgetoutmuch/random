@@ -713,12 +713,11 @@ geometricDistr start limit g = go start
             else go (acc + finiteBitSize w)
 {-# INLINE geometricDistr #-}
 
--- | Generates a 'Float' in [0,1].
-floatInUnitIntervalM :: MonadRandom g s m => g s -> m Float
-floatInUnitIntervalM g = do
+-- | Generates a 'Word64' representing a floating point number in [0,1] using
+-- Downey's method: http://allendowney.com/research/rand/
+floatingPointInUnitIntervalM :: MonadRandom g s m => Int -> Int -> g s -> m Word64
+floatingPointInUnitIntervalM maxExp mantissaBits g = do
   let entropyBits = 64 -- bit size of the word generated initially
-  let maxExp = 126 -- exponent of 1.0, decremented by one
-  let mantissaBits = 23
   let carryMask = 2 ^ mantissaBits
   let mantissaMask = (2 ^ mantissaBits) - 1
 
@@ -734,31 +733,17 @@ floatInUnitIntervalM g = do
     _ -> geometricDistr bernoulliBits maxExp g
   let e = fromIntegral (maxExp - d) + carry
 
-  return $ castWord32ToFloat $ fromIntegral $ (e `unsafeShiftL` mantissaBits) .|. m
+  return $ (e `unsafeShiftL` mantissaBits) .|. m
+{-# INLINE floatingPointInUnitIntervalM #-}
+
+-- | Generates a 'Float' in [0,1].
+floatInUnitIntervalM :: MonadRandom g s m => g s -> m Float
+floatInUnitIntervalM g = (castWord32ToFloat . fromIntegral) <$> floatingPointInUnitIntervalM 126 23 g
 {-# INLINE floatInUnitIntervalM #-}
 
 -- | Generates a 'Double' in [0,1].
 doubleInUnitIntervalM :: MonadRandom g s m => g s -> m Double
-doubleInUnitIntervalM g = do
-  let entropyBits = 64 -- bit size of the word generated initially
-  let maxExp = 1022 -- exponent of 1.0, decremented by one
-  let mantissaBits = 52
-  let carryMask = 2 ^ mantissaBits
-  let mantissaMask = (2 ^ mantissaBits) - 1
-
-  w <- uniformWord64 g
-  let m = w .&. mantissaMask
-  let (carry, bernoulliBits) =
-        if m /= 0
-          then (0, entropyBits - mantissaBits)
-          else (((w .&. carryMask) `unsafeShiftR` mantissaBits), entropyBits - mantissaBits - 1)
-
-  d <- case countLeadingZeros w of
-    b | b < bernoulliBits -> return b
-    _ -> geometricDistr bernoulliBits maxExp g
-  let e = fromIntegral (maxExp - d) + carry
-
-  return $ castWord64ToDouble $ (e `unsafeShiftL` mantissaBits) .|. m
+doubleInUnitIntervalM g = castWord64ToDouble <$> floatingPointInUnitIntervalM 1022 52 g
 {-# INLINE doubleInUnitIntervalM #-}
 
 -- The two integer functions below take an [inclusive,inclusive] range.
