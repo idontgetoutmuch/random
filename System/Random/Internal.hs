@@ -672,6 +672,7 @@ instance UniformRange Double where
   uniformRM (l, h) g = do
     x <- doubleInUnitIntervalM g
     return $ (h - l) * x + l
+  {-# INLINE uniformRM #-}
 
 -- | These are now in 'GHC.Float' but unpatched in some versions so
 -- for now we roll our own. See
@@ -698,6 +699,7 @@ instance UniformRange Float where
   uniformRM (l, h) g = do
     x <- floatInUnitIntervalM g
     return $ (h - l) * x + l
+  {-# INLINE uniformRM #-}
 
 -- | Counts the number of failed Bernoulli trials with p=0.5 before the first
 -- success, up to the given limit.

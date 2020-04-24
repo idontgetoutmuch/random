@@ -230,10 +230,14 @@ instance Random Char
 instance Random Bool
 instance Random Double where
   randomR r g = runGenState g (uniformRM r)
+  {-# INLINE randomR #-}
   random g = runGenState g doubleInUnitIntervalM
+  {-# INLINE random #-}
 instance Random Float where
   randomR r g = runGenState g (uniformRM r)
+  {-# INLINE randomR #-}
   random g = runGenState g floatInUnitIntervalM
+  {-# INLINE random #-}
 
 -------------------------------------------------------------------------------
 -- Global pseudo-random number generator
