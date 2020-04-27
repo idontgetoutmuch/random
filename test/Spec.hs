@@ -115,7 +115,7 @@ floatingSpec ::
   => TestTree
 floatingSpec  =
   testGroup ("(" ++ showsType @a ")")
-  [ SC.testProperty "uniformR" $ seeded $ Range.uniformRangeWithinExcluded @_ @a
+  [ SC.testProperty "uniformR" $ seeded $ Range.uniformRangeWithin @_ @a
   -- TODO: Add more tests
   ]
 

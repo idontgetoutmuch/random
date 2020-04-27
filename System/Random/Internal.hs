@@ -436,25 +436,20 @@ class Uniform a where
 --
 -- @since 1.2
 class UniformRange a where
-  -- | Generates a value uniformly distributed over the provided range.
+  -- | Generates a value uniformly distributed over the provided range, which
+  -- is interpreted as inclusive in the lower and upper bound.
   --
-  -- *   For /integral types/, the range is interpreted as inclusive in the
-  --     lower and upper bound.
+  -- *   @uniformR (1 :: Int, 4 :: Int)@ should generate values uniformly from
+  --     the set \(\{1,2,3,4\}\)
   --
-  --     As an example, @uniformR (1 :: Int, 4 :: Int)@ should generate values
-  --     uniformly from the set \(\{1,2,3,4\}\).
-  --
-  -- *   For /non-integral types/, the range is interpreted as inclusive in the
-  --     lower bound and exclusive in the upper bound.
-  --
-  --     As an example, @uniformR (1 :: Float, 4 :: Float)@ should generate
-  --     values uniformly from the set \(\{x\;|\;1 \le x \lt 4\}\).
+  -- *   @uniformR (1 :: Float, 4 :: Float)@ should generate values uniformly
+  --     from the set \(\{x\;|\;1 \le x \le 4\}\)
   --
   -- The following law should hold to make the function always defined:
   --
   -- > uniformRM (a, b) = uniformRM (b, a)
   --
-  -- @since 1.2<Paste>
+  -- @since 1.2
   uniformRM :: MonadRandom g s m => (a, a) -> g s -> m a
 
 instance UniformRange Integer where
