@@ -9,8 +9,8 @@
 
 import pandas as pd
 
-# Threshold for the speedup or slowdown factor
-SIGNIFICANT = 0.2
+# Threshold for the relative difference, as a percentage
+SIGNIFICANT = 20
 
 if __name__ == '__main__':
     from sys import argv
@@ -19,12 +19,19 @@ if __name__ == '__main__':
     res = pd.read_csv(argv[2])
     comp = pd.merge(ref, res, on='Name', how='outer', validate='one_to_one', suffixes=('_ref', '_res'))
 
-    speedup_col = 'Speedup_rel'
+    speedup_col = 'Diff'
     comp[speedup_col] = (comp['Mean_ref'] - comp['Mean_res']) / comp['Mean_ref']
 
     cols = ['Name', 'Mean_ref', 'Mean_res', speedup_col]
+    print_opts = {
+            'index': False,
+            'columns': cols,
+            'formatters': {
+                speedup_col: '{:,.0%}'.format
+            },
+        }
     print('SLOWER')
-    print(comp[comp[speedup_col] < - SIGNIFICANT].loc[:, cols].to_string(index=False))
+    print(comp[comp[speedup_col] < - SIGNIFICANT / 100].to_string(**print_opts))
 
     print('\nFASTER')
-    print(comp[comp[speedup_col] > SIGNIFICANT].loc[:, cols].to_string(index=False))
+    print(comp[comp[speedup_col] > SIGNIFICANT / 100].to_string(**print_opts))
