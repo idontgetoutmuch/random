@@ -33,6 +33,8 @@ module System.Random
   , getStdGen
   , setStdGen
   , newStdGen
+  -- * Re-exports
+  , MonadThrow(..)
 
   -- * Compatibility and reproducibility
   -- ** Backwards compatibility and deprecations
@@ -50,6 +52,8 @@ module System.Random
   ) where
 
 import Control.Arrow
+import Control.Exception (throw)
+import Control.Monad.Catch (MonadThrow(..))
 import Data.ByteString (ByteString)
 import Data.Int
 import Data.IORef
@@ -106,8 +110,8 @@ uniform g = runGenState g uniformM
 -- | Pure version of `uniformRM` that works with instances of `RandomGen`
 --
 -- @since 1.2
-uniformR :: (RandomGen g, UniformRange a) => (a, a) -> g -> (a, g)
-uniformR r g = runGenState g (uniformRM r)
+uniformR :: (RandomGen g, UniformRange a, MonadThrow m) => (a, a) -> g -> m (a, g)
+uniformR r g = runGenStateT g (uniformRM r)
 
 -- | Generates a 'ByteString' of the specified size using a pure pseudo-random
 -- number generator. See 'uniformByteString' for the monadic version.
@@ -136,7 +140,7 @@ class Random a where
   {-# INLINE randomR #-}
   randomR :: RandomGen g => (a, a) -> g -> (a, g)
   default randomR :: (RandomGen g, UniformRange a) => (a, a) -> g -> (a, g)
-  randomR r g = runGenState g (uniformRM r)
+  randomR r g = either throw id $ runGenStateT g (uniformRM r)
 
   -- | The same as 'randomR', but using a default range determined by the type:
   --
@@ -229,11 +233,11 @@ instance Random CDouble where
 instance Random Char
 instance Random Bool
 instance Random Double where
-  randomR r g = runGenState g (uniformRM r)
-  random g = runGenState g (uniformRM (0, 1))
+  randomR r g = either throw id $ runGenStateT g (uniformRM r)
+  random = randomR (0, 1)
 instance Random Float where
-  randomR r g = runGenState g (uniformRM r)
-  random g = runGenState g (uniformRM (0, 1))
+  randomR r g = either throw id $ runGenStateT g (uniformRM r)
+  random = randomR (0, 1)
 
 -------------------------------------------------------------------------------
 -- Global pseudo-random number generator

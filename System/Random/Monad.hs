@@ -118,7 +118,7 @@ import System.Random.Internal
 -- range @[1, 6]@.
 --
 -- >>> :{
--- let rolls :: MonadRandom g s m => Int -> g s -> m [Word8]
+-- let rolls :: (MonadRandom g s m, MonadThrow m) => Int -> g s -> m [Word8]
 --     rolls n = replicateM n . uniformRM (1, 6)
 -- :}
 --
@@ -144,8 +144,8 @@ import System.Random.Internal
 -- number generator.
 --
 -- >>> let pureGen = mkStdGen 41
--- >>> runGenState_ pureGen (rolls 10) :: [Word8]
--- [6,4,5,1,1,3,2,4,5,5]
+-- >>> runGenStateT_ pureGen (rolls 10) :: Maybe [Word8]
+-- Just [6,4,5,1,1,3,2,4,5,5]
 
 -------------------------------------------------------------------------------
 -- Pseudo-random number generator interfaces

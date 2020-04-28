@@ -56,8 +56,10 @@ module System.Random.Internal
   ) where
 
 import Control.Arrow
+import Control.Exception (throw)
 import Control.Monad.IO.Class
 import Control.Monad.ST
+import Control.Monad.Catch (MonadThrow)
 import Control.Monad.ST.Unsafe
 import Control.Monad.State.Strict
 import Data.Bits
@@ -92,7 +94,7 @@ class RandomGen g where
   -- [here](https://alexey.kuleshevi.ch/blog/2019/12/21/random-benchmarks) for
   -- more details. It is thus deprecated.
   next :: g -> (Int, g)
-  next g = runGenState g (uniformRM (genRange g))
+  next g = either throw id $ runGenStateT g (uniformRM (genRange g))
 
   -- | Returns a 'Word8' that is uniformly distributed over the entire 'Word8'
   -- range.
@@ -455,7 +457,7 @@ class UniformRange a where
   -- > uniformRM (a, b) = uniformRM (b, a)
   --
   -- @since 1.2<Paste>
-  uniformRM :: MonadRandom g s m => (a, a) -> g s -> m a
+  uniformRM :: (MonadRandom g s m, MonadThrow m) => (a, a) -> g s -> m a
 
 instance UniformRange Integer where
   uniformRM = uniformIntegerM
