@@ -859,11 +859,10 @@ unsignedBitmaskWithRejectionRM ::
   -> g s
   -> m a
 unsignedBitmaskWithRejectionRM (bottom, top) gen
-  | bottom > top = unsignedBitmaskWithRejectionRM (top, bottom) gen
   | bottom == top = pure top
-  | otherwise = (bottom +) <$> unsignedBitmaskWithRejectionM uniformM range gen
+  | otherwise = (b +) <$> unsignedBitmaskWithRejectionM uniformM r gen
   where
-    range = top - bottom
+    (b, r) = if bottom > top then (top, bottom - top) else (bottom, top - bottom)
 {-# INLINE unsignedBitmaskWithRejectionRM #-}
 
 -- | This works for signed integrals by explicit conversion to unsigned and abusing overflow
@@ -875,13 +874,15 @@ signedBitmaskWithRejectionRM ::
   -> g s
   -> f b
 signedBitmaskWithRejectionRM toUnsigned fromUnsigned (bottom, top) gen
-  | bottom > top = signedBitmaskWithRejectionRM toUnsigned fromUnsigned (top, bottom) gen
   | bottom == top = pure top
-  | otherwise = (bottom +) . fromUnsigned <$>
-    unsignedBitmaskWithRejectionM uniformM range gen
-    where
-      -- This works in all cases, see Appendix 1 at the end of the file.
-      range = toUnsigned top - toUnsigned bottom
+  | otherwise =
+    (b +) . fromUnsigned <$> unsignedBitmaskWithRejectionM uniformM r gen
+    -- This works in all cases, see Appendix 1 at the end of the file.
+  where
+    (b, r) =
+      if bottom > top
+        then (top, toUnsigned bottom - toUnsigned top)
+        else (bottom, toUnsigned top - toUnsigned bottom)
 {-# INLINE signedBitmaskWithRejectionRM #-}
 
 unsignedBitmaskWithRejectionM :: (Ord a, FiniteBits a, Num a, MonadRandom g s m) => (g s -> m a) -> a -> g s -> m a
