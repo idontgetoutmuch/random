@@ -86,7 +86,8 @@ library
         base >=4.10 && <5,
         bytestring >=0.10 && <0.11,
         mtl >=2.2 && <2.3,
-        splitmix >=0.0.3 && <0.1
+        splitmix >=0.0.3 && <0.1,
+        exceptions
 
 test-suite legacy-test
     type:             exitcode-stdio-1.0

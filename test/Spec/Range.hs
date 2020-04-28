@@ -6,6 +6,7 @@ module Spec.Range
   , uniformRangeWithinExcluded
   ) where
 
+import Control.Exception (throw)
 import System.Random.Monad
 
 symmetric :: (RandomGen g, Random a, Eq a) => g -> (a, a) -> Bool
@@ -25,10 +26,10 @@ singleton g x = result == x
 
 uniformRangeWithin :: (RandomGen g, UniformRange a, Ord a) => g -> (a, a) -> Bool
 uniformRangeWithin gen (l, r) =
-  runGenState_ gen $ \g ->
+  either throw id $ runGenStateT_ gen $ \g ->
     (\result -> min l r <= result && result <= max l r) <$> uniformRM (l, r) g
 
 uniformRangeWithinExcluded :: (RandomGen g, UniformRange a, Ord a) => g -> (a, a) -> Bool
 uniformRangeWithinExcluded gen (l, r) =
-  runGenState_ gen $ \g ->
+  either throw id $ runGenStateT_ gen $ \g ->
     (\result -> min l r <= result && (l == r || result < max l r)) <$> uniformRM (l, r) g
