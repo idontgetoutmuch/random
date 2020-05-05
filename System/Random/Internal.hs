@@ -747,22 +747,25 @@ randomIvalInteger (l,h) rng
                         (x,g') = next g
                         v' = (v * b + (fromIntegral x - fromIntegral genlo))
 
--- | Generate an 'Integer' in the range @[l, h]@ if @l <= h@ and @[h, l]@
+-- | Generate an 'Integer' in the range @[a, b]@ if @a <= b@ and @[b, a]@
 -- otherwise.
 uniformIntegerM :: (MonadRandom g s m) => (Integer, Integer) -> g s -> m Integer
-uniformIntegerM (l, h) gen = case l `compare` h of
-  LT -> do
-    let limit = h - l
-    let limitAsWord64 :: Word64 = fromIntegral limit
+uniformIntegerM (a, b) gen
+  | a == b = pure a
+  | otherwise = do
+    let (limit, low) =
+          if a < b
+            then (b - a, a)
+            else (a - b, b)
+        limitAsWord64 = fromIntegral limit :: Word64
     bounded <-
-      if (toInteger limitAsWord64) == limit
+      if toInteger limitAsWord64 == limit
         -- Optimisation: if 'limit' fits into 'Word64', generate a bounded
         -- 'Word64' and then convert to 'Integer'
-        then toInteger <$> unsignedBitmaskWithRejectionM uniformWord64 limitAsWord64 gen
+        then toInteger <$>
+             unsignedBitmaskWithRejectionM uniformWord64 limitAsWord64 gen
         else boundedExclusiveIntegerM (limit + 1) gen
-    return $ l + bounded
-  GT -> uniformIntegerM (h, l) gen
-  EQ -> pure l
+    return $ low + bounded
 {-# INLINE uniformIntegerM #-}
 
 -- | Generate an 'Integer' in the range @[0, s)@ using a variant of Lemire's
