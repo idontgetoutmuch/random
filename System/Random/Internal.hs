@@ -295,12 +295,12 @@ genShortByteStringIO n0 gen64 = do
     -- It is tempting to simply generate as many bytes as we still need using
     -- smaller generators (eg. uniformWord8), but that would result in
     -- inconsistent tail when total length is slightly varied.
-    liftIO $
-      alloca $ \w64ptr -> do
-        runF word64LE w64 w64ptr
-        forM_ [0 .. nrem64 - 1] $ \i -> do
-          w8 :: Word8 <- peekByteOff w64ptr i
-          pokeByteOff ptr i w8
+    liftIO $ do
+      let goRem64 z i =
+            when (i < nrem64) $ do
+              pokeByteOff ptr i (fromIntegral z :: Word8)
+              goRem64 (z `unsafeShiftR` 8) (i + 1)
+      goRem64 w64 0
   liftIO $
     IO $ \s# ->
       case unsafeFreezeByteArray# mba# s# of
