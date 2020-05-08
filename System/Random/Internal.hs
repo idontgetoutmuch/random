@@ -70,9 +70,8 @@ import Data.ByteString.Short.Internal (ShortByteString(SBS), fromShort)
 import Data.Int
 import Data.Word
 import Foreign.C.Types
-import Foreign.Marshal.Alloc (alloca)
 import Foreign.Ptr (plusPtr)
-import Foreign.Storable (peekByteOff, pokeByteOff)
+import Foreign.Storable (pokeByteOff)
 import GHC.Exts
 import GHC.ForeignPtr
 import GHC.IO (IO(..))
