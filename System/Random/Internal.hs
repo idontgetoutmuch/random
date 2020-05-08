@@ -58,6 +58,7 @@ module System.Random.Internal
   ) where
 
 import Control.Arrow
+import Control.DeepSeq (NFData)
 import Control.Monad.IO.Class
 import Control.Monad.ST
 import Control.Monad.ST.Unsafe
@@ -406,7 +407,10 @@ runStateGenST g action = runST $ runStateGenT g action
 
 -- | The standard pseudo-random number generator.
 newtype StdGen = StdGen { unStdGen :: SM.SMGen }
-  deriving (RandomGen, Show)
+  deriving (RandomGen, NFData, Show)
+
+instance Eq StdGen where
+  StdGen x1 == StdGen x2 = SM.unseedSMGen x1 == SM.unseedSMGen x2
 
 instance RandomGen SM.SMGen where
   next = SM.nextInt
