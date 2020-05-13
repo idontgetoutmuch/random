@@ -1,3 +1,75 @@
+# 1.2
+
+1. Breaking change which mostly maintains backwards compatibility.
+2. Support for monadic generators e.g. [mwc-random](https://hackage.haskell.org/package/mwc-random).
+3. Monadic adapters for pure generators (providing a uniform monadic
+   interface to pure and monadic generators).
+4. Faster in all cases except one by more than x18 (N.B. x18 not 18%) and
+   some cases (depending on the type) faster by more than x1000 - see
+   below for benchmarks.
+5. Passes a large number of random number test suites:
+  * [dieharder](http://webhome.phy.duke.edu/~rgb/General/dieharder.php "venerable")
+  * [TestU01 (SmallCrush, Crush, BigCrush)](http://simul.iro.umontreal.ca/testu01/tu01.html "venerable")
+  * [PractRand](http://pracrand.sourceforge.net/ "active")
+  * [gjrand](http://gjrand.sourceforge.net/ "active")
+  * See [random-quality](https://github.com/tweag/random-quality)
+		 for details on how to do this yourself.
+6. Better quality split as judged by these
+	[tests](https://www.cambridge.org/core/journals/journal-of-functional-programming/article/evaluation-of-splittable-pseudorandom-generators/3EBAA9F14939C5BB5560E32D1A132637). Again
+	see [random-quality](https://github.com/tweag/random-quality) for
+	details on how to do this yourself.
+7. Unbiased generation of ranges.
+8. Updated tests and benchmarks.
+9. [Continuous integration](https://travis-ci.org/github/idontgetoutmuch/random).
+10. Fully documented - for more details see the [haddock](https://htmlpreview.github.io/?https://github.com/idontgetoutmuch/random/blob/release-notes/docs/System-Random.html).
+
+## Benchmarks
+
+Here are some benchmarks run on a 3.1 GHz Intel Core i7. The full
+benchmarks can be run using e.g. `stack bench`. The benchmarks are
+measured in milliseconds per 100,000 generations. In some cases, the
+performance is over x1000 times better; the minimum performance
+increase for the types listed below is more than x36.
+
+	|------------+----------+----------|
+	| Name       | 1.1 Mean | 1.2 Mean |
+	|------------+----------+----------|
+	| Float      |   27.819 |    0.305 |
+	| Double     |   50.644 |    0.328 |
+	| Integer    |   42.332 |    0.332 |
+	| Word8      |   12.591 |    0.028 |
+	| Word16     |   12.726 |    0.028 |
+	| Word32     |   20.429 |    0.027 |
+	| Word64     |   42.299 |    0.028 |
+	| Word       |   40.739 |    0.027 |
+	| Int8       |   13.479 |    0.027 |
+	| Int16      |   13.218 |    0.027 |
+	| Int32      |   20.562 |    0.027 |
+	| Int64      |   46.513 |    0.029 |
+	| Int        |   43.847 |    0.028 |
+	| Char       |   17.009 |    0.462 |
+	| Bool       |   17.542 |    0.027 |
+	| CChar      |   13.276 |    0.027 |
+	| CSChar     |   13.287 |    0.027 |
+	| CUChar     |   13.409 |    0.027 |
+	| CShort     |   13.158 |    0.027 |
+	| CUShort    |   12.865 |    0.027 |
+	| CInt       |   20.705 |    0.028 |
+	| CUInt      |   19.895 |    0.027 |
+	| CLong      |   41.679 |    0.027 |
+	| CULong     |   40.806 |    0.027 |
+	| CPtrdiff   |   41.878 |    0.027 |
+	| CSize      |   40.739 |    0.027 |
+	| CWchar     |   20.718 |    0.027 |
+	| CSigAtomic |   20.768 |    0.029 |
+	| CLLong     |   42.011 |    0.028 |
+	| CULLong    |   41.428 |    0.027 |
+	| CIntPtr    |   45.385 |    0.027 |
+	| CUIntPtr   |   40.797 |    0.027 |
+	| CIntMax    |   41.778 |    0.027 |
+	| CUIntMax   |   40.467 |    0.027 |
+	|------------+----------+----------|
+
 # 1.1
   * breaking change to `randomIValInteger` to improve RNG quality and performance
     see https://github.com/haskell/random/pull/4 and
@@ -23,4 +95,3 @@ bump for bug fixes,
 
 # 1.0.0.4
 bumped version for float/double range bugfix
-
