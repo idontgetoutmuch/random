@@ -2,7 +2,7 @@
 
 Following @lehins' [performance analysis][analysis] of Haskell pseudo-random number libraries and the [ensuing discussion][analysis-discussion], @lehins, @idontgetoutmuch and @curiousleo with help from @Shimuuar [set out to improve `random`][announcement] as both an interface for and implementation of a pseudo-random number generator for Haskell.
 
-Our goals were to fix #25 (filed in 2015) and #51 (filed in 2018), see "Quality" and "Performance" below.
+Our goals were to fix [#25][issue-25] (filed in 2015) and [#51][issue-51] (filed in 2018), see "Quality" and "Performance" below.
 
 In the process of tackling these two issues, we addressed a number of other issues too (see "Other issues addressed" below) and added a monadic interface to the library so monadic pseudo-random number generators can be used interchangeably with `random`, see "API changes" below.
 
@@ -10,15 +10,15 @@ This PR is the result of that effort. The changes are considerable. To signal th
 
 However, the API changes are generally backwards-compatible, see "Compatibility" below.
 
-# Quality (#25)
+# Quality ([#25][issue-25])
 
 We created an [environment][quality-repo] for running statistical pseudo-random number generator tests, tested `random` v1.1 and `splitmix` using dieharder, TestU01, PractRand and other test suites and [recorded the results][quality-results].
 
-The results clearly show that the `split` operation in `random` v1.1 produces pseudo-random number generators which are correlated, corroborating #25. The `split` operation in `splitmix` showed no weakness in our tests.
+The results clearly show that the `split` operation in `random` v1.1 produces pseudo-random number generators which are correlated, corroborating [#25][issue-25]. The `split` operation in `splitmix` showed no weakness in our tests.
 
 As a result, we replaced the pseudo-random number generator implementation in `random` by the one provided by `splitmix`.
 
-# Performance (#51)
+# Performance ([#51][issue-51])
 
 @lehins' [performance analysis][analysis] has the data for `random` v1.1. It is slow, and using faster pseudo-random number generators via `random` v1.1 makes them slow.
 
@@ -57,11 +57,11 @@ In addition, `genRange` and `next` have been deprecated.
 
 We have built all of Stackage against the code in this PR, and confirmed that no other build breakages occurred.
 
-For more details, see https://github.com/haskell/random/pull/61#issuecomment-628173793 and [the "Compatibility" section in the docs][compatibility].
+For more details, see [this comment][compatibility-comment] and [the "Compatibility" section in the docs][compatibility].
 
 # Other issues addressed
 
-This PR also addresses #26, #44, #53, #55, #58 and #59, see [Issues Addressed][issues-addressed] for details.
+This PR also addresses [#26][issue-26], [#44][issue-44], [#53][issue-53], [#55][issue-55], [#58][issue-58] and [#59][issue-59], see [Issues Addressed][issues-addressed] for details.
 
 [analysis]: https://alexey.kuleshevi.ch/blog/2019/12/21/random-benchmarks/
 [analysis-discussion]: https://www.reddit.com/r/haskell/comments/edr9n4/random_benchmarks/
@@ -71,8 +71,17 @@ This PR also addresses #26, #44, #53, #55, #58 and #59, see [Issues Addressed][i
 [clusivity-postponed]: https://github.com/idontgetoutmuch/random/issues/113#issuecomment-624041080
 [clusivity-pr]: https://github.com/idontgetoutmuch/random/pull/104
 [compatibility]: https://htmlpreview.github.io/?https://raw.githubusercontent.com/idontgetoutmuch/random/haddock-preview/doc/System-Random.html#g:6
+[compatibility-comment]: https://github.com/haskell/random/pull/61#issuecomment-628173793
 [fp-issue]: https://github.com/idontgetoutmuch/random/issues/105
 [fp-examples]: https://github.com/idontgetoutmuch/random/issues/105#issuecomment-621335855
+[issue-25]: https://github.com/haskell/random/issues/25
+[issue-26]: https://github.com/haskell/random/issues/26
+[issue-44]: https://github.com/haskell/random/issues/44
+[issue-51]: https://github.com/haskell/random/issues/51
+[issue-53]: https://github.com/haskell/random/issues/53
+[issue-55]: https://github.com/haskell/random/issues/55
+[issue-58]: https://github.com/haskell/random/issues/58
+[issue-59]: https://github.com/haskell/random/issues/59
 [issues-addressed]: https://github.com/idontgetoutmuch/random/blob/v1.2-proposal/CHANGELOG.md#issues-addressed
 [mwc-example]: https://htmlpreview.github.io/?https://raw.githubusercontent.com/idontgetoutmuch/random/haddock-preview/doc/System-Random-Monad.html#g:13
 [pure-gen]: https://htmlpreview.github.io/?https://raw.githubusercontent.com/idontgetoutmuch/random/haddock-preview/doc/System-Random-Monad.html#g:5
