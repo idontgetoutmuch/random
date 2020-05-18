@@ -26,7 +26,7 @@ By switching to `splitmix` and improving the API, this PR speeds up pseudo-rando
 
 # API changes
 
-The `Random` typeclass has conceptually been split into [`Uniform`][uniform-docs] and [`UniformRange`][uniformrange-docs]. The `Random` typeclass is still included for backwards compatibility. `Uniform` is for types where it is possible to sample from the type's entire domain; `UniformRange` is for types where one can sample from a specified range.
+The `Random` typeclass has conceptually been split into [`Uniform` and `UniformRange`][uniform-vs-uniformrange]. The `Random` typeclass is still included for backwards compatibility. `Uniform` is for types where it is possible to sample from the type's entire domain; `UniformRange` is for types where one can sample from a specified range.
 
 A new module [`System.Random.Monad`][random-monad] allows monadic pseudo-random number generators like `mwc-random` to be used via the new interface provided by `random`, see the docs for an [example of how this works][mwc-example].
 
@@ -91,5 +91,4 @@ This PR also addresses [#26][issue-26], [#44][issue-44], [#53][issue-53], [#55][
 [split-docs]: https://htmlpreview.github.io/?https://raw.githubusercontent.com/idontgetoutmuch/random/haddock-preview/doc/System-Random.html#v:split
 [split-issue]: https://github.com/idontgetoutmuch/random/issues/7
 [split-pr]: https://github.com/idontgetoutmuch/random/pull/9
-[uniformrange-docs]: https://htmlpreview.github.io/?https://raw.githubusercontent.com/idontgetoutmuch/random/haddock-preview/doc/System-Random-Monad.html#t:UniformRange
-[uniform-docs]: https://htmlpreview.github.io/?https://raw.githubusercontent.com/idontgetoutmuch/random/haddock-preview/doc/System-Random-Monad.html#t:Uniform
+[uniform-vs-uniformrange]: https://htmlpreview.github.io/?https://raw.githubusercontent.com/idontgetoutmuch/random/haddock-preview/doc/System-Random-Monad.html#g:10
