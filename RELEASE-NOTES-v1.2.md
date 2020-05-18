@@ -32,6 +32,16 @@ A new module [`System.Random.Monad`][random-monad] allows monadic pseudo-random 
 
 In addition, the module provides a convenient way to [run pure generators in monadic code][pure-gen].
 
+# Changes left out
+
+There were changes we considered and decided against including in this PR.
+
+Some pseudo-random number generators are splittable, others are not. A good way of communicating this is to have a separate typeclass, `Splittable`, say, which only splittable generators implement. After long discussions (see [this issue][split-issue] and [this PR][split-pr]), we decided against adding `Splittable`: the interface changes would either have been backwards-incompatible or too complex. For now, `split` stays part of the `RandomGen` typeclass. The new documentation suggests that [`split` should throw][split-docs] if the generator is not splittable.
+
+Due to floating point rounding, generating a floating point number in a range can yield surprising results, e.g. [there exist][fp-examples] `a < b`, `0 <= x <= 1` such that `b < (b - a) * x + a` if `a`, `b`, `x` are of type `Float` or `Double`. This is the case for almost every pseudo-random number library out there. There [are techniques][fp-issue] to generate floating point numbers in a range with actual guarantees, but they are more complex and likely slower than the naive methods, so we decided to postpone this particular issue.
+
+Ranges on the real number line can be inclusive or exclusive in the lower and upper bound. We [considered][clusivity-issue] [API designs][clusivity-pr] that would allow users to communicate precisely what kind of range they wanted to generate. This is particularly relevant for floating point numbers. However, we found that such an API would make more sense in conjunction with an improved method for generating floating point numbers, so we [postponed][clusivity-postponed] this too.
+
 # Compatibility
 
 We strived to make changes backwards compatible where possible and desirable.
@@ -57,12 +67,20 @@ This PR also addresses #26, #44, #53, #55, #58 and #59, see [Issues Addressed][i
 [analysis-discussion]: https://www.reddit.com/r/haskell/comments/edr9n4/random_benchmarks/
 [announcement]: https://mail.haskell.org/pipermail/libraries/2020-February/030261.html
 [benchmarks]: https://github.com/idontgetoutmuch/random/blob/v1.2-proposal/CHANGELOG.md#benchmarks
+[clusivity-issue]: https://github.com/idontgetoutmuch/random/issues/113
+[clusivity-postponed]: https://github.com/idontgetoutmuch/random/issues/113#issuecomment-624041080
+[clusivity-pr]: https://github.com/idontgetoutmuch/random/pull/104
 [compatibility]: https://htmlpreview.github.io/?https://raw.githubusercontent.com/idontgetoutmuch/random/haddock-preview/doc/System-Random.html#g:6
+[fp-issue]: https://github.com/idontgetoutmuch/random/issues/105
+[fp-examples]: https://github.com/idontgetoutmuch/random/issues/105#issuecomment-621335855
 [issues-addressed]: https://github.com/idontgetoutmuch/random/blob/v1.2-proposal/CHANGELOG.md#issues-addressed
 [mwc-example]: https://htmlpreview.github.io/?https://raw.githubusercontent.com/idontgetoutmuch/random/haddock-preview/doc/System-Random-Monad.html#g:13
 [pure-gen]: https://htmlpreview.github.io/?https://raw.githubusercontent.com/idontgetoutmuch/random/haddock-preview/doc/System-Random-Monad.html#g:5
 [quality-repo]: https://github.com/tweag/random-quality
 [quality-results]: https://github.com/tweag/random-quality/tree/master/results
 [random-monad]: https://htmlpreview.github.io/?https://raw.githubusercontent.com/idontgetoutmuch/random/haddock-preview/doc/System-Random-Monad.html
+[split-docs]: https://htmlpreview.github.io/?https://raw.githubusercontent.com/idontgetoutmuch/random/haddock-preview/doc/System-Random.html#v:split
+[split-issue]: https://github.com/idontgetoutmuch/random/issues/7
+[split-pr]: https://github.com/idontgetoutmuch/random/pull/9
 [uniformrange-docs]: https://htmlpreview.github.io/?https://raw.githubusercontent.com/idontgetoutmuch/random/haddock-preview/doc/System-Random-Monad.html#t:UniformRange
 [uniform-docs]: https://htmlpreview.github.io/?https://raw.githubusercontent.com/idontgetoutmuch/random/haddock-preview/doc/System-Random-Monad.html#t:Uniform
