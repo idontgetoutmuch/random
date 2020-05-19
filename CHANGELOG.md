@@ -36,6 +36,12 @@ Version 1.2 introduces these breaking changes:
 In addition, there may be import clashes with new functions, e.g. `uniform` and
 `uniformR`.
 
+### Deprecations
+
+Version 1.2 introduces `genWord64`, `genWord32` and similar methods to
+`RandomGen`. The significantly slower method `next` and its companion
+`genRange` are now deprecated.
+
 ### Issues Addressed
 
  Issue Number | Description | Comment
