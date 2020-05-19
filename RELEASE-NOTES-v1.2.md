@@ -44,7 +44,7 @@ Ranges on the real number line can be inclusive or exclusive in the lower and up
 
 # Compatibility
 
-We strived to make changes backwards compatible where possible and desirable.
+We strove to make changes backwards compatible where possible and desirable.
 
 The following changes may break existing packages:
 
