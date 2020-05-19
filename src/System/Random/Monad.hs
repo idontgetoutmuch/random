@@ -486,6 +486,11 @@ runSTGen_ g action = fst $ runSTGen g action
 --     >>> let (a, b, x) = (1, -inf, 0.5) in (b - a) * x + a
 --     -Infinity
 --
+-- Note that the [GCC 10.1.0 C++ standard library](https://gcc.gnu.org/git/?p=gcc.git;a=blob;f=libstdc%2B%2B-v3/include/bits/random.h;h=19307fbc3ca401976ef6823e8fda893e4a263751;hb=63fa67847628e5f358e7e2e7edb8314f0ee31f30#l1859),
+-- the [Java 10 standard library](https://docs.oracle.com/javase/10/docs/api/java/util/Random.html#doubles%28double,double%29)
+-- and [CPython 3.8](https://github.com/python/cpython/blob/3.8/Lib/random.py#L417)
+-- use the same procedure to generate floating point values in a range.
+--
 -- $implementmonadrandom
 --
 -- Typically, a monadic pseudo-random number generator has facilities to save
