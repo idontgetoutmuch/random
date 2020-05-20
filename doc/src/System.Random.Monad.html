@@ -1,0 +1,1111 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html xmlns="http://www.w3.org/1999/xhtml"><head><link rel="stylesheet" type="text/css" href="style.css" /><script type="text/javascript" src="highlight.js"></script></head><body><pre><span class="hs-pragma">{-# LANGUAGE BangPatterns #-}</span><span>
+</span><span id="line-2"></span><span class="hs-pragma">{-# LANGUAGE DerivingStrategies #-}</span><span>
+</span><span id="line-3"></span><span class="hs-pragma">{-# LANGUAGE FlexibleInstances #-}</span><span>
+</span><span id="line-4"></span><span class="hs-pragma">{-# LANGUAGE MultiParamTypeClasses #-}</span><span>
+</span><span id="line-5"></span><span class="hs-pragma">{-# LANGUAGE RankNTypes #-}</span><span>
+</span><span id="line-6"></span><span class="hs-pragma">{-# LANGUAGE Safe #-}</span><span>
+</span><span id="line-7"></span><span class="hs-pragma">{-# LANGUAGE TypeFamilies #-}</span><span>
+</span><span id="line-8"></span><span class="hs-pragma">{-# LANGUAGE UndecidableInstances #-}</span><span>
+</span><span id="line-9"></span><span>
+</span><span id="line-10"></span><span class="hs-comment">-- |</span><span>
+</span><span id="line-11"></span><span class="hs-comment">-- Module      :  System.Random.Monad</span><span>
+</span><span id="line-12"></span><span class="hs-comment">-- Copyright   :  (c) The University of Glasgow 2001</span><span>
+</span><span id="line-13"></span><span class="hs-comment">-- License     :  BSD-style (see the file LICENSE in the 'random' repository)</span><span>
+</span><span id="line-14"></span><span class="hs-comment">-- Maintainer  :  libraries@haskell.org</span><span>
+</span><span id="line-15"></span><span class="hs-comment">-- Stability   :  stable</span><span>
+</span><span id="line-16"></span><span class="hs-comment">--</span><span>
+</span><span id="line-17"></span><span class="hs-comment">-- This library deals with the common task of pseudo-random number generation.</span><span>
+</span><span id="line-18"></span><span class="hs-keyword">module</span><span> </span><span class="hs-identifier">System.Random.Monad</span><span>
+</span><span id="line-19"></span><span>  </span><span class="hs-special">(</span><span>
+</span><span id="line-20"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Pure Random Generator</span></span><span>
+</span><span id="line-21"></span><span>  </span><span class="hs-keyword">module</span><span> </span><span class="annot"><a href="System.Random.html"><span class="hs-identifier">System.Random</span></a></span><span>
+</span><span id="line-22"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Monadic Random Generator</span></span><span>
+</span><span id="line-23"></span><span>  </span><span class="annot"><span class="hs-comment">-- $introduction</span></span><span>
+</span><span id="line-24"></span><span>
+</span><span id="line-25"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Usage</span></span><span>
+</span><span id="line-26"></span><span>  </span><span class="annot"><span class="hs-comment">-- $usagemonadic</span></span><span>
+</span><span id="line-27"></span><span>
+</span><span id="line-28"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Pure and monadic pseudo-random number generator interfaces</span></span><span>
+</span><span id="line-29"></span><span>  </span><span class="annot"><span class="hs-comment">-- $interfaces</span></span><span>
+</span><span id="line-30"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="System.Random.Internal.html#MonadRandom"><span class="hs-identifier">MonadRandom</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-31"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="System.Random.Monad.html#runGenM"><span class="hs-identifier">runGenM</span></a></span><span>
+</span><span id="line-32"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="System.Random.Monad.html#runGenM_"><span class="hs-identifier">runGenM_</span></a></span><span>
+</span><span id="line-33"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="System.Random.Monad.html#RandomGenM"><span class="hs-identifier">RandomGenM</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-34"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="System.Random.Monad.html#randomM"><span class="hs-identifier">randomM</span></a></span><span>
+</span><span id="line-35"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="System.Random.Monad.html#randomRM"><span class="hs-identifier">randomRM</span></a></span><span>
+</span><span id="line-36"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="System.Random.Monad.html#splitGenM"><span class="hs-identifier">splitGenM</span></a></span><span>
+</span><span id="line-37"></span><span>
+</span><span id="line-38"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Monadic adapters for pure pseudo-random number generators</span></span><span>
+</span><span id="line-39"></span><span>  </span><span class="annot"><span class="hs-comment">-- $monadicadapters</span></span><span>
+</span><span id="line-40"></span><span>
+</span><span id="line-41"></span><span>  </span><span class="annot"><span class="hs-comment">-- ** Pure adapter</span></span><span>
+</span><span id="line-42"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="System.Random.Internal.html#StateGen"><span class="hs-identifier">StateGen</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-43"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="System.Random.Internal.html#StateGenM"><span class="hs-identifier">StateGenM</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-44"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="System.Random.Internal.html#runStateGen"><span class="hs-identifier">runStateGen</span></a></span><span>
+</span><span id="line-45"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="System.Random.Internal.html#runStateGen_"><span class="hs-identifier">runStateGen_</span></a></span><span>
+</span><span id="line-46"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="System.Random.Internal.html#runStateGenT"><span class="hs-identifier">runStateGenT</span></a></span><span>
+</span><span id="line-47"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="System.Random.Internal.html#runStateGenT_"><span class="hs-identifier">runStateGenT_</span></a></span><span>
+</span><span id="line-48"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="System.Random.Internal.html#runStateGenST"><span class="hs-identifier">runStateGenST</span></a></span><span>
+</span><span id="line-49"></span><span>  </span><span class="annot"><span class="hs-comment">-- ** Mutable adapter with atomic operations</span></span><span>
+</span><span id="line-50"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="System.Random.Monad.html#AtomicGen"><span class="hs-identifier">AtomicGen</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-51"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="System.Random.Monad.html#AtomicGenM"><span class="hs-identifier">AtomicGenM</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-52"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="System.Random.Monad.html#applyAtomicGen"><span class="hs-identifier">applyAtomicGen</span></a></span><span>
+</span><span id="line-53"></span><span>  </span><span class="annot"><span class="hs-comment">-- ** Mutable adapter in 'IO'</span></span><span>
+</span><span id="line-54"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="System.Random.Monad.html#IOGen"><span class="hs-identifier">IOGen</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-55"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="System.Random.Monad.html#IOGenM"><span class="hs-identifier">IOGenM</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-56"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="System.Random.Monad.html#applyIOGen"><span class="hs-identifier">applyIOGen</span></a></span><span>
+</span><span id="line-57"></span><span>  </span><span class="annot"><span class="hs-comment">-- ** Mutable adapter in 'ST'</span></span><span>
+</span><span id="line-58"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="System.Random.Monad.html#STGen"><span class="hs-identifier">STGen</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-59"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="System.Random.Monad.html#STGenM"><span class="hs-identifier">STGenM</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-60"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="System.Random.Monad.html#applySTGen"><span class="hs-identifier">applySTGen</span></a></span><span>
+</span><span id="line-61"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="System.Random.Monad.html#runSTGen"><span class="hs-identifier">runSTGen</span></a></span><span>
+</span><span id="line-62"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="System.Random.Monad.html#runSTGen_"><span class="hs-identifier">runSTGen_</span></a></span><span>
+</span><span id="line-63"></span><span>
+</span><span id="line-64"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Pseudo-random values of various types</span></span><span>
+</span><span id="line-65"></span><span>  </span><span class="annot"><span class="hs-comment">-- $uniform</span></span><span>
+</span><span id="line-66"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="System.Random.Internal.html#Uniform"><span class="hs-identifier">Uniform</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-67"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="System.Random.Monad.html#uniformListM"><span class="hs-identifier">uniformListM</span></a></span><span>
+</span><span id="line-68"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="System.Random.Internal.html#UniformRange"><span class="hs-identifier">UniformRange</span></a></span><span class="hs-special">(</span><span class="hs-glyph">..</span><span class="hs-special">)</span><span>
+</span><span id="line-69"></span><span>
+</span><span id="line-70"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Generators for sequences of pseudo-random bytes</span></span><span>
+</span><span id="line-71"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="System.Random.Internal.html#genShortByteStringIO"><span class="hs-identifier">genShortByteStringIO</span></a></span><span>
+</span><span id="line-72"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="System.Random.Internal.html#genShortByteStringST"><span class="hs-identifier">genShortByteStringST</span></a></span><span>
+</span><span id="line-73"></span><span>  </span><span class="hs-special">,</span><span> </span><span class="annot"><a href="System.Random.Internal.html#uniformByteString"><span class="hs-identifier">uniformByteString</span></a></span><span>
+</span><span id="line-74"></span><span>
+</span><span id="line-75"></span><span>  </span><span class="annot"><span class="hs-comment">-- * Appendix</span></span><span>
+</span><span id="line-76"></span><span>
+</span><span id="line-77"></span><span>  </span><span class="annot"><span class="hs-comment">-- ** How to implement 'MonadRandom'</span></span><span>
+</span><span id="line-78"></span><span>  </span><span class="annot"><span class="hs-comment">-- $implementmonadrandom</span></span><span>
+</span><span id="line-79"></span><span>
+</span><span id="line-80"></span><span>  </span><span class="annot"><span class="hs-comment">-- ** Floating point number caveats</span></span><span>
+</span><span id="line-81"></span><span>  </span><span class="annot"><span class="hs-comment">-- $floating</span></span><span>
+</span><span id="line-82"></span><span>
+</span><span id="line-83"></span><span>  </span><span class="annot"><span class="hs-comment">-- * References</span></span><span>
+</span><span id="line-84"></span><span>  </span><span class="annot"><span class="hs-comment">-- $references</span></span><span>
+</span><span id="line-85"></span><span>  </span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-86"></span><span>
+</span><span id="line-87"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.IO.Class</span></span><span>
+</span><span id="line-88"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.ST</span></span><span>
+</span><span id="line-89"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Control.Monad.State.Strict</span></span><span>
+</span><span id="line-90"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.IORef</span></span><span>
+</span><span id="line-91"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><span class="hs-identifier">Data.STRef</span></span><span>
+</span><span id="line-92"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="System.Random.html"><span class="hs-identifier">System.Random</span></a></span><span>
+</span><span id="line-93"></span><span class="hs-keyword">import</span><span> </span><span class="annot"><a href="System.Random.Internal.html"><span class="hs-identifier">System.Random.Internal</span></a></span><span>
+</span><span id="line-94"></span><span>
+</span><span id="line-95"></span><span class="hs-comment">-- $introduction</span><span>
+</span><span id="line-96"></span><span class="hs-comment">--</span><span>
+</span><span id="line-97"></span><span class="hs-comment">-- This module provides type classes and instances for the following concepts:</span><span>
+</span><span id="line-98"></span><span class="hs-comment">--</span><span>
+</span><span id="line-99"></span><span class="hs-comment">-- [Monadic pseudo-random number generators] 'MonadRandom' is an interface to</span><span>
+</span><span id="line-100"></span><span class="hs-comment">--     monadic pseudo-random number generators.</span><span>
+</span><span id="line-101"></span><span class="hs-comment">--</span><span>
+</span><span id="line-102"></span><span class="hs-comment">-- [Monadic adapters] 'StateGenM', 'AtomicGenM', 'IOGenM' and 'STGenM' turn a</span><span>
+</span><span id="line-103"></span><span class="hs-comment">--     'RandomGen' instance into a 'MonadRandom' instance.</span><span>
+</span><span id="line-104"></span><span class="hs-comment">--</span><span>
+</span><span id="line-105"></span><span class="hs-comment">-- [Drawing from a range] 'UniformRange' is used to generate a value of a</span><span>
+</span><span id="line-106"></span><span class="hs-comment">--     type uniformly within a range.</span><span>
+</span><span id="line-107"></span><span class="hs-comment">--</span><span>
+</span><span id="line-108"></span><span class="hs-comment">--     This library provides instances of 'UniformRange' for many common</span><span>
+</span><span id="line-109"></span><span class="hs-comment">--     numeric types.</span><span>
+</span><span id="line-110"></span><span class="hs-comment">--</span><span>
+</span><span id="line-111"></span><span class="hs-comment">-- [Drawing from the entire domain of a type] 'Uniform' is used to generate a</span><span>
+</span><span id="line-112"></span><span class="hs-comment">--     value of a type uniformly over all possible values of that type.</span><span>
+</span><span id="line-113"></span><span class="hs-comment">--</span><span>
+</span><span id="line-114"></span><span class="hs-comment">--     This library provides instances of 'Uniform' for many common bounded</span><span>
+</span><span id="line-115"></span><span class="hs-comment">--     numeric types.</span><span>
+</span><span id="line-116"></span><span class="hs-comment">--</span><span>
+</span><span id="line-117"></span><span class="hs-comment">-- $usagemonadic</span><span>
+</span><span id="line-118"></span><span class="hs-comment">--</span><span>
+</span><span id="line-119"></span><span class="hs-comment">-- In monadic code, use the relevant 'Uniform' and 'UniformRange' instances to</span><span>
+</span><span id="line-120"></span><span class="hs-comment">-- generate pseudo-random values via 'uniformM' and 'uniformRM', respectively.</span><span>
+</span><span id="line-121"></span><span class="hs-comment">--</span><span>
+</span><span id="line-122"></span><span class="hs-comment">-- As an example, @rollsM@ generates @n@ pseudo-random values of @Word8@ in the</span><span>
+</span><span id="line-123"></span><span class="hs-comment">-- range @[1, 6]@ in a 'MonadRandom' context; given a /monadic/ pseudo-random</span><span>
+</span><span id="line-124"></span><span class="hs-comment">-- number generator, you can run this probabilistic computation as follows:</span><span>
+</span><span id="line-125"></span><span class="hs-comment">--</span><span>
+</span><span id="line-126"></span><span class="hs-comment">-- &gt;&gt;&gt; :{</span><span>
+</span><span id="line-127"></span><span class="hs-comment">-- let rollsM :: MonadRandom g s m =&gt; Int -&gt; g s -&gt; m [Word8]</span><span>
+</span><span id="line-128"></span><span class="hs-comment">--     rollsM n = replicateM n . uniformRM (1, 6)</span><span>
+</span><span id="line-129"></span><span class="hs-comment">-- in do</span><span>
+</span><span id="line-130"></span><span class="hs-comment">--     monadicGen &lt;- MWC.create</span><span>
+</span><span id="line-131"></span><span class="hs-comment">--     rollsM 10 monadicGen :: IO [Word8]</span><span>
+</span><span id="line-132"></span><span class="hs-comment">-- :}</span><span>
+</span><span id="line-133"></span><span class="hs-comment">-- [4,1,2,4,4,5,2,1,5,4]</span><span>
+</span><span id="line-134"></span><span class="hs-comment">--</span><span>
+</span><span id="line-135"></span><span class="hs-comment">-- Given a /pure/ pseudo-random number generator, you can run the monadic</span><span>
+</span><span id="line-136"></span><span class="hs-comment">-- pseudo-random number computation @rollsM@ in an 'IO' or 'ST' context by</span><span>
+</span><span id="line-137"></span><span class="hs-comment">-- first applying a monadic adapter like 'AtomicGen', 'IOGen' or 'STGen' to the</span><span>
+</span><span id="line-138"></span><span class="hs-comment">-- pure pseudo-random number generator and then running it with 'runGenM'.</span><span>
+</span><span id="line-139"></span><span class="hs-comment">--</span><span>
+</span><span id="line-140"></span><span class="hs-comment">-- &gt;&gt;&gt; :{</span><span>
+</span><span id="line-141"></span><span class="hs-comment">-- let rollsM :: MonadRandom g s m =&gt; Int -&gt; g s -&gt; m [Word8]</span><span>
+</span><span id="line-142"></span><span class="hs-comment">--     rollsM n = replicateM n . uniformRM (1, 6)</span><span>
+</span><span id="line-143"></span><span class="hs-comment">--     pureGen = mkStdGen 42</span><span>
+</span><span id="line-144"></span><span class="hs-comment">-- in</span><span>
+</span><span id="line-145"></span><span class="hs-comment">--     runGenM_ (IOGen pureGen) (rollsM 10) :: IO [Word8]</span><span>
+</span><span id="line-146"></span><span class="hs-comment">-- :}</span><span>
+</span><span id="line-147"></span><span class="hs-comment">-- [5,1,4,3,3,2,5,2,2,4]</span><span>
+</span><span id="line-148"></span><span>
+</span><span id="line-149"></span><span class="hs-comment">-------------------------------------------------------------------------------</span><span>
+</span><span id="line-150"></span><span class="hs-comment">-- Pseudo-random number generator interfaces</span><span>
+</span><span id="line-151"></span><span class="hs-comment">-------------------------------------------------------------------------------</span><span>
+</span><span id="line-152"></span><span>
+</span><span id="line-153"></span><span class="hs-comment">-- $interfaces</span><span>
+</span><span id="line-154"></span><span class="hs-comment">--</span><span>
+</span><span id="line-155"></span><span class="hs-comment">-- Pseudo-random number generators come in two flavours: /pure/ and /monadic/.</span><span>
+</span><span id="line-156"></span><span class="hs-comment">--</span><span>
+</span><span id="line-157"></span><span class="hs-comment">-- ['System.Random.RandomGen': pure pseudo-random number generators]</span><span>
+</span><span id="line-158"></span><span class="hs-comment">--     See &quot;System.Random&quot; module.</span><span>
+</span><span id="line-159"></span><span class="hs-comment">--</span><span>
+</span><span id="line-160"></span><span class="hs-comment">-- ['MonadRandom': monadic pseudo-random number generators] These generators</span><span>
+</span><span id="line-161"></span><span class="hs-comment">--     mutate their own state as they produce pseudo-random values. They</span><span>
+</span><span id="line-162"></span><span class="hs-comment">--     generally live in 'ST' or 'IO' or some transformer that implements</span><span>
+</span><span id="line-163"></span><span class="hs-comment">--     @PrimMonad@.</span><span>
+</span><span id="line-164"></span><span class="hs-comment">--</span><span>
+</span><span id="line-165"></span><span>
+</span><span id="line-166"></span><span class="hs-comment">-------------------------------------------------------------------------------</span><span>
+</span><span id="line-167"></span><span class="hs-comment">-- Monadic adapters</span><span>
+</span><span id="line-168"></span><span class="hs-comment">-------------------------------------------------------------------------------</span><span>
+</span><span id="line-169"></span><span>
+</span><span id="line-170"></span><span class="hs-comment">-- $monadicadapters</span><span>
+</span><span id="line-171"></span><span class="hs-comment">--</span><span>
+</span><span id="line-172"></span><span class="hs-comment">-- Pure pseudo-random number generators can be used in monadic code via the</span><span>
+</span><span id="line-173"></span><span class="hs-comment">-- adapters 'StateGenM', 'AtomicGenM', 'IOGenM' and 'STGenM'.</span><span>
+</span><span id="line-174"></span><span class="hs-comment">--</span><span>
+</span><span id="line-175"></span><span class="hs-comment">-- *   'StateGenM' can be used in any state monad. With strict 'StateT' there is</span><span>
+</span><span id="line-176"></span><span class="hs-comment">--     no performance overhead compared to using the 'RandomGen' instance</span><span>
+</span><span id="line-177"></span><span class="hs-comment">--     directly. 'StateGenM' is /not/ safe to use in the presence of exceptions</span><span>
+</span><span id="line-178"></span><span class="hs-comment">--     and concurrency.</span><span>
+</span><span id="line-179"></span><span class="hs-comment">--</span><span>
+</span><span id="line-180"></span><span class="hs-comment">-- *   'AtomicGenM' is safe in the presence of exceptions and concurrency since</span><span>
+</span><span id="line-181"></span><span class="hs-comment">--     it performs all actions atomically.</span><span>
+</span><span id="line-182"></span><span class="hs-comment">--</span><span>
+</span><span id="line-183"></span><span class="hs-comment">-- *   'IOGenM' is a wrapper around an 'IORef' that holds a pure generator.</span><span>
+</span><span id="line-184"></span><span class="hs-comment">--     'IOGenM' is safe in the presence of exceptions, but not concurrency.</span><span>
+</span><span id="line-185"></span><span class="hs-comment">--</span><span>
+</span><span id="line-186"></span><span class="hs-comment">-- *   'STGenM' is a wrapper around an 'STRef' that holds a pure generator.</span><span>
+</span><span id="line-187"></span><span class="hs-comment">--     'STGenM' is safe in the presence of exceptions, but not concurrency.</span><span>
+</span><span id="line-188"></span><span>
+</span><span id="line-189"></span><span class="hs-comment">-- | Interface to operations on 'RandomGen' wrappers like 'IOGenM' and 'StateGenM'.</span><span>
+</span><span id="line-190"></span><span class="hs-comment">--</span><span>
+</span><span id="line-191"></span><span class="hs-comment">-- @since 1.2</span><span>
+</span><span id="line-192"></span><span class="hs-keyword">class</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="System.Random.Internal.html#RandomGen"><span class="hs-identifier hs-type">RandomGen</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077388"><span class="hs-identifier hs-type">r</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="System.Random.Internal.html#MonadRandom"><span class="hs-identifier hs-type">MonadRandom</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679077389"><span class="hs-identifier hs-type">g</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077388"><span class="hs-identifier hs-type">r</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679077387"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077386"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span id="RandomGenM"><span class="annot"><a href="System.Random.Monad.html#RandomGenM"><span class="hs-identifier hs-var">RandomGenM</span></a></span></span><span> </span><span id="local-6989586621679077389"><span class="annot"><a href="#local-6989586621679077389"><span class="hs-identifier hs-type">g</span></a></span></span><span> </span><span id="local-6989586621679077388"><span class="annot"><a href="#local-6989586621679077388"><span class="hs-identifier hs-type">r</span></a></span></span><span> </span><span id="local-6989586621679077387"><span class="annot"><a href="#local-6989586621679077387"><span class="hs-identifier hs-type">s</span></a></span></span><span> </span><span id="local-6989586621679077386"><span class="annot"><a href="#local-6989586621679077386"><span class="hs-identifier hs-type">m</span></a></span></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-193"></span><span>  </span><span id="local-6989586621679077384"><span id="applyRandomGenM"><span class="annot"><a href="System.Random.Monad.html#applyRandomGenM"><span class="hs-identifier hs-type">applyRandomGenM</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679077388"><span class="hs-identifier hs-type">r</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679077384"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679077388"><span class="hs-identifier hs-type">r</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679077389"><span class="hs-identifier hs-type">g</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077388"><span class="hs-identifier hs-type">r</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077387"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679077386"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077384"><span class="hs-identifier hs-type">a</span></a></span></span><span>
+</span><span id="line-194"></span><span>
+</span><span id="line-195"></span><span class="hs-comment">-- | Splits a pseudo-random number generator into two. Overwrites the mutable</span><span>
+</span><span id="line-196"></span><span class="hs-comment">-- wrapper with one of the resulting generators and returns the other.</span><span>
+</span><span id="line-197"></span><span class="hs-comment">--</span><span>
+</span><span id="line-198"></span><span class="hs-comment">-- @since 1.2</span><span>
+</span><span id="line-199"></span><span id="local-6989586621679077189"><span id="local-6989586621679077190"><span id="local-6989586621679077191"><span id="local-6989586621679077192"><span class="annot"><a href="System.Random.Monad.html#splitGenM"><span class="hs-identifier hs-type">splitGenM</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="System.Random.Monad.html#RandomGenM"><span class="hs-identifier hs-type">RandomGenM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077192"><span class="hs-identifier hs-type">g</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077191"><span class="hs-identifier hs-type">r</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077190"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077189"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679077192"><span class="hs-identifier hs-type">g</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077191"><span class="hs-identifier hs-type">r</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077190"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679077189"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077191"><span class="hs-identifier hs-type">r</span></a></span></span></span></span></span><span>
+</span><span id="line-200"></span><span id="splitGenM"><span class="annot"><span class="annottext">splitGenM :: g r s -&gt; m r
+</span><a href="System.Random.Monad.html#splitGenM"><span class="hs-identifier hs-var hs-var">splitGenM</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(r -&gt; (r, r)) -&gt; g r s -&gt; m r
+forall (g :: * -&gt; * -&gt; *) r s (m :: * -&gt; *) a.
+RandomGenM g r s m =&gt;
+(r -&gt; (a, r)) -&gt; g r s -&gt; m a
+</span><a href="System.Random.Monad.html#applyRandomGenM"><span class="hs-identifier hs-var">applyRandomGenM</span></a></span><span> </span><span class="annot"><span class="annottext">r -&gt; (r, r)
+forall g. RandomGen g =&gt; g -&gt; (g, g)
+</span><a href="System.Random.Internal.html#split"><span class="hs-identifier hs-var">split</span></a></span><span>
+</span><span id="line-201"></span><span>
+</span><span id="line-202"></span><span id="local-6989586621679077186"><span id="local-6989586621679077187"><span class="hs-keyword">instance</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="System.Random.Internal.html#RandomGen"><span class="hs-identifier hs-type">RandomGen</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077187"><span class="hs-identifier hs-type">r</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadIO</span></span><span> </span><span class="annot"><a href="#local-6989586621679077186"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="System.Random.Monad.html#RandomGenM"><span class="hs-identifier hs-type">RandomGenM</span></a></span><span> </span><span class="annot"><a href="System.Random.Monad.html#IOGenM"><span class="hs-identifier hs-type">IOGenM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077187"><span class="hs-identifier hs-type">r</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">RealWorld</span></span><span> </span><span class="annot"><a href="#local-6989586621679077186"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-203"></span><span>  </span><span id="local-6989586621679077181"><span class="annot"><span class="annottext">applyRandomGenM :: (r -&gt; (a, r)) -&gt; IOGenM r RealWorld -&gt; m a
+</span><a href="#local-6989586621679077181"><span class="hs-identifier hs-var hs-var hs-var hs-var">applyRandomGenM</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(r -&gt; (a, r)) -&gt; IOGenM r RealWorld -&gt; m a
+forall (m :: * -&gt; *) g a.
+MonadIO m =&gt;
+(g -&gt; (a, g)) -&gt; IOGenM g RealWorld -&gt; m a
+</span><a href="System.Random.Monad.html#applyIOGen"><span class="hs-identifier hs-var">applyIOGen</span></a></span></span></span><span>
+</span><span id="line-204"></span><span>
+</span><span id="line-205"></span><span id="local-6989586621679077179"><span id="local-6989586621679077180"><span class="hs-keyword">instance</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="System.Random.Internal.html#RandomGen"><span class="hs-identifier hs-type">RandomGen</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077180"><span class="hs-identifier hs-type">r</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadIO</span></span><span> </span><span class="annot"><a href="#local-6989586621679077179"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="System.Random.Monad.html#RandomGenM"><span class="hs-identifier hs-type">RandomGenM</span></a></span><span> </span><span class="annot"><a href="System.Random.Monad.html#AtomicGenM"><span class="hs-identifier hs-type">AtomicGenM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077180"><span class="hs-identifier hs-type">r</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">RealWorld</span></span><span> </span><span class="annot"><a href="#local-6989586621679077179"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-206"></span><span>  </span><span id="local-6989586621679077175"><span class="annot"><span class="annottext">applyRandomGenM :: (r -&gt; (a, r)) -&gt; AtomicGenM r RealWorld -&gt; m a
+</span><a href="#local-6989586621679077175"><span class="hs-identifier hs-var hs-var hs-var hs-var">applyRandomGenM</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(r -&gt; (a, r)) -&gt; AtomicGenM r RealWorld -&gt; m a
+forall (m :: * -&gt; *) g a.
+MonadIO m =&gt;
+(g -&gt; (a, g)) -&gt; AtomicGenM g RealWorld -&gt; m a
+</span><a href="System.Random.Monad.html#applyAtomicGen"><span class="hs-identifier hs-var">applyAtomicGen</span></a></span></span></span><span>
+</span><span id="line-207"></span><span>
+</span><span id="line-208"></span><span id="local-6989586621679077173"><span id="local-6989586621679077174"><span class="hs-keyword">instance</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="System.Random.Internal.html#RandomGen"><span class="hs-identifier hs-type">RandomGen</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077174"><span class="hs-identifier hs-type">r</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadState</span></span><span> </span><span class="annot"><a href="#local-6989586621679077174"><span class="hs-identifier hs-type">r</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077173"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="System.Random.Monad.html#RandomGenM"><span class="hs-identifier hs-type">RandomGenM</span></a></span><span> </span><span class="annot"><a href="System.Random.Internal.html#StateGenM"><span class="hs-identifier hs-type">StateGenM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077174"><span class="hs-identifier hs-type">r</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077174"><span class="hs-identifier hs-type">r</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077173"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-209"></span><span>  </span><span id="local-6989586621679077169"><span class="annot"><span class="annottext">applyRandomGenM :: (r -&gt; (a, r)) -&gt; StateGenM r r -&gt; m a
+</span><a href="#local-6989586621679077169"><span class="hs-identifier hs-var hs-var hs-var hs-var">applyRandomGenM</span></a></span></span><span> </span><span id="local-6989586621679077168"><span class="annot"><span class="annottext">f :: r -&gt; (a, r)
+</span><a href="#local-6989586621679077168"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-identifier">_</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(r -&gt; (a, r)) -&gt; m a
+forall s (m :: * -&gt; *) a. MonadState s m =&gt; (s -&gt; (a, s)) -&gt; m a
+</span><span class="hs-identifier hs-var">state</span></span><span> </span><span class="annot"><span class="annottext">r -&gt; (a, r)
+</span><a href="#local-6989586621679077168"><span class="hs-identifier hs-var">f</span></a></span></span></span><span>
+</span><span id="line-210"></span><span>
+</span><span id="line-211"></span><span id="local-6989586621679077165"><span id="local-6989586621679077166"><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="System.Random.Internal.html#RandomGen"><span class="hs-identifier hs-type">RandomGen</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077166"><span class="hs-identifier hs-type">r</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="System.Random.Monad.html#RandomGenM"><span class="hs-identifier hs-type">RandomGenM</span></a></span><span> </span><span class="annot"><a href="System.Random.Monad.html#STGenM"><span class="hs-identifier hs-type">STGenM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077166"><span class="hs-identifier hs-type">r</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077165"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">ST</span></span><span> </span><span class="annot"><a href="#local-6989586621679077165"><span class="hs-identifier hs-type">s</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-212"></span><span>  </span><span id="local-6989586621679077161"><span class="annot"><span class="annottext">applyRandomGenM :: (r -&gt; (a, r)) -&gt; STGenM r s -&gt; ST s a
+</span><a href="#local-6989586621679077161"><span class="hs-identifier hs-var hs-var hs-var hs-var">applyRandomGenM</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(r -&gt; (a, r)) -&gt; STGenM r s -&gt; ST s a
+forall g a s. (g -&gt; (a, g)) -&gt; STGenM g s -&gt; ST s a
+</span><a href="System.Random.Monad.html#applySTGen"><span class="hs-identifier hs-var">applySTGen</span></a></span></span></span><span>
+</span><span id="line-213"></span><span>
+</span><span id="line-214"></span><span class="hs-comment">-- | Runs a mutable pseudo-random number generator from its 'Frozen' state.</span><span>
+</span><span id="line-215"></span><span class="hs-comment">--</span><span>
+</span><span id="line-216"></span><span class="hs-comment">-- &gt;&gt;&gt; import Data.Int (Int8)</span><span>
+</span><span id="line-217"></span><span class="hs-comment">-- &gt;&gt;&gt; runGenM (IOGen (mkStdGen 217)) (`uniformListM` 5) :: IO ([Int8], IOGen StdGen)</span><span>
+</span><span id="line-218"></span><span class="hs-comment">-- ([-74,37,-50,-2,3],IOGen {unIOGen = StdGen {unStdGen = SMGen 4273268533320920145 15251669095119325999}})</span><span>
+</span><span id="line-219"></span><span class="hs-comment">--</span><span>
+</span><span id="line-220"></span><span class="hs-comment">-- @since 1.2</span><span>
+</span><span id="line-221"></span><span id="local-6989586621679077327"><span id="local-6989586621679077328"><span id="local-6989586621679077329"><span id="local-6989586621679077330"><span class="annot"><a href="System.Random.Monad.html#runGenM"><span class="hs-identifier hs-type">runGenM</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="System.Random.Internal.html#MonadRandom"><span class="hs-identifier hs-type">MonadRandom</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077330"><span class="hs-identifier hs-type">g</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077329"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077328"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="System.Random.Internal.html#Frozen"><span class="hs-identifier hs-type">Frozen</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077330"><span class="hs-identifier hs-type">g</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679077330"><span class="hs-identifier hs-type">g</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077329"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679077328"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077327"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679077328"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679077327"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="System.Random.Internal.html#Frozen"><span class="hs-identifier hs-type">Frozen</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077330"><span class="hs-identifier hs-type">g</span></a></span><span class="hs-special">)</span></span></span></span></span><span>
+</span><span id="line-222"></span><span id="runGenM"><span class="annot"><span class="annottext">runGenM :: Frozen g -&gt; (g s -&gt; m a) -&gt; m (a, Frozen g)
+</span><a href="System.Random.Monad.html#runGenM"><span class="hs-identifier hs-var hs-var">runGenM</span></a></span></span><span> </span><span id="local-6989586621679077160"><span class="annot"><span class="annottext">fg :: Frozen g
+</span><a href="#local-6989586621679077160"><span class="hs-identifier hs-var">fg</span></a></span></span><span> </span><span id="local-6989586621679077159"><span class="annot"><span class="annottext">action :: g s -&gt; m a
+</span><a href="#local-6989586621679077159"><span class="hs-identifier hs-var">action</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-223"></span><span>  </span><span id="local-6989586621679077158"><span class="annot"><span class="annottext">g s
+</span><a href="#local-6989586621679077158"><span class="hs-identifier hs-var">g</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">Frozen g -&gt; m (g s)
+forall (g :: * -&gt; *) s (m :: * -&gt; *).
+MonadRandom g s m =&gt;
+Frozen g -&gt; m (g s)
+</span><a href="System.Random.Internal.html#thawGen"><span class="hs-identifier hs-var">thawGen</span></a></span><span> </span><span class="annot"><span class="annottext">Frozen g
+</span><a href="#local-6989586621679077160"><span class="hs-identifier hs-var">fg</span></a></span><span>
+</span><span id="line-224"></span><span>  </span><span id="local-6989586621679077156"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679077156"><span class="hs-identifier hs-var">res</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">g s -&gt; m a
+</span><a href="#local-6989586621679077159"><span class="hs-identifier hs-var">action</span></a></span><span> </span><span class="annot"><span class="annottext">g s
+</span><a href="#local-6989586621679077158"><span class="hs-identifier hs-var">g</span></a></span><span>
+</span><span id="line-225"></span><span>  </span><span id="local-6989586621679077155"><span class="annot"><span class="annottext">Frozen g
+</span><a href="#local-6989586621679077155"><span class="hs-identifier hs-var">fg'</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">g s -&gt; m (Frozen g)
+forall (g :: * -&gt; *) s (m :: * -&gt; *).
+MonadRandom g s m =&gt;
+g s -&gt; m (Frozen g)
+</span><a href="System.Random.Internal.html#freezeGen"><span class="hs-identifier hs-var">freezeGen</span></a></span><span> </span><span class="annot"><span class="annottext">g s
+</span><a href="#local-6989586621679077158"><span class="hs-identifier hs-var">g</span></a></span><span>
+</span><span id="line-226"></span><span>  </span><span class="annot"><span class="annottext">(a, Frozen g) -&gt; m (a, Frozen g)
+forall (f :: * -&gt; *) a. Applicative f =&gt; a -&gt; f a
+</span><span class="hs-identifier hs-var">pure</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679077156"><span class="hs-identifier hs-var">res</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">Frozen g
+</span><a href="#local-6989586621679077155"><span class="hs-identifier hs-var">fg'</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-227"></span><span>
+</span><span id="line-228"></span><span class="hs-comment">-- | Same as 'runGenM', but only returns the generated value.</span><span>
+</span><span id="line-229"></span><span class="hs-comment">--</span><span>
+</span><span id="line-230"></span><span class="hs-comment">-- @since 1.2</span><span>
+</span><span id="line-231"></span><span id="local-6989586621679077150"><span id="local-6989586621679077151"><span id="local-6989586621679077152"><span id="local-6989586621679077153"><span class="annot"><a href="System.Random.Monad.html#runGenM_"><span class="hs-identifier hs-type">runGenM_</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="System.Random.Internal.html#MonadRandom"><span class="hs-identifier hs-type">MonadRandom</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077153"><span class="hs-identifier hs-type">g</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077152"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077151"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="System.Random.Internal.html#Frozen"><span class="hs-identifier hs-type">Frozen</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077153"><span class="hs-identifier hs-type">g</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679077153"><span class="hs-identifier hs-type">g</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077152"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679077151"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077150"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679077151"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077150"><span class="hs-identifier hs-type">a</span></a></span></span></span></span></span><span>
+</span><span id="line-232"></span><span id="runGenM_"><span class="annot"><span class="annottext">runGenM_ :: Frozen g -&gt; (g s -&gt; m a) -&gt; m a
+</span><a href="System.Random.Monad.html#runGenM_"><span class="hs-identifier hs-var hs-var">runGenM_</span></a></span></span><span> </span><span id="local-6989586621679077149"><span class="annot"><span class="annottext">fg :: Frozen g
+</span><a href="#local-6989586621679077149"><span class="hs-identifier hs-var">fg</span></a></span></span><span> </span><span id="local-6989586621679077148"><span class="annot"><span class="annottext">action :: g s -&gt; m a
+</span><a href="#local-6989586621679077148"><span class="hs-identifier hs-var">action</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(a, Frozen g) -&gt; a
+forall a b. (a, b) -&gt; a
+</span><span class="hs-identifier hs-var">fst</span></span><span> </span><span class="annot"><span class="annottext">((a, Frozen g) -&gt; a) -&gt; m (a, Frozen g) -&gt; m a
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">Frozen g -&gt; (g s -&gt; m a) -&gt; m (a, Frozen g)
+forall (g :: * -&gt; *) s (m :: * -&gt; *) a.
+MonadRandom g s m =&gt;
+Frozen g -&gt; (g s -&gt; m a) -&gt; m (a, Frozen g)
+</span><a href="System.Random.Monad.html#runGenM"><span class="hs-identifier hs-var">runGenM</span></a></span><span> </span><span class="annot"><span class="annottext">Frozen g
+</span><a href="#local-6989586621679077149"><span class="hs-identifier hs-var">fg</span></a></span><span> </span><span class="annot"><span class="annottext">g s -&gt; m a
+</span><a href="#local-6989586621679077148"><span class="hs-identifier hs-var">action</span></a></span><span>
+</span><span id="line-233"></span><span>
+</span><span id="line-234"></span><span class="hs-comment">-- | Generates a list of pseudo-random values.</span><span>
+</span><span id="line-235"></span><span class="hs-comment">--</span><span>
+</span><span id="line-236"></span><span class="hs-comment">-- @since 1.2</span><span>
+</span><span id="line-237"></span><span id="local-6989586621679077143"><span id="local-6989586621679077144"><span id="local-6989586621679077145"><span id="local-6989586621679077146"><span class="annot"><a href="System.Random.Monad.html#uniformListM"><span class="hs-identifier hs-type">uniformListM</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="System.Random.Internal.html#MonadRandom"><span class="hs-identifier hs-type">MonadRandom</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077146"><span class="hs-identifier hs-type">g</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077145"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077144"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="System.Random.Internal.html#Uniform"><span class="hs-identifier hs-type">Uniform</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077143"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679077146"><span class="hs-identifier hs-type">g</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077145"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">Int</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679077144"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-special">[</span><span class="annot"><a href="#local-6989586621679077143"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">]</span></span></span></span></span><span>
+</span><span id="line-238"></span><span id="uniformListM"><span class="annot"><span class="annottext">uniformListM :: g s -&gt; Int -&gt; m [a]
+</span><a href="System.Random.Monad.html#uniformListM"><span class="hs-identifier hs-var hs-var">uniformListM</span></a></span></span><span> </span><span id="local-6989586621679077142"><span class="annot"><span class="annottext">gen :: g s
+</span><a href="#local-6989586621679077142"><span class="hs-identifier hs-var">gen</span></a></span></span><span> </span><span id="local-6989586621679077141"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679077141"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">Int -&gt; m a -&gt; m [a]
+forall (m :: * -&gt; *) a. Applicative m =&gt; Int -&gt; m a -&gt; m [a]
+</span><span class="hs-identifier hs-var">replicateM</span></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679077141"><span class="hs-identifier hs-var">n</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">g s -&gt; m a
+forall a (g :: * -&gt; *) s (m :: * -&gt; *).
+(Uniform a, MonadRandom g s m) =&gt;
+g s -&gt; m a
+</span><a href="System.Random.Internal.html#uniformM"><span class="hs-identifier hs-var">uniformM</span></a></span><span> </span><span class="annot"><span class="annottext">g s
+</span><a href="#local-6989586621679077142"><span class="hs-identifier hs-var">gen</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-239"></span><span>
+</span><span id="line-240"></span><span class="hs-comment">-- | Generates a pseudo-random value using monadic interface and `Random` instance.</span><span>
+</span><span id="line-241"></span><span class="hs-comment">--</span><span>
+</span><span id="line-242"></span><span class="hs-comment">-- @since 1.2</span><span>
+</span><span id="line-243"></span><span id="local-6989586621679077134"><span id="local-6989586621679077135"><span id="local-6989586621679077136"><span id="local-6989586621679077137"><span id="local-6989586621679077138"><span class="annot"><a href="System.Random.Monad.html#randomM"><span class="hs-identifier hs-type">randomM</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="System.Random.Monad.html#RandomGenM"><span class="hs-identifier hs-type">RandomGenM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077138"><span class="hs-identifier hs-type">g</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077137"><span class="hs-identifier hs-type">r</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077136"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077135"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="System.Random.html#Random"><span class="hs-identifier hs-type">Random</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077134"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679077138"><span class="hs-identifier hs-type">g</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077137"><span class="hs-identifier hs-type">r</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077136"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679077135"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077134"><span class="hs-identifier hs-type">a</span></a></span></span></span></span></span></span><span>
+</span><span id="line-244"></span><span id="randomM"><span class="annot"><span class="annottext">randomM :: g r s -&gt; m a
+</span><a href="System.Random.Monad.html#randomM"><span class="hs-identifier hs-var hs-var">randomM</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(r -&gt; (a, r)) -&gt; g r s -&gt; m a
+forall (g :: * -&gt; * -&gt; *) r s (m :: * -&gt; *) a.
+RandomGenM g r s m =&gt;
+(r -&gt; (a, r)) -&gt; g r s -&gt; m a
+</span><a href="System.Random.Monad.html#applyRandomGenM"><span class="hs-identifier hs-var">applyRandomGenM</span></a></span><span> </span><span class="annot"><span class="annottext">r -&gt; (a, r)
+forall a g. (Random a, RandomGen g) =&gt; g -&gt; (a, g)
+</span><a href="System.Random.html#random"><span class="hs-identifier hs-var">random</span></a></span><span>
+</span><span id="line-245"></span><span>
+</span><span id="line-246"></span><span class="hs-comment">-- | Generates a pseudo-random value using monadic interface and `Random` instance.</span><span>
+</span><span id="line-247"></span><span class="hs-comment">--</span><span>
+</span><span id="line-248"></span><span class="hs-comment">-- @since 1.2</span><span>
+</span><span id="line-249"></span><span id="local-6989586621679077128"><span id="local-6989586621679077129"><span id="local-6989586621679077130"><span id="local-6989586621679077131"><span id="local-6989586621679077132"><span class="annot"><a href="System.Random.Monad.html#randomRM"><span class="hs-identifier hs-type">randomRM</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="System.Random.Monad.html#RandomGenM"><span class="hs-identifier hs-type">RandomGenM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077132"><span class="hs-identifier hs-type">g</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077131"><span class="hs-identifier hs-type">r</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077130"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077129"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="System.Random.html#Random"><span class="hs-identifier hs-type">Random</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077128"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679077128"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679077128"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679077132"><span class="hs-identifier hs-type">g</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077131"><span class="hs-identifier hs-type">r</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077130"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679077129"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077128"><span class="hs-identifier hs-type">a</span></a></span></span></span></span></span></span><span>
+</span><span id="line-250"></span><span id="randomRM"><span class="annot"><span class="annottext">randomRM :: (a, a) -&gt; g r s -&gt; m a
+</span><a href="System.Random.Monad.html#randomRM"><span class="hs-identifier hs-var hs-var">randomRM</span></a></span></span><span> </span><span id="local-6989586621679077127"><span class="annot"><span class="annottext">r :: (a, a)
+</span><a href="#local-6989586621679077127"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(r -&gt; (a, r)) -&gt; g r s -&gt; m a
+forall (g :: * -&gt; * -&gt; *) r s (m :: * -&gt; *) a.
+RandomGenM g r s m =&gt;
+(r -&gt; (a, r)) -&gt; g r s -&gt; m a
+</span><a href="System.Random.Monad.html#applyRandomGenM"><span class="hs-identifier hs-var">applyRandomGenM</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">(a, a) -&gt; r -&gt; (a, r)
+forall a g. (Random a, RandomGen g) =&gt; (a, a) -&gt; g -&gt; (a, g)
+</span><a href="System.Random.html#randomR"><span class="hs-identifier hs-var">randomR</span></a></span><span> </span><span class="annot"><span class="annottext">(a, a)
+</span><a href="#local-6989586621679077127"><span class="hs-identifier hs-var">r</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-251"></span><span>
+</span><span id="line-252"></span><span class="hs-comment">-- | Wraps an 'IORef' that holds a pure pseudo-random number generator. All</span><span>
+</span><span id="line-253"></span><span class="hs-comment">-- operations are performed atomically.</span><span>
+</span><span id="line-254"></span><span class="hs-comment">--</span><span>
+</span><span id="line-255"></span><span class="hs-comment">-- *   'AtomicGenM' is safe in the presence of exceptions and concurrency.</span><span>
+</span><span id="line-256"></span><span class="hs-comment">-- *   'AtomicGenM' is the slowest of the monadic adapters due to the overhead</span><span>
+</span><span id="line-257"></span><span class="hs-comment">--     of its atomic operations.</span><span>
+</span><span id="line-258"></span><span class="hs-comment">--</span><span>
+</span><span id="line-259"></span><span class="hs-comment">-- @since 1.2</span><span>
+</span><span id="line-260"></span><span class="hs-keyword">newtype</span><span> </span><span id="AtomicGenM"><span class="annot"><a href="System.Random.Monad.html#AtomicGenM"><span class="hs-identifier hs-var">AtomicGenM</span></a></span></span><span> </span><span id="local-6989586621679077280"><span class="annot"><a href="#local-6989586621679077280"><span class="hs-identifier hs-type">g</span></a></span></span><span> </span><span id="local-6989586621679077279"><span class="annot"><a href="#local-6989586621679077279"><span class="hs-identifier hs-type">s</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="AtomicGenM"><span class="annot"><a href="System.Random.Monad.html#AtomicGenM"><span class="hs-identifier hs-var">AtomicGenM</span></a></span></span><span> </span><span class="hs-special">{</span><span> </span><span id="unAtomicGenM"><span class="annot"><span class="annottext">AtomicGenM g s -&gt; IORef g
+</span><a href="System.Random.Monad.html#unAtomicGenM"><span class="hs-identifier hs-var hs-var">unAtomicGenM</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IORef</span></span><span> </span><span class="annot"><a href="#local-6989586621679077280"><span class="hs-identifier hs-type">g</span></a></span><span class="hs-special">}</span><span>
+</span><span id="line-261"></span><span>
+</span><span id="line-262"></span><span class="hs-keyword">newtype</span><span> </span><span id="AtomicGen"><span class="annot"><a href="System.Random.Monad.html#AtomicGen"><span class="hs-identifier hs-var">AtomicGen</span></a></span></span><span> </span><span id="local-6989586621679077272"><span class="annot"><a href="#local-6989586621679077272"><span class="hs-identifier hs-type">g</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="AtomicGen"><span class="annot"><a href="System.Random.Monad.html#AtomicGen"><span class="hs-identifier hs-var">AtomicGen</span></a></span></span><span> </span><span class="hs-special">{</span><span> </span><span id="unAtomicGen"><span class="annot"><span class="annottext">AtomicGen g -&gt; g
+</span><a href="System.Random.Monad.html#unAtomicGen"><span class="hs-identifier hs-var hs-var">unAtomicGen</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679077272"><span class="hs-identifier hs-type">g</span></a></span><span> </span><span class="hs-special">}</span><span>
+</span><span id="line-263"></span><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">stock</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679077118"><span id="local-6989586621679077120"><span class="annot"><span class="annottext">AtomicGen g -&gt; AtomicGen g -&gt; Bool
+(AtomicGen g -&gt; AtomicGen g -&gt; Bool)
+-&gt; (AtomicGen g -&gt; AtomicGen g -&gt; Bool) -&gt; Eq (AtomicGen g)
+forall g. Eq g =&gt; AtomicGen g -&gt; AtomicGen g -&gt; Bool
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: AtomicGen g -&gt; AtomicGen g -&gt; Bool
+$c/= :: forall g. Eq g =&gt; AtomicGen g -&gt; AtomicGen g -&gt; Bool
+== :: AtomicGen g -&gt; AtomicGen g -&gt; Bool
+$c== :: forall g. Eq g =&gt; AtomicGen g -&gt; AtomicGen g -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679077111"><span id="local-6989586621679077113"><span id="local-6989586621679077115"><span class="annot"><span class="annottext">Int -&gt; AtomicGen g -&gt; ShowS
+[AtomicGen g] -&gt; ShowS
+AtomicGen g -&gt; String
+(Int -&gt; AtomicGen g -&gt; ShowS)
+-&gt; (AtomicGen g -&gt; String)
+-&gt; ([AtomicGen g] -&gt; ShowS)
+-&gt; Show (AtomicGen g)
+forall g. Show g =&gt; Int -&gt; AtomicGen g -&gt; ShowS
+forall g. Show g =&gt; [AtomicGen g] -&gt; ShowS
+forall g. Show g =&gt; AtomicGen g -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [AtomicGen g] -&gt; ShowS
+$cshowList :: forall g. Show g =&gt; [AtomicGen g] -&gt; ShowS
+show :: AtomicGen g -&gt; String
+$cshow :: forall g. Show g =&gt; AtomicGen g -&gt; String
+showsPrec :: Int -&gt; AtomicGen g -&gt; ShowS
+$cshowsPrec :: forall g. Show g =&gt; Int -&gt; AtomicGen g -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679077102"><span id="local-6989586621679077104"><span id="local-6989586621679077106"><span id="local-6989586621679077108"><span class="annot"><span class="annottext">ReadPrec [AtomicGen g]
+ReadPrec (AtomicGen g)
+Int -&gt; ReadS (AtomicGen g)
+ReadS [AtomicGen g]
+(Int -&gt; ReadS (AtomicGen g))
+-&gt; ReadS [AtomicGen g]
+-&gt; ReadPrec (AtomicGen g)
+-&gt; ReadPrec [AtomicGen g]
+-&gt; Read (AtomicGen g)
+forall g. Read g =&gt; ReadPrec [AtomicGen g]
+forall g. Read g =&gt; ReadPrec (AtomicGen g)
+forall g. Read g =&gt; Int -&gt; ReadS (AtomicGen g)
+forall g. Read g =&gt; ReadS [AtomicGen g]
+forall a.
+(Int -&gt; ReadS a)
+-&gt; ReadS [a] -&gt; ReadPrec a -&gt; ReadPrec [a] -&gt; Read a
+readListPrec :: ReadPrec [AtomicGen g]
+$creadListPrec :: forall g. Read g =&gt; ReadPrec [AtomicGen g]
+readPrec :: ReadPrec (AtomicGen g)
+$creadPrec :: forall g. Read g =&gt; ReadPrec (AtomicGen g)
+readList :: ReadS [AtomicGen g]
+$creadList :: forall g. Read g =&gt; ReadS [AtomicGen g]
+readsPrec :: Int -&gt; ReadS (AtomicGen g)
+$creadsPrec :: forall g. Read g =&gt; Int -&gt; ReadS (AtomicGen g)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Read</span></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-264"></span><span>
+</span><span id="line-265"></span><span id="local-6989586621679077099"><span id="local-6989586621679077100"><span class="hs-keyword">instance</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="System.Random.Internal.html#RandomGen"><span class="hs-identifier hs-type">RandomGen</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077100"><span class="hs-identifier hs-type">g</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadIO</span></span><span> </span><span class="annot"><a href="#local-6989586621679077099"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="System.Random.Internal.html#MonadRandom"><span class="hs-identifier hs-type">MonadRandom</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="System.Random.Monad.html#AtomicGenM"><span class="hs-identifier hs-type">AtomicGenM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077100"><span class="hs-identifier hs-type">g</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-identifier hs-type">RealWorld</span></span><span> </span><span class="annot"><a href="#local-6989586621679077099"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-266"></span><span>  </span><span class="hs-keyword">type</span><span> </span><span id="Frozen"><span class="annot"><a href="System.Random.Internal.html#Frozen"><span class="hs-identifier hs-var">Frozen</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="System.Random.Monad.html#AtomicGenM"><span class="hs-identifier hs-type">AtomicGenM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077100"><span class="hs-identifier hs-type">g</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="System.Random.Monad.html#AtomicGen"><span class="hs-identifier hs-type">AtomicGen</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077100"><span class="hs-identifier hs-type">g</span></a></span><span>
+</span><span id="line-267"></span><span>  </span><span id="local-6989586621679077087"><span class="annot"><span class="annottext">thawGen :: Frozen (AtomicGenM g) -&gt; m (AtomicGenM g RealWorld)
+</span><a href="#local-6989586621679077087"><span class="hs-identifier hs-var hs-var hs-var hs-var">thawGen</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="System.Random.Monad.html#AtomicGen"><span class="hs-identifier hs-type">AtomicGen</span></a></span><span> </span><span id="local-6989586621679077086"><span class="annot"><a href="#local-6989586621679077086"><span class="hs-identifier hs-var">g</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(IORef g -&gt; AtomicGenM g RealWorld)
+-&gt; m (IORef g) -&gt; m (AtomicGenM g RealWorld)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">IORef g -&gt; AtomicGenM g RealWorld
+forall g s. IORef g -&gt; AtomicGenM g s
+</span><a href="System.Random.Monad.html#AtomicGenM"><span class="hs-identifier hs-var">AtomicGenM</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IO (IORef g) -&gt; m (IORef g)
+forall (m :: * -&gt; *) a. MonadIO m =&gt; IO a -&gt; m a
+</span><span class="hs-identifier hs-var">liftIO</span></span><span> </span><span class="annot"><span class="annottext">(IO (IORef g) -&gt; m (IORef g)) -&gt; IO (IORef g) -&gt; m (IORef g)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">g -&gt; IO (IORef g)
+forall a. a -&gt; IO (IORef a)
+</span><span class="hs-identifier hs-var">newIORef</span></span><span> </span><span class="annot"><span class="annottext">g
+</span><a href="#local-6989586621679077086"><span class="hs-identifier hs-var">g</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-268"></span><span>  </span><span id="local-6989586621679077083"><span class="annot"><span class="annottext">freezeGen :: AtomicGenM g RealWorld -&gt; m (Frozen (AtomicGenM g))
+</span><a href="#local-6989586621679077083"><span class="hs-identifier hs-var hs-var hs-var hs-var">freezeGen</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="System.Random.Monad.html#AtomicGenM"><span class="hs-identifier hs-type">AtomicGenM</span></a></span><span> </span><span id="local-6989586621679077082"><span class="annot"><span class="annottext">gVar :: IORef g
+</span><a href="#local-6989586621679077082"><span class="hs-identifier hs-var">gVar</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(g -&gt; AtomicGen g) -&gt; m g -&gt; m (AtomicGen g)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">g -&gt; AtomicGen g
+forall g. g -&gt; AtomicGen g
+</span><a href="System.Random.Monad.html#AtomicGen"><span class="hs-identifier hs-var">AtomicGen</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IO g -&gt; m g
+forall (m :: * -&gt; *) a. MonadIO m =&gt; IO a -&gt; m a
+</span><span class="hs-identifier hs-var">liftIO</span></span><span> </span><span class="annot"><span class="annottext">(IO g -&gt; m g) -&gt; IO g -&gt; m g
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">IORef g -&gt; IO g
+forall a. IORef a -&gt; IO a
+</span><span class="hs-identifier hs-var">readIORef</span></span><span> </span><span class="annot"><span class="annottext">IORef g
+</span><a href="#local-6989586621679077082"><span class="hs-identifier hs-var">gVar</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-269"></span><span>  </span><span id="local-6989586621679077080"><span class="annot"><span class="annottext">uniformWord32R :: Word32 -&gt; AtomicGenM g RealWorld -&gt; m Word32
+</span><a href="System.Random.Internal.html#uniformWord32R"><span class="hs-identifier hs-var hs-var hs-var hs-var">uniformWord32R</span></a></span></span><span> </span><span id="local-6989586621679077078"><span class="annot"><span class="annottext">r :: Word32
+</span><a href="#local-6989586621679077078"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(g -&gt; (Word32, g)) -&gt; AtomicGenM g RealWorld -&gt; m Word32
+forall (m :: * -&gt; *) g a.
+MonadIO m =&gt;
+(g -&gt; (a, g)) -&gt; AtomicGenM g RealWorld -&gt; m a
+</span><a href="System.Random.Monad.html#applyAtomicGen"><span class="hs-identifier hs-var">applyAtomicGen</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word32 -&gt; g -&gt; (Word32, g)
+forall g. RandomGen g =&gt; Word32 -&gt; g -&gt; (Word32, g)
+</span><a href="System.Random.Internal.html#genWord32R"><span class="hs-identifier hs-var">genWord32R</span></a></span><span> </span><span class="annot"><span class="annottext">Word32
+</span><a href="#local-6989586621679077078"><span class="hs-identifier hs-var">r</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-270"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="System.Random.Internal.html#uniformWord32R"><span class="hs-pragma hs-type">uniformWord32R</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-271"></span><span>  </span><span id="local-6989586621679077076"><span class="annot"><span class="annottext">uniformWord64R :: Word64 -&gt; AtomicGenM g RealWorld -&gt; m Word64
+</span><a href="System.Random.Internal.html#uniformWord64R"><span class="hs-identifier hs-var hs-var hs-var hs-var">uniformWord64R</span></a></span></span><span> </span><span id="local-6989586621679077074"><span class="annot"><span class="annottext">r :: Word64
+</span><a href="#local-6989586621679077074"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(g -&gt; (Word64, g)) -&gt; AtomicGenM g RealWorld -&gt; m Word64
+forall (m :: * -&gt; *) g a.
+MonadIO m =&gt;
+(g -&gt; (a, g)) -&gt; AtomicGenM g RealWorld -&gt; m a
+</span><a href="System.Random.Monad.html#applyAtomicGen"><span class="hs-identifier hs-var">applyAtomicGen</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64 -&gt; g -&gt; (Word64, g)
+forall g. RandomGen g =&gt; Word64 -&gt; g -&gt; (Word64, g)
+</span><a href="System.Random.Internal.html#genWord64R"><span class="hs-identifier hs-var">genWord64R</span></a></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679077074"><span class="hs-identifier hs-var">r</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-272"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="System.Random.Internal.html#uniformWord64R"><span class="hs-pragma hs-type">uniformWord64R</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-273"></span><span>  </span><span id="local-6989586621679077072"><span class="annot"><span class="annottext">uniformWord8 :: AtomicGenM g RealWorld -&gt; m Word8
+</span><a href="System.Random.Internal.html#uniformWord8"><span class="hs-identifier hs-var hs-var hs-var hs-var">uniformWord8</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(g -&gt; (Word8, g)) -&gt; AtomicGenM g RealWorld -&gt; m Word8
+forall (m :: * -&gt; *) g a.
+MonadIO m =&gt;
+(g -&gt; (a, g)) -&gt; AtomicGenM g RealWorld -&gt; m a
+</span><a href="System.Random.Monad.html#applyAtomicGen"><span class="hs-identifier hs-var">applyAtomicGen</span></a></span><span> </span><span class="annot"><span class="annottext">g -&gt; (Word8, g)
+forall g. RandomGen g =&gt; g -&gt; (Word8, g)
+</span><a href="System.Random.Internal.html#genWord8"><span class="hs-identifier hs-var">genWord8</span></a></span><span>
+</span><span id="line-274"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="System.Random.Internal.html#uniformWord8"><span class="hs-pragma hs-type">uniformWord8</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-275"></span><span>  </span><span id="local-6989586621679077069"><span class="annot"><span class="annottext">uniformWord16 :: AtomicGenM g RealWorld -&gt; m Word16
+</span><a href="System.Random.Internal.html#uniformWord16"><span class="hs-identifier hs-var hs-var hs-var hs-var">uniformWord16</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(g -&gt; (Word16, g)) -&gt; AtomicGenM g RealWorld -&gt; m Word16
+forall (m :: * -&gt; *) g a.
+MonadIO m =&gt;
+(g -&gt; (a, g)) -&gt; AtomicGenM g RealWorld -&gt; m a
+</span><a href="System.Random.Monad.html#applyAtomicGen"><span class="hs-identifier hs-var">applyAtomicGen</span></a></span><span> </span><span class="annot"><span class="annottext">g -&gt; (Word16, g)
+forall g. RandomGen g =&gt; g -&gt; (Word16, g)
+</span><a href="System.Random.Internal.html#genWord16"><span class="hs-identifier hs-var">genWord16</span></a></span><span>
+</span><span id="line-276"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="System.Random.Internal.html#uniformWord16"><span class="hs-pragma hs-type">uniformWord16</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-277"></span><span>  </span><span id="local-6989586621679077066"><span class="annot"><span class="annottext">uniformWord32 :: AtomicGenM g RealWorld -&gt; m Word32
+</span><a href="System.Random.Internal.html#uniformWord32"><span class="hs-identifier hs-var hs-var hs-var hs-var">uniformWord32</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(g -&gt; (Word32, g)) -&gt; AtomicGenM g RealWorld -&gt; m Word32
+forall (m :: * -&gt; *) g a.
+MonadIO m =&gt;
+(g -&gt; (a, g)) -&gt; AtomicGenM g RealWorld -&gt; m a
+</span><a href="System.Random.Monad.html#applyAtomicGen"><span class="hs-identifier hs-var">applyAtomicGen</span></a></span><span> </span><span class="annot"><span class="annottext">g -&gt; (Word32, g)
+forall g. RandomGen g =&gt; g -&gt; (Word32, g)
+</span><a href="System.Random.Internal.html#genWord32"><span class="hs-identifier hs-var">genWord32</span></a></span><span>
+</span><span id="line-278"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="System.Random.Internal.html#uniformWord32"><span class="hs-pragma hs-type">uniformWord32</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-279"></span><span>  </span><span id="local-6989586621679077063"><span class="annot"><span class="annottext">uniformWord64 :: AtomicGenM g RealWorld -&gt; m Word64
+</span><a href="System.Random.Internal.html#uniformWord64"><span class="hs-identifier hs-var hs-var hs-var hs-var">uniformWord64</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(g -&gt; (Word64, g)) -&gt; AtomicGenM g RealWorld -&gt; m Word64
+forall (m :: * -&gt; *) g a.
+MonadIO m =&gt;
+(g -&gt; (a, g)) -&gt; AtomicGenM g RealWorld -&gt; m a
+</span><a href="System.Random.Monad.html#applyAtomicGen"><span class="hs-identifier hs-var">applyAtomicGen</span></a></span><span> </span><span class="annot"><span class="annottext">g -&gt; (Word64, g)
+forall g. RandomGen g =&gt; g -&gt; (Word64, g)
+</span><a href="System.Random.Internal.html#genWord64"><span class="hs-identifier hs-var">genWord64</span></a></span><span>
+</span><span id="line-280"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="System.Random.Internal.html#uniformWord64"><span class="hs-pragma hs-type">uniformWord64</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-281"></span><span>  </span><span id="local-6989586621679077060"><span class="annot"><span class="annottext">uniformShortByteString :: Int -&gt; AtomicGenM g RealWorld -&gt; m ShortByteString
+</span><a href="System.Random.Internal.html#uniformShortByteString"><span class="hs-identifier hs-var hs-var hs-var hs-var">uniformShortByteString</span></a></span></span><span> </span><span id="local-6989586621679077058"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679077058"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(g -&gt; (ShortByteString, g))
+-&gt; AtomicGenM g RealWorld -&gt; m ShortByteString
+forall (m :: * -&gt; *) g a.
+MonadIO m =&gt;
+(g -&gt; (a, g)) -&gt; AtomicGenM g RealWorld -&gt; m a
+</span><a href="System.Random.Monad.html#applyAtomicGen"><span class="hs-identifier hs-var">applyAtomicGen</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; g -&gt; (ShortByteString, g)
+forall g. RandomGen g =&gt; Int -&gt; g -&gt; (ShortByteString, g)
+</span><a href="System.Random.Internal.html#genShortByteString"><span class="hs-identifier hs-var">genShortByteString</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679077058"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-282"></span><span>
+</span><span id="line-283"></span><span class="hs-comment">-- | Atomically applies a pure operation to the wrapped pseudo-random number</span><span>
+</span><span id="line-284"></span><span class="hs-comment">-- generator.</span><span>
+</span><span id="line-285"></span><span class="hs-comment">--</span><span>
+</span><span id="line-286"></span><span class="hs-comment">-- @since 1.2</span><span>
+</span><span id="line-287"></span><span id="local-6989586621679077366"><span id="local-6989586621679077367"><span id="local-6989586621679077368"><span class="annot"><a href="System.Random.Monad.html#applyAtomicGen"><span class="hs-identifier hs-type">applyAtomicGen</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadIO</span></span><span> </span><span class="annot"><a href="#local-6989586621679077368"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679077367"><span class="hs-identifier hs-type">g</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679077366"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679077367"><span class="hs-identifier hs-type">g</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="System.Random.Monad.html#AtomicGenM"><span class="hs-identifier hs-type">AtomicGenM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077367"><span class="hs-identifier hs-type">g</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">RealWorld</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679077368"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077366"><span class="hs-identifier hs-type">a</span></a></span></span></span></span><span>
+</span><span id="line-288"></span><span id="applyAtomicGen"><span class="annot"><span class="annottext">applyAtomicGen :: (g -&gt; (a, g)) -&gt; AtomicGenM g RealWorld -&gt; m a
+</span><a href="System.Random.Monad.html#applyAtomicGen"><span class="hs-identifier hs-var hs-var">applyAtomicGen</span></a></span></span><span> </span><span id="local-6989586621679077056"><span class="annot"><span class="annottext">op :: g -&gt; (a, g)
+</span><a href="#local-6989586621679077056"><span class="hs-identifier hs-var">op</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="System.Random.Monad.html#AtomicGenM"><span class="hs-identifier hs-type">AtomicGenM</span></a></span><span> </span><span id="local-6989586621679077055"><span class="annot"><span class="annottext">gVar :: IORef g
+</span><a href="#local-6989586621679077055"><span class="hs-identifier hs-var">gVar</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span>
+</span><span id="line-289"></span><span>  </span><span class="annot"><span class="annottext">IO a -&gt; m a
+forall (m :: * -&gt; *) a. MonadIO m =&gt; IO a -&gt; m a
+</span><span class="hs-identifier hs-var">liftIO</span></span><span> </span><span class="annot"><span class="annottext">(IO a -&gt; m a) -&gt; IO a -&gt; m a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">IORef g -&gt; (g -&gt; (g, a)) -&gt; IO a
+forall a b. IORef a -&gt; (a -&gt; (a, b)) -&gt; IO b
+</span><span class="hs-identifier hs-var">atomicModifyIORef'</span></span><span> </span><span class="annot"><span class="annottext">IORef g
+</span><a href="#local-6989586621679077055"><span class="hs-identifier hs-var">gVar</span></a></span><span> </span><span class="annot"><span class="annottext">((g -&gt; (g, a)) -&gt; IO a) -&gt; (g -&gt; (g, a)) -&gt; IO a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-glyph">\</span><span id="local-6989586621679077053"><span class="annot"><span class="annottext">g :: g
+</span><a href="#local-6989586621679077053"><span class="hs-identifier hs-var">g</span></a></span></span><span> </span><span class="hs-glyph">-&gt;</span><span>
+</span><span id="line-290"></span><span>    </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">g -&gt; (a, g)
+</span><a href="#local-6989586621679077056"><span class="hs-identifier hs-var">op</span></a></span><span> </span><span class="annot"><span class="annottext">g
+</span><a href="#local-6989586621679077053"><span class="hs-identifier hs-var">g</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-291"></span><span>      </span><span class="hs-special">(</span><span id="local-6989586621679077052"><span class="annot"><span class="annottext">a :: a
+</span><a href="#local-6989586621679077052"><span class="hs-identifier hs-var">a</span></a></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679077051"><span class="annot"><span class="annottext">g' :: g
+</span><a href="#local-6989586621679077051"><span class="hs-identifier hs-var">g'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">g
+</span><a href="#local-6989586621679077051"><span class="hs-identifier hs-var">g'</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679077052"><span class="hs-identifier hs-var">a</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-292"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="System.Random.Monad.html#applyAtomicGen"><span class="hs-pragma hs-type">applyAtomicGen</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-293"></span><span>
+</span><span id="line-294"></span><span class="hs-comment">-- | Wraps an 'IORef' that holds a pure pseudo-random number generator.</span><span>
+</span><span id="line-295"></span><span class="hs-comment">--</span><span>
+</span><span id="line-296"></span><span class="hs-comment">-- *   'IOGenM' is safe in the presence of exceptions, but not concurrency.</span><span>
+</span><span id="line-297"></span><span class="hs-comment">-- *   'IOGenM' is slower than 'StateGenM' due to the extra pointer indirection.</span><span>
+</span><span id="line-298"></span><span class="hs-comment">-- *   'IOGenM' is faster than 'AtomicGenM' since the 'IORef' operations used by</span><span>
+</span><span id="line-299"></span><span class="hs-comment">--     'IOGenM' are not atomic.</span><span>
+</span><span id="line-300"></span><span class="hs-comment">--</span><span>
+</span><span id="line-301"></span><span class="hs-comment">-- An example use case is writing pseudo-random bytes into a file:</span><span>
+</span><span id="line-302"></span><span class="hs-comment">--</span><span>
+</span><span id="line-303"></span><span class="hs-comment">-- &gt;&gt;&gt; import UnliftIO.Temporary (withSystemTempFile)</span><span>
+</span><span id="line-304"></span><span class="hs-comment">-- &gt;&gt;&gt; import Data.ByteString (hPutStr)</span><span>
+</span><span id="line-305"></span><span class="hs-comment">-- &gt;&gt;&gt; let ioGen g = withSystemTempFile &quot;foo.bin&quot; $ \_ h -&gt; uniformRM (0, 100) g &gt;&gt;= flip uniformByteString g &gt;&gt;= hPutStr h</span><span>
+</span><span id="line-306"></span><span class="hs-comment">--</span><span>
+</span><span id="line-307"></span><span class="hs-comment">-- and then run it:</span><span>
+</span><span id="line-308"></span><span class="hs-comment">--</span><span>
+</span><span id="line-309"></span><span class="hs-comment">-- &gt;&gt;&gt; runGenM_ (IOGen (mkStdGen 1729)) ioGen</span><span>
+</span><span id="line-310"></span><span class="hs-comment">--</span><span>
+</span><span id="line-311"></span><span class="hs-comment">-- @since 1.2</span><span>
+</span><span id="line-312"></span><span class="hs-keyword">newtype</span><span> </span><span id="IOGenM"><span class="annot"><a href="System.Random.Monad.html#IOGenM"><span class="hs-identifier hs-var">IOGenM</span></a></span></span><span> </span><span id="local-6989586621679077256"><span class="annot"><a href="#local-6989586621679077256"><span class="hs-identifier hs-type">g</span></a></span></span><span> </span><span id="local-6989586621679077255"><span class="annot"><a href="#local-6989586621679077255"><span class="hs-identifier hs-type">s</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="IOGenM"><span class="annot"><a href="System.Random.Monad.html#IOGenM"><span class="hs-identifier hs-var">IOGenM</span></a></span></span><span> </span><span class="hs-special">{</span><span> </span><span id="unIOGenM"><span class="annot"><span class="annottext">IOGenM g s -&gt; IORef g
+</span><a href="System.Random.Monad.html#unIOGenM"><span class="hs-identifier hs-var hs-var">unIOGenM</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">IORef</span></span><span> </span><span class="annot"><a href="#local-6989586621679077256"><span class="hs-identifier hs-type">g</span></a></span><span> </span><span class="hs-special">}</span><span>
+</span><span id="line-313"></span><span>
+</span><span id="line-314"></span><span class="hs-keyword">newtype</span><span> </span><span id="IOGen"><span class="annot"><a href="System.Random.Monad.html#IOGen"><span class="hs-identifier hs-var">IOGen</span></a></span></span><span> </span><span id="local-6989586621679077254"><span class="annot"><a href="#local-6989586621679077254"><span class="hs-identifier hs-type">g</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="IOGen"><span class="annot"><a href="System.Random.Monad.html#IOGen"><span class="hs-identifier hs-var">IOGen</span></a></span></span><span> </span><span class="hs-special">{</span><span> </span><span id="unIOGen"><span class="annot"><span class="annottext">IOGen g -&gt; g
+</span><a href="System.Random.Monad.html#unIOGen"><span class="hs-identifier hs-var hs-var">unIOGen</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679077254"><span class="hs-identifier hs-type">g</span></a></span><span> </span><span class="hs-special">}</span><span>
+</span><span id="line-315"></span><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">stock</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679077043"><span id="local-6989586621679077045"><span class="annot"><span class="annottext">IOGen g -&gt; IOGen g -&gt; Bool
+(IOGen g -&gt; IOGen g -&gt; Bool)
+-&gt; (IOGen g -&gt; IOGen g -&gt; Bool) -&gt; Eq (IOGen g)
+forall g. Eq g =&gt; IOGen g -&gt; IOGen g -&gt; Bool
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: IOGen g -&gt; IOGen g -&gt; Bool
+$c/= :: forall g. Eq g =&gt; IOGen g -&gt; IOGen g -&gt; Bool
+== :: IOGen g -&gt; IOGen g -&gt; Bool
+$c== :: forall g. Eq g =&gt; IOGen g -&gt; IOGen g -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679077037"><span id="local-6989586621679077039"><span id="local-6989586621679077041"><span class="annot"><span class="annottext">Int -&gt; IOGen g -&gt; ShowS
+[IOGen g] -&gt; ShowS
+IOGen g -&gt; String
+(Int -&gt; IOGen g -&gt; ShowS)
+-&gt; (IOGen g -&gt; String) -&gt; ([IOGen g] -&gt; ShowS) -&gt; Show (IOGen g)
+forall g. Show g =&gt; Int -&gt; IOGen g -&gt; ShowS
+forall g. Show g =&gt; [IOGen g] -&gt; ShowS
+forall g. Show g =&gt; IOGen g -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [IOGen g] -&gt; ShowS
+$cshowList :: forall g. Show g =&gt; [IOGen g] -&gt; ShowS
+show :: IOGen g -&gt; String
+$cshow :: forall g. Show g =&gt; IOGen g -&gt; String
+showsPrec :: Int -&gt; IOGen g -&gt; ShowS
+$cshowsPrec :: forall g. Show g =&gt; Int -&gt; IOGen g -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679077029"><span id="local-6989586621679077031"><span id="local-6989586621679077033"><span id="local-6989586621679077035"><span class="annot"><span class="annottext">ReadPrec [IOGen g]
+ReadPrec (IOGen g)
+Int -&gt; ReadS (IOGen g)
+ReadS [IOGen g]
+(Int -&gt; ReadS (IOGen g))
+-&gt; ReadS [IOGen g]
+-&gt; ReadPrec (IOGen g)
+-&gt; ReadPrec [IOGen g]
+-&gt; Read (IOGen g)
+forall g. Read g =&gt; ReadPrec [IOGen g]
+forall g. Read g =&gt; ReadPrec (IOGen g)
+forall g. Read g =&gt; Int -&gt; ReadS (IOGen g)
+forall g. Read g =&gt; ReadS [IOGen g]
+forall a.
+(Int -&gt; ReadS a)
+-&gt; ReadS [a] -&gt; ReadPrec a -&gt; ReadPrec [a] -&gt; Read a
+readListPrec :: ReadPrec [IOGen g]
+$creadListPrec :: forall g. Read g =&gt; ReadPrec [IOGen g]
+readPrec :: ReadPrec (IOGen g)
+$creadPrec :: forall g. Read g =&gt; ReadPrec (IOGen g)
+readList :: ReadS [IOGen g]
+$creadList :: forall g. Read g =&gt; ReadS [IOGen g]
+readsPrec :: Int -&gt; ReadS (IOGen g)
+$creadsPrec :: forall g. Read g =&gt; Int -&gt; ReadS (IOGen g)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Read</span></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-316"></span><span>
+</span><span id="line-317"></span><span id="local-6989586621679077027"><span id="local-6989586621679077028"><span class="hs-keyword">instance</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="System.Random.Internal.html#RandomGen"><span class="hs-identifier hs-type">RandomGen</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077028"><span class="hs-identifier hs-type">g</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadIO</span></span><span> </span><span class="annot"><a href="#local-6989586621679077027"><span class="hs-identifier hs-type">m</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="System.Random.Internal.html#MonadRandom"><span class="hs-identifier hs-type">MonadRandom</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="System.Random.Monad.html#IOGenM"><span class="hs-identifier hs-type">IOGenM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077028"><span class="hs-identifier hs-type">g</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="hs-identifier hs-type">RealWorld</span></span><span> </span><span class="annot"><a href="#local-6989586621679077027"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-318"></span><span>  </span><span class="hs-keyword">type</span><span> </span><span id="Frozen"><span class="annot"><a href="System.Random.Internal.html#Frozen"><span class="hs-identifier hs-var">Frozen</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="System.Random.Monad.html#IOGenM"><span class="hs-identifier hs-type">IOGenM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077028"><span class="hs-identifier hs-type">g</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="System.Random.Monad.html#IOGen"><span class="hs-identifier hs-type">IOGen</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077028"><span class="hs-identifier hs-type">g</span></a></span><span>
+</span><span id="line-319"></span><span>  </span><span id="local-6989586621679077016"><span class="annot"><span class="annottext">thawGen :: Frozen (IOGenM g) -&gt; m (IOGenM g RealWorld)
+</span><a href="#local-6989586621679077016"><span class="hs-identifier hs-var hs-var hs-var hs-var">thawGen</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="System.Random.Monad.html#IOGen"><span class="hs-identifier hs-type">IOGen</span></a></span><span> </span><span id="local-6989586621679077015"><span class="annot"><a href="#local-6989586621679077015"><span class="hs-identifier hs-var">g</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(IORef g -&gt; IOGenM g RealWorld)
+-&gt; m (IORef g) -&gt; m (IOGenM g RealWorld)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">IORef g -&gt; IOGenM g RealWorld
+forall g s. IORef g -&gt; IOGenM g s
+</span><a href="System.Random.Monad.html#IOGenM"><span class="hs-identifier hs-var">IOGenM</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IO (IORef g) -&gt; m (IORef g)
+forall (m :: * -&gt; *) a. MonadIO m =&gt; IO a -&gt; m a
+</span><span class="hs-identifier hs-var">liftIO</span></span><span> </span><span class="annot"><span class="annottext">(IO (IORef g) -&gt; m (IORef g)) -&gt; IO (IORef g) -&gt; m (IORef g)
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">g -&gt; IO (IORef g)
+forall a. a -&gt; IO (IORef a)
+</span><span class="hs-identifier hs-var">newIORef</span></span><span> </span><span class="annot"><span class="annottext">g
+</span><a href="#local-6989586621679077015"><span class="hs-identifier hs-var">g</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-320"></span><span>  </span><span id="local-6989586621679077014"><span class="annot"><span class="annottext">freezeGen :: IOGenM g RealWorld -&gt; m (Frozen (IOGenM g))
+</span><a href="#local-6989586621679077014"><span class="hs-identifier hs-var hs-var hs-var hs-var">freezeGen</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="System.Random.Monad.html#IOGenM"><span class="hs-identifier hs-type">IOGenM</span></a></span><span> </span><span id="local-6989586621679077013"><span class="annot"><span class="annottext">gVar :: IORef g
+</span><a href="#local-6989586621679077013"><span class="hs-identifier hs-var">gVar</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(g -&gt; IOGen g) -&gt; m g -&gt; m (IOGen g)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">g -&gt; IOGen g
+forall g. g -&gt; IOGen g
+</span><a href="System.Random.Monad.html#IOGen"><span class="hs-identifier hs-var">IOGen</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">IO g -&gt; m g
+forall (m :: * -&gt; *) a. MonadIO m =&gt; IO a -&gt; m a
+</span><span class="hs-identifier hs-var">liftIO</span></span><span> </span><span class="annot"><span class="annottext">(IO g -&gt; m g) -&gt; IO g -&gt; m g
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">IORef g -&gt; IO g
+forall a. IORef a -&gt; IO a
+</span><span class="hs-identifier hs-var">readIORef</span></span><span> </span><span class="annot"><span class="annottext">IORef g
+</span><a href="#local-6989586621679077013"><span class="hs-identifier hs-var">gVar</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-321"></span><span>  </span><span id="local-6989586621679077012"><span class="annot"><span class="annottext">uniformWord32R :: Word32 -&gt; IOGenM g RealWorld -&gt; m Word32
+</span><a href="#local-6989586621679077012"><span class="hs-identifier hs-var hs-var hs-var hs-var">uniformWord32R</span></a></span></span><span> </span><span id="local-6989586621679077011"><span class="annot"><span class="annottext">r :: Word32
+</span><a href="#local-6989586621679077011"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(g -&gt; (Word32, g)) -&gt; IOGenM g RealWorld -&gt; m Word32
+forall (m :: * -&gt; *) g a.
+MonadIO m =&gt;
+(g -&gt; (a, g)) -&gt; IOGenM g RealWorld -&gt; m a
+</span><a href="System.Random.Monad.html#applyIOGen"><span class="hs-identifier hs-var">applyIOGen</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word32 -&gt; g -&gt; (Word32, g)
+forall g. RandomGen g =&gt; Word32 -&gt; g -&gt; (Word32, g)
+</span><a href="System.Random.Internal.html#genWord32R"><span class="hs-identifier hs-var">genWord32R</span></a></span><span> </span><span class="annot"><span class="annottext">Word32
+</span><a href="#local-6989586621679077011"><span class="hs-identifier hs-var">r</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-322"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="System.Random.Internal.html#uniformWord32R"><span class="hs-pragma hs-type">uniformWord32R</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-323"></span><span>  </span><span id="local-6989586621679077010"><span class="annot"><span class="annottext">uniformWord64R :: Word64 -&gt; IOGenM g RealWorld -&gt; m Word64
+</span><a href="#local-6989586621679077010"><span class="hs-identifier hs-var hs-var hs-var hs-var">uniformWord64R</span></a></span></span><span> </span><span id="local-6989586621679077009"><span class="annot"><span class="annottext">r :: Word64
+</span><a href="#local-6989586621679077009"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(g -&gt; (Word64, g)) -&gt; IOGenM g RealWorld -&gt; m Word64
+forall (m :: * -&gt; *) g a.
+MonadIO m =&gt;
+(g -&gt; (a, g)) -&gt; IOGenM g RealWorld -&gt; m a
+</span><a href="System.Random.Monad.html#applyIOGen"><span class="hs-identifier hs-var">applyIOGen</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64 -&gt; g -&gt; (Word64, g)
+forall g. RandomGen g =&gt; Word64 -&gt; g -&gt; (Word64, g)
+</span><a href="System.Random.Internal.html#genWord64R"><span class="hs-identifier hs-var">genWord64R</span></a></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679077009"><span class="hs-identifier hs-var">r</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-324"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="System.Random.Internal.html#uniformWord64R"><span class="hs-pragma hs-type">uniformWord64R</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-325"></span><span>  </span><span id="local-6989586621679077008"><span class="annot"><span class="annottext">uniformWord8 :: IOGenM g RealWorld -&gt; m Word8
+</span><a href="#local-6989586621679077008"><span class="hs-identifier hs-var hs-var hs-var hs-var">uniformWord8</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(g -&gt; (Word8, g)) -&gt; IOGenM g RealWorld -&gt; m Word8
+forall (m :: * -&gt; *) g a.
+MonadIO m =&gt;
+(g -&gt; (a, g)) -&gt; IOGenM g RealWorld -&gt; m a
+</span><a href="System.Random.Monad.html#applyIOGen"><span class="hs-identifier hs-var">applyIOGen</span></a></span><span> </span><span class="annot"><span class="annottext">g -&gt; (Word8, g)
+forall g. RandomGen g =&gt; g -&gt; (Word8, g)
+</span><a href="System.Random.Internal.html#genWord8"><span class="hs-identifier hs-var">genWord8</span></a></span><span>
+</span><span id="line-326"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="System.Random.Internal.html#uniformWord8"><span class="hs-pragma hs-type">uniformWord8</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-327"></span><span>  </span><span id="local-6989586621679077007"><span class="annot"><span class="annottext">uniformWord16 :: IOGenM g RealWorld -&gt; m Word16
+</span><a href="#local-6989586621679077007"><span class="hs-identifier hs-var hs-var hs-var hs-var">uniformWord16</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(g -&gt; (Word16, g)) -&gt; IOGenM g RealWorld -&gt; m Word16
+forall (m :: * -&gt; *) g a.
+MonadIO m =&gt;
+(g -&gt; (a, g)) -&gt; IOGenM g RealWorld -&gt; m a
+</span><a href="System.Random.Monad.html#applyIOGen"><span class="hs-identifier hs-var">applyIOGen</span></a></span><span> </span><span class="annot"><span class="annottext">g -&gt; (Word16, g)
+forall g. RandomGen g =&gt; g -&gt; (Word16, g)
+</span><a href="System.Random.Internal.html#genWord16"><span class="hs-identifier hs-var">genWord16</span></a></span><span>
+</span><span id="line-328"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="System.Random.Internal.html#uniformWord16"><span class="hs-pragma hs-type">uniformWord16</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-329"></span><span>  </span><span id="local-6989586621679077006"><span class="annot"><span class="annottext">uniformWord32 :: IOGenM g RealWorld -&gt; m Word32
+</span><a href="#local-6989586621679077006"><span class="hs-identifier hs-var hs-var hs-var hs-var">uniformWord32</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(g -&gt; (Word32, g)) -&gt; IOGenM g RealWorld -&gt; m Word32
+forall (m :: * -&gt; *) g a.
+MonadIO m =&gt;
+(g -&gt; (a, g)) -&gt; IOGenM g RealWorld -&gt; m a
+</span><a href="System.Random.Monad.html#applyIOGen"><span class="hs-identifier hs-var">applyIOGen</span></a></span><span> </span><span class="annot"><span class="annottext">g -&gt; (Word32, g)
+forall g. RandomGen g =&gt; g -&gt; (Word32, g)
+</span><a href="System.Random.Internal.html#genWord32"><span class="hs-identifier hs-var">genWord32</span></a></span><span>
+</span><span id="line-330"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="System.Random.Internal.html#uniformWord32"><span class="hs-pragma hs-type">uniformWord32</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-331"></span><span>  </span><span id="local-6989586621679077005"><span class="annot"><span class="annottext">uniformWord64 :: IOGenM g RealWorld -&gt; m Word64
+</span><a href="#local-6989586621679077005"><span class="hs-identifier hs-var hs-var hs-var hs-var">uniformWord64</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(g -&gt; (Word64, g)) -&gt; IOGenM g RealWorld -&gt; m Word64
+forall (m :: * -&gt; *) g a.
+MonadIO m =&gt;
+(g -&gt; (a, g)) -&gt; IOGenM g RealWorld -&gt; m a
+</span><a href="System.Random.Monad.html#applyIOGen"><span class="hs-identifier hs-var">applyIOGen</span></a></span><span> </span><span class="annot"><span class="annottext">g -&gt; (Word64, g)
+forall g. RandomGen g =&gt; g -&gt; (Word64, g)
+</span><a href="System.Random.Internal.html#genWord64"><span class="hs-identifier hs-var">genWord64</span></a></span><span>
+</span><span id="line-332"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="System.Random.Internal.html#uniformWord64"><span class="hs-pragma hs-type">uniformWord64</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-333"></span><span>  </span><span id="local-6989586621679077004"><span class="annot"><span class="annottext">uniformShortByteString :: Int -&gt; IOGenM g RealWorld -&gt; m ShortByteString
+</span><a href="#local-6989586621679077004"><span class="hs-identifier hs-var hs-var hs-var hs-var">uniformShortByteString</span></a></span></span><span> </span><span id="local-6989586621679077003"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679077003"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(g -&gt; (ShortByteString, g))
+-&gt; IOGenM g RealWorld -&gt; m ShortByteString
+forall (m :: * -&gt; *) g a.
+MonadIO m =&gt;
+(g -&gt; (a, g)) -&gt; IOGenM g RealWorld -&gt; m a
+</span><a href="System.Random.Monad.html#applyIOGen"><span class="hs-identifier hs-var">applyIOGen</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; g -&gt; (ShortByteString, g)
+forall g. RandomGen g =&gt; Int -&gt; g -&gt; (ShortByteString, g)
+</span><a href="System.Random.Internal.html#genShortByteString"><span class="hs-identifier hs-var">genShortByteString</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679077003"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-334"></span><span>
+</span><span id="line-335"></span><span class="hs-comment">-- | Applies a pure operation to the wrapped pseudo-random number generator.</span><span>
+</span><span id="line-336"></span><span class="hs-comment">--</span><span>
+</span><span id="line-337"></span><span class="hs-comment">-- @since 1.2</span><span>
+</span><span id="line-338"></span><span id="local-6989586621679077373"><span id="local-6989586621679077374"><span id="local-6989586621679077375"><span class="annot"><a href="System.Random.Monad.html#applyIOGen"><span class="hs-identifier hs-type">applyIOGen</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">MonadIO</span></span><span> </span><span class="annot"><a href="#local-6989586621679077375"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679077374"><span class="hs-identifier hs-type">g</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679077373"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679077374"><span class="hs-identifier hs-type">g</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="System.Random.Monad.html#IOGenM"><span class="hs-identifier hs-type">IOGenM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077374"><span class="hs-identifier hs-type">g</span></a></span><span> </span><span class="annot"><span class="hs-identifier hs-type">RealWorld</span></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679077375"><span class="hs-identifier hs-type">m</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077373"><span class="hs-identifier hs-type">a</span></a></span></span></span></span><span>
+</span><span id="line-339"></span><span id="applyIOGen"><span class="annot"><span class="annottext">applyIOGen :: (g -&gt; (a, g)) -&gt; IOGenM g RealWorld -&gt; m a
+</span><a href="System.Random.Monad.html#applyIOGen"><span class="hs-identifier hs-var hs-var">applyIOGen</span></a></span></span><span> </span><span id="local-6989586621679077002"><span class="annot"><span class="annottext">f :: g -&gt; (a, g)
+</span><a href="#local-6989586621679077002"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="System.Random.Monad.html#IOGenM"><span class="hs-identifier hs-type">IOGenM</span></a></span><span> </span><span id="local-6989586621679077001"><span class="annot"><span class="annottext">ref :: IORef g
+</span><a href="#local-6989586621679077001"><span class="hs-identifier hs-var">ref</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">IO a -&gt; m a
+forall (m :: * -&gt; *) a. MonadIO m =&gt; IO a -&gt; m a
+</span><span class="hs-identifier hs-var">liftIO</span></span><span> </span><span class="annot"><span class="annottext">(IO a -&gt; m a) -&gt; IO a -&gt; m a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-340"></span><span>  </span><span id="local-6989586621679077000"><span class="annot"><span class="annottext">g
+</span><a href="#local-6989586621679077000"><span class="hs-identifier hs-var">g</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">IORef g -&gt; IO g
+forall a. IORef a -&gt; IO a
+</span><span class="hs-identifier hs-var">readIORef</span></span><span> </span><span class="annot"><span class="annottext">IORef g
+</span><a href="#local-6989586621679077001"><span class="hs-identifier hs-var">ref</span></a></span><span>
+</span><span id="line-341"></span><span>  </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">g -&gt; (a, g)
+</span><a href="#local-6989586621679077002"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">g
+</span><a href="#local-6989586621679077000"><span class="hs-identifier hs-var">g</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-342"></span><span>    </span><span class="hs-special">(</span><span class="hs-glyph">!</span><span id="local-6989586621679076999"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679076999"><span class="hs-identifier hs-var">a</span></a></span></span><span class="hs-special">,</span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679076998"><span class="annot"><span class="annottext">g
+</span><a href="#local-6989586621679076998"><span class="hs-identifier hs-var">g'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679076999"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; IO () -&gt; IO a
+forall (f :: * -&gt; *) a b. Functor f =&gt; a -&gt; f b -&gt; f a
+</span><span class="hs-operator hs-var">&lt;$</span></span><span> </span><span class="annot"><span class="annottext">IORef g -&gt; g -&gt; IO ()
+forall a. IORef a -&gt; a -&gt; IO ()
+</span><span class="hs-identifier hs-var">writeIORef</span></span><span> </span><span class="annot"><span class="annottext">IORef g
+</span><a href="#local-6989586621679077001"><span class="hs-identifier hs-var">ref</span></a></span><span> </span><span class="annot"><span class="annottext">g
+</span><a href="#local-6989586621679076998"><span class="hs-identifier hs-var">g'</span></a></span><span>
+</span><span id="line-343"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="System.Random.Monad.html#applyIOGen"><span class="hs-pragma hs-type">applyIOGen</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-344"></span><span>
+</span><span id="line-345"></span><span class="hs-comment">-- | Wraps an 'STRef' that holds a pure pseudo-random number generator.</span><span>
+</span><span id="line-346"></span><span class="hs-comment">--</span><span>
+</span><span id="line-347"></span><span class="hs-comment">-- *   'STGenM' is safe in the presence of exceptions, but not concurrency.</span><span>
+</span><span id="line-348"></span><span class="hs-comment">-- *   'STGenM' is slower than 'StateGenM' due to the extra pointer indirection.</span><span>
+</span><span id="line-349"></span><span class="hs-comment">--</span><span>
+</span><span id="line-350"></span><span class="hs-comment">-- @since 1.2</span><span>
+</span><span id="line-351"></span><span class="hs-keyword">newtype</span><span> </span><span id="STGenM"><span class="annot"><a href="System.Random.Monad.html#STGenM"><span class="hs-identifier hs-var">STGenM</span></a></span></span><span> </span><span id="local-6989586621679077236"><span class="annot"><a href="#local-6989586621679077236"><span class="hs-identifier hs-type">g</span></a></span></span><span> </span><span id="local-6989586621679077237"><span class="annot"><a href="#local-6989586621679077237"><span class="hs-identifier hs-type">s</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="STGenM"><span class="annot"><a href="System.Random.Monad.html#STGenM"><span class="hs-identifier hs-var">STGenM</span></a></span></span><span> </span><span class="hs-special">{</span><span> </span><span id="unSTGenM"><span class="annot"><span class="annottext">STGenM g s -&gt; STRef s g
+</span><a href="System.Random.Monad.html#unSTGenM"><span class="hs-identifier hs-var hs-var">unSTGenM</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><span class="hs-identifier hs-type">STRef</span></span><span> </span><span class="annot"><a href="#local-6989586621679077237"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077236"><span class="hs-identifier hs-type">g</span></a></span><span> </span><span class="hs-special">}</span><span>
+</span><span id="line-352"></span><span>
+</span><span id="line-353"></span><span class="hs-keyword">newtype</span><span> </span><span id="STGen"><span class="annot"><a href="System.Random.Monad.html#STGen"><span class="hs-identifier hs-var">STGen</span></a></span></span><span> </span><span id="local-6989586621679077233"><span class="annot"><a href="#local-6989586621679077233"><span class="hs-identifier hs-type">g</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span id="STGen"><span class="annot"><a href="System.Random.Monad.html#STGen"><span class="hs-identifier hs-var">STGen</span></a></span></span><span> </span><span class="hs-special">{</span><span> </span><span id="unSTGen"><span class="annot"><span class="annottext">STGen g -&gt; g
+</span><a href="System.Random.Monad.html#unSTGen"><span class="hs-identifier hs-var hs-var">unSTGen</span></a></span></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="#local-6989586621679077233"><span class="hs-identifier hs-type">g</span></a></span><span> </span><span class="hs-special">}</span><span>
+</span><span id="line-354"></span><span>    </span><span class="hs-keyword">deriving</span><span> </span><span class="annot"><span class="hs-keyword">stock</span></span><span> </span><span class="hs-special">(</span><span id="local-6989586621679076988"><span id="local-6989586621679076990"><span class="annot"><span class="annottext">STGen g -&gt; STGen g -&gt; Bool
+(STGen g -&gt; STGen g -&gt; Bool)
+-&gt; (STGen g -&gt; STGen g -&gt; Bool) -&gt; Eq (STGen g)
+forall g. Eq g =&gt; STGen g -&gt; STGen g -&gt; Bool
+forall a. (a -&gt; a -&gt; Bool) -&gt; (a -&gt; a -&gt; Bool) -&gt; Eq a
+/= :: STGen g -&gt; STGen g -&gt; Bool
+$c/= :: forall g. Eq g =&gt; STGen g -&gt; STGen g -&gt; Bool
+== :: STGen g -&gt; STGen g -&gt; Bool
+$c== :: forall g. Eq g =&gt; STGen g -&gt; STGen g -&gt; Bool
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var">Eq</span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679076982"><span id="local-6989586621679076984"><span id="local-6989586621679076986"><span class="annot"><span class="annottext">Int -&gt; STGen g -&gt; ShowS
+[STGen g] -&gt; ShowS
+STGen g -&gt; String
+(Int -&gt; STGen g -&gt; ShowS)
+-&gt; (STGen g -&gt; String) -&gt; ([STGen g] -&gt; ShowS) -&gt; Show (STGen g)
+forall g. Show g =&gt; Int -&gt; STGen g -&gt; ShowS
+forall g. Show g =&gt; [STGen g] -&gt; ShowS
+forall g. Show g =&gt; STGen g -&gt; String
+forall a.
+(Int -&gt; a -&gt; ShowS) -&gt; (a -&gt; String) -&gt; ([a] -&gt; ShowS) -&gt; Show a
+showList :: [STGen g] -&gt; ShowS
+$cshowList :: forall g. Show g =&gt; [STGen g] -&gt; ShowS
+show :: STGen g -&gt; String
+$cshow :: forall g. Show g =&gt; STGen g -&gt; String
+showsPrec :: Int -&gt; STGen g -&gt; ShowS
+$cshowsPrec :: forall g. Show g =&gt; Int -&gt; STGen g -&gt; ShowS
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Show</span></span></span></span></span><span class="hs-special">,</span><span> </span><span id="local-6989586621679076974"><span id="local-6989586621679076976"><span id="local-6989586621679076978"><span id="local-6989586621679076980"><span class="annot"><span class="annottext">ReadPrec [STGen g]
+ReadPrec (STGen g)
+Int -&gt; ReadS (STGen g)
+ReadS [STGen g]
+(Int -&gt; ReadS (STGen g))
+-&gt; ReadS [STGen g]
+-&gt; ReadPrec (STGen g)
+-&gt; ReadPrec [STGen g]
+-&gt; Read (STGen g)
+forall g. Read g =&gt; ReadPrec [STGen g]
+forall g. Read g =&gt; ReadPrec (STGen g)
+forall g. Read g =&gt; Int -&gt; ReadS (STGen g)
+forall g. Read g =&gt; ReadS [STGen g]
+forall a.
+(Int -&gt; ReadS a)
+-&gt; ReadS [a] -&gt; ReadPrec a -&gt; ReadPrec [a] -&gt; Read a
+readListPrec :: ReadPrec [STGen g]
+$creadListPrec :: forall g. Read g =&gt; ReadPrec [STGen g]
+readPrec :: ReadPrec (STGen g)
+$creadPrec :: forall g. Read g =&gt; ReadPrec (STGen g)
+readList :: ReadS [STGen g]
+$creadList :: forall g. Read g =&gt; ReadS [STGen g]
+readsPrec :: Int -&gt; ReadS (STGen g)
+$creadsPrec :: forall g. Read g =&gt; Int -&gt; ReadS (STGen g)
+</span><span class="hs-identifier hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var hs-var">Read</span></span></span></span></span></span><span class="hs-special">)</span><span>
+</span><span id="line-355"></span><span>
+</span><span id="line-356"></span><span id="local-6989586621679076972"><span id="local-6989586621679076973"><span class="hs-keyword">instance</span><span> </span><span class="annot"><a href="System.Random.Internal.html#RandomGen"><span class="hs-identifier hs-type">RandomGen</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679076973"><span class="hs-identifier hs-type">g</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="System.Random.Internal.html#MonadRandom"><span class="hs-identifier hs-type">MonadRandom</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="System.Random.Monad.html#STGenM"><span class="hs-identifier hs-type">STGenM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679076973"><span class="hs-identifier hs-type">g</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><a href="#local-6989586621679076972"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="hs-identifier hs-type">ST</span></span><span> </span><span class="annot"><a href="#local-6989586621679076972"><span class="hs-identifier hs-type">s</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-keyword">where</span><span>
+</span><span id="line-357"></span><span>  </span><span class="hs-keyword">type</span><span> </span><span id="Frozen"><span class="annot"><a href="System.Random.Internal.html#Frozen"><span class="hs-identifier hs-var">Frozen</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="System.Random.Monad.html#STGenM"><span class="hs-identifier hs-type">STGenM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679076973"><span class="hs-identifier hs-type">g</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><a href="System.Random.Monad.html#STGen"><span class="hs-identifier hs-type">STGen</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679076973"><span class="hs-identifier hs-type">g</span></a></span><span>
+</span><span id="line-358"></span><span>  </span><span id="local-6989586621679076961"><span class="annot"><span class="annottext">thawGen :: Frozen (STGenM g) -&gt; ST s (STGenM g s)
+</span><a href="#local-6989586621679076961"><span class="hs-identifier hs-var hs-var hs-var hs-var">thawGen</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="System.Random.Monad.html#STGen"><span class="hs-identifier hs-type">STGen</span></a></span><span> </span><span id="local-6989586621679076960"><span class="annot"><a href="#local-6989586621679076960"><span class="hs-identifier hs-var">g</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(STRef s g -&gt; STGenM g s) -&gt; ST s (STRef s g) -&gt; ST s (STGenM g s)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">STRef s g -&gt; STGenM g s
+forall g s. STRef s g -&gt; STGenM g s
+</span><a href="System.Random.Monad.html#STGenM"><span class="hs-identifier hs-var">STGenM</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">g -&gt; ST s (STRef s g)
+forall a s. a -&gt; ST s (STRef s a)
+</span><span class="hs-identifier hs-var">newSTRef</span></span><span> </span><span class="annot"><span class="annottext">g
+</span><a href="#local-6989586621679076960"><span class="hs-identifier hs-var">g</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-359"></span><span>  </span><span id="local-6989586621679076958"><span class="annot"><span class="annottext">freezeGen :: STGenM g s -&gt; ST s (Frozen (STGenM g))
+</span><a href="#local-6989586621679076958"><span class="hs-identifier hs-var hs-var hs-var hs-var">freezeGen</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="System.Random.Monad.html#STGenM"><span class="hs-identifier hs-type">STGenM</span></a></span><span> </span><span id="local-6989586621679076957"><span class="annot"><span class="annottext">gVar :: STRef s g
+</span><a href="#local-6989586621679076957"><span class="hs-identifier hs-var">gVar</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(g -&gt; STGen g) -&gt; ST s g -&gt; ST s (STGen g)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-identifier hs-var">fmap</span></span><span> </span><span class="annot"><span class="annottext">g -&gt; STGen g
+forall g. g -&gt; STGen g
+</span><a href="System.Random.Monad.html#STGen"><span class="hs-identifier hs-var">STGen</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">STRef s g -&gt; ST s g
+forall s a. STRef s a -&gt; ST s a
+</span><span class="hs-identifier hs-var">readSTRef</span></span><span> </span><span class="annot"><span class="annottext">STRef s g
+</span><a href="#local-6989586621679076957"><span class="hs-identifier hs-var">gVar</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-360"></span><span>  </span><span id="local-6989586621679076955"><span class="annot"><span class="annottext">uniformWord32R :: Word32 -&gt; STGenM g s -&gt; ST s Word32
+</span><a href="#local-6989586621679076955"><span class="hs-identifier hs-var hs-var hs-var hs-var">uniformWord32R</span></a></span></span><span> </span><span id="local-6989586621679076954"><span class="annot"><span class="annottext">r :: Word32
+</span><a href="#local-6989586621679076954"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(g -&gt; (Word32, g)) -&gt; STGenM g s -&gt; ST s Word32
+forall g a s. (g -&gt; (a, g)) -&gt; STGenM g s -&gt; ST s a
+</span><a href="System.Random.Monad.html#applySTGen"><span class="hs-identifier hs-var">applySTGen</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word32 -&gt; g -&gt; (Word32, g)
+forall g. RandomGen g =&gt; Word32 -&gt; g -&gt; (Word32, g)
+</span><a href="System.Random.Internal.html#genWord32R"><span class="hs-identifier hs-var">genWord32R</span></a></span><span> </span><span class="annot"><span class="annottext">Word32
+</span><a href="#local-6989586621679076954"><span class="hs-identifier hs-var">r</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-361"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="System.Random.Internal.html#uniformWord32R"><span class="hs-pragma hs-type">uniformWord32R</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-362"></span><span>  </span><span id="local-6989586621679076953"><span class="annot"><span class="annottext">uniformWord64R :: Word64 -&gt; STGenM g s -&gt; ST s Word64
+</span><a href="#local-6989586621679076953"><span class="hs-identifier hs-var hs-var hs-var hs-var">uniformWord64R</span></a></span></span><span> </span><span id="local-6989586621679076952"><span class="annot"><span class="annottext">r :: Word64
+</span><a href="#local-6989586621679076952"><span class="hs-identifier hs-var">r</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(g -&gt; (Word64, g)) -&gt; STGenM g s -&gt; ST s Word64
+forall g a s. (g -&gt; (a, g)) -&gt; STGenM g s -&gt; ST s a
+</span><a href="System.Random.Monad.html#applySTGen"><span class="hs-identifier hs-var">applySTGen</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Word64 -&gt; g -&gt; (Word64, g)
+forall g. RandomGen g =&gt; Word64 -&gt; g -&gt; (Word64, g)
+</span><a href="System.Random.Internal.html#genWord64R"><span class="hs-identifier hs-var">genWord64R</span></a></span><span> </span><span class="annot"><span class="annottext">Word64
+</span><a href="#local-6989586621679076952"><span class="hs-identifier hs-var">r</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-363"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="System.Random.Internal.html#uniformWord64R"><span class="hs-pragma hs-type">uniformWord64R</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-364"></span><span>  </span><span id="local-6989586621679076951"><span class="annot"><span class="annottext">uniformWord8 :: STGenM g s -&gt; ST s Word8
+</span><a href="#local-6989586621679076951"><span class="hs-identifier hs-var hs-var hs-var hs-var">uniformWord8</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(g -&gt; (Word8, g)) -&gt; STGenM g s -&gt; ST s Word8
+forall g a s. (g -&gt; (a, g)) -&gt; STGenM g s -&gt; ST s a
+</span><a href="System.Random.Monad.html#applySTGen"><span class="hs-identifier hs-var">applySTGen</span></a></span><span> </span><span class="annot"><span class="annottext">g -&gt; (Word8, g)
+forall g. RandomGen g =&gt; g -&gt; (Word8, g)
+</span><a href="System.Random.Internal.html#genWord8"><span class="hs-identifier hs-var">genWord8</span></a></span><span>
+</span><span id="line-365"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="System.Random.Internal.html#uniformWord8"><span class="hs-pragma hs-type">uniformWord8</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-366"></span><span>  </span><span id="local-6989586621679076950"><span class="annot"><span class="annottext">uniformWord16 :: STGenM g s -&gt; ST s Word16
+</span><a href="#local-6989586621679076950"><span class="hs-identifier hs-var hs-var hs-var hs-var">uniformWord16</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(g -&gt; (Word16, g)) -&gt; STGenM g s -&gt; ST s Word16
+forall g a s. (g -&gt; (a, g)) -&gt; STGenM g s -&gt; ST s a
+</span><a href="System.Random.Monad.html#applySTGen"><span class="hs-identifier hs-var">applySTGen</span></a></span><span> </span><span class="annot"><span class="annottext">g -&gt; (Word16, g)
+forall g. RandomGen g =&gt; g -&gt; (Word16, g)
+</span><a href="System.Random.Internal.html#genWord16"><span class="hs-identifier hs-var">genWord16</span></a></span><span>
+</span><span id="line-367"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="System.Random.Internal.html#uniformWord16"><span class="hs-pragma hs-type">uniformWord16</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-368"></span><span>  </span><span id="local-6989586621679076949"><span class="annot"><span class="annottext">uniformWord32 :: STGenM g s -&gt; ST s Word32
+</span><a href="#local-6989586621679076949"><span class="hs-identifier hs-var hs-var hs-var hs-var">uniformWord32</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(g -&gt; (Word32, g)) -&gt; STGenM g s -&gt; ST s Word32
+forall g a s. (g -&gt; (a, g)) -&gt; STGenM g s -&gt; ST s a
+</span><a href="System.Random.Monad.html#applySTGen"><span class="hs-identifier hs-var">applySTGen</span></a></span><span> </span><span class="annot"><span class="annottext">g -&gt; (Word32, g)
+forall g. RandomGen g =&gt; g -&gt; (Word32, g)
+</span><a href="System.Random.Internal.html#genWord32"><span class="hs-identifier hs-var">genWord32</span></a></span><span>
+</span><span id="line-369"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="System.Random.Internal.html#uniformWord32"><span class="hs-pragma hs-type">uniformWord32</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-370"></span><span>  </span><span id="local-6989586621679076948"><span class="annot"><span class="annottext">uniformWord64 :: STGenM g s -&gt; ST s Word64
+</span><a href="#local-6989586621679076948"><span class="hs-identifier hs-var hs-var hs-var hs-var">uniformWord64</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(g -&gt; (Word64, g)) -&gt; STGenM g s -&gt; ST s Word64
+forall g a s. (g -&gt; (a, g)) -&gt; STGenM g s -&gt; ST s a
+</span><a href="System.Random.Monad.html#applySTGen"><span class="hs-identifier hs-var">applySTGen</span></a></span><span> </span><span class="annot"><span class="annottext">g -&gt; (Word64, g)
+forall g. RandomGen g =&gt; g -&gt; (Word64, g)
+</span><a href="System.Random.Internal.html#genWord64"><span class="hs-identifier hs-var">genWord64</span></a></span><span>
+</span><span id="line-371"></span><span>  </span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="System.Random.Internal.html#uniformWord64"><span class="hs-pragma hs-type">uniformWord64</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-372"></span><span>  </span><span id="local-6989586621679076947"><span class="annot"><span class="annottext">uniformShortByteString :: Int -&gt; STGenM g s -&gt; ST s ShortByteString
+</span><a href="#local-6989586621679076947"><span class="hs-identifier hs-var hs-var hs-var hs-var">uniformShortByteString</span></a></span></span><span> </span><span id="local-6989586621679076946"><span class="annot"><span class="annottext">n :: Int
+</span><a href="#local-6989586621679076946"><span class="hs-identifier hs-var">n</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(g -&gt; (ShortByteString, g)) -&gt; STGenM g s -&gt; ST s ShortByteString
+forall g a s. (g -&gt; (a, g)) -&gt; STGenM g s -&gt; ST s a
+</span><a href="System.Random.Monad.html#applySTGen"><span class="hs-identifier hs-var">applySTGen</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Int -&gt; g -&gt; (ShortByteString, g)
+forall g. RandomGen g =&gt; Int -&gt; g -&gt; (ShortByteString, g)
+</span><a href="System.Random.Internal.html#genShortByteString"><span class="hs-identifier hs-var">genShortByteString</span></a></span><span> </span><span class="annot"><span class="annottext">Int
+</span><a href="#local-6989586621679076946"><span class="hs-identifier hs-var">n</span></a></span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-373"></span><span>
+</span><span id="line-374"></span><span class="hs-comment">-- | Applies a pure operation to the wrapped pseudo-random number generator.</span><span>
+</span><span id="line-375"></span><span class="hs-comment">--</span><span>
+</span><span id="line-376"></span><span class="hs-comment">-- @since 1.2</span><span>
+</span><span id="line-377"></span><span id="local-6989586621679077350"><span id="local-6989586621679077351"><span id="local-6989586621679077352"><span class="annot"><a href="System.Random.Monad.html#applySTGen"><span class="hs-identifier hs-type">applySTGen</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679077352"><span class="hs-identifier hs-type">g</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679077351"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679077352"><span class="hs-identifier hs-type">g</span></a></span><span class="hs-special">)</span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="System.Random.Monad.html#STGenM"><span class="hs-identifier hs-type">STGenM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077352"><span class="hs-identifier hs-type">g</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077350"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ST</span></span><span> </span><span class="annot"><a href="#local-6989586621679077350"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077351"><span class="hs-identifier hs-type">a</span></a></span></span></span></span><span>
+</span><span id="line-378"></span><span id="applySTGen"><span class="annot"><span class="annottext">applySTGen :: (g -&gt; (a, g)) -&gt; STGenM g s -&gt; ST s a
+</span><a href="System.Random.Monad.html#applySTGen"><span class="hs-identifier hs-var hs-var">applySTGen</span></a></span></span><span> </span><span id="local-6989586621679076945"><span class="annot"><span class="annottext">f :: g -&gt; (a, g)
+</span><a href="#local-6989586621679076945"><span class="hs-identifier hs-var">f</span></a></span></span><span> </span><span class="hs-special">(</span><span class="annot"><a href="System.Random.Monad.html#STGenM"><span class="hs-identifier hs-type">STGenM</span></a></span><span> </span><span id="local-6989586621679076944"><span class="annot"><span class="annottext">ref :: STRef s g
+</span><a href="#local-6989586621679076944"><span class="hs-identifier hs-var">ref</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">=</span><span> </span><span class="hs-keyword">do</span><span>
+</span><span id="line-379"></span><span>  </span><span id="local-6989586621679076943"><span class="annot"><span class="annottext">g
+</span><a href="#local-6989586621679076943"><span class="hs-identifier hs-var">g</span></a></span></span><span> </span><span class="hs-glyph">&lt;-</span><span> </span><span class="annot"><span class="annottext">STRef s g -&gt; ST s g
+forall s a. STRef s a -&gt; ST s a
+</span><span class="hs-identifier hs-var">readSTRef</span></span><span> </span><span class="annot"><span class="annottext">STRef s g
+</span><a href="#local-6989586621679076944"><span class="hs-identifier hs-var">ref</span></a></span><span>
+</span><span id="line-380"></span><span>  </span><span class="hs-keyword">case</span><span> </span><span class="annot"><span class="annottext">g -&gt; (a, g)
+</span><a href="#local-6989586621679076945"><span class="hs-identifier hs-var">f</span></a></span><span> </span><span class="annot"><span class="annottext">g
+</span><a href="#local-6989586621679076943"><span class="hs-identifier hs-var">g</span></a></span><span> </span><span class="hs-keyword">of</span><span>
+</span><span id="line-381"></span><span>    </span><span class="hs-special">(</span><span class="hs-glyph">!</span><span id="local-6989586621679076942"><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679076942"><span class="hs-identifier hs-var">a</span></a></span></span><span class="hs-special">,</span><span> </span><span class="hs-glyph">!</span><span id="local-6989586621679076941"><span class="annot"><span class="annottext">g
+</span><a href="#local-6989586621679076941"><span class="hs-identifier hs-var">g'</span></a></span></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="annottext">a
+</span><a href="#local-6989586621679076942"><span class="hs-identifier hs-var">a</span></a></span><span> </span><span class="annot"><span class="annottext">a -&gt; ST s () -&gt; ST s a
+forall (f :: * -&gt; *) a b. Functor f =&gt; a -&gt; f b -&gt; f a
+</span><span class="hs-operator hs-var">&lt;$</span></span><span> </span><span class="annot"><span class="annottext">STRef s g -&gt; g -&gt; ST s ()
+forall s a. STRef s a -&gt; a -&gt; ST s ()
+</span><span class="hs-identifier hs-var">writeSTRef</span></span><span> </span><span class="annot"><span class="annottext">STRef s g
+</span><a href="#local-6989586621679076944"><span class="hs-identifier hs-var">ref</span></a></span><span> </span><span class="annot"><span class="annottext">g
+</span><a href="#local-6989586621679076941"><span class="hs-identifier hs-var">g'</span></a></span><span>
+</span><span id="line-382"></span><span class="hs-pragma">{-# INLINE</span><span> </span><span class="annot"><a href="System.Random.Monad.html#applySTGen"><span class="hs-pragma hs-type">applySTGen</span></a></span><span> </span><span class="hs-pragma">#-}</span><span>
+</span><span id="line-383"></span><span>
+</span><span id="line-384"></span><span class="hs-comment">-- | Runs a monadic generating action in the `ST` monad using a pure</span><span>
+</span><span id="line-385"></span><span class="hs-comment">-- pseudo-random number generator.</span><span>
+</span><span id="line-386"></span><span class="hs-comment">--</span><span>
+</span><span id="line-387"></span><span class="hs-comment">-- @since 1.2</span><span>
+</span><span id="line-388"></span><span id="local-6989586621679077215"><span id="local-6989586621679077216"><span class="annot"><a href="System.Random.Monad.html#runSTGen"><span class="hs-identifier hs-type">runSTGen</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="System.Random.Internal.html#RandomGen"><span class="hs-identifier hs-type">RandomGen</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077216"><span class="hs-identifier hs-type">g</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679077216"><span class="hs-identifier hs-type">g</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679077224"><span class="annot"><a href="#local-6989586621679077224"><span class="hs-identifier hs-type">s</span></a></span></span><span> </span><span class="hs-operator">.</span><span> </span><span class="annot"><a href="System.Random.Monad.html#STGenM"><span class="hs-identifier hs-type">STGenM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077216"><span class="hs-identifier hs-type">g</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077224"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ST</span></span><span> </span><span class="annot"><a href="#local-6989586621679077224"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077215"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="annot"><a href="#local-6989586621679077215"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">,</span><span> </span><span class="annot"><a href="#local-6989586621679077216"><span class="hs-identifier hs-type">g</span></a></span><span class="hs-special">)</span></span></span><span>
+</span><span id="line-389"></span><span id="runSTGen"><span class="annot"><span class="annottext">runSTGen :: g -&gt; (forall s. STGenM g s -&gt; ST s a) -&gt; (a, g)
+</span><a href="System.Random.Monad.html#runSTGen"><span class="hs-identifier hs-var hs-var">runSTGen</span></a></span></span><span> </span><span id="local-6989586621679076939"><span class="annot"><span class="annottext">g :: g
+</span><a href="#local-6989586621679076939"><span class="hs-identifier hs-var">g</span></a></span></span><span> </span><span id="local-6989586621679076938"><span class="annot"><span class="annottext">action :: forall s. STGenM g s -&gt; ST s a
+</span><a href="#local-6989586621679076938"><span class="hs-identifier hs-var">action</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">STGen g -&gt; g
+forall g. STGen g -&gt; g
+</span><a href="System.Random.Monad.html#unSTGen"><span class="hs-identifier hs-var hs-var">unSTGen</span></a></span><span> </span><span class="annot"><span class="annottext">(STGen g -&gt; g) -&gt; (a, STGen g) -&gt; (a, g)
+forall (f :: * -&gt; *) a b. Functor f =&gt; (a -&gt; b) -&gt; f a -&gt; f b
+</span><span class="hs-operator hs-var">&lt;$&gt;</span></span><span> </span><span class="annot"><span class="annottext">(forall s. ST s (a, STGen g)) -&gt; (a, STGen g)
+forall a. (forall s. ST s a) -&gt; a
+</span><span class="hs-identifier hs-var">runST</span></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">Frozen (STGenM g)
+-&gt; (STGenM g s -&gt; ST s a) -&gt; ST s (a, Frozen (STGenM g))
+forall (g :: * -&gt; *) s (m :: * -&gt; *) a.
+MonadRandom g s m =&gt;
+Frozen g -&gt; (g s -&gt; m a) -&gt; m (a, Frozen g)
+</span><a href="System.Random.Monad.html#runGenM"><span class="hs-identifier hs-var">runGenM</span></a></span><span> </span><span class="hs-special">(</span><span class="annot"><span class="annottext">g -&gt; STGen g
+forall g. g -&gt; STGen g
+</span><a href="System.Random.Monad.html#STGen"><span class="hs-identifier hs-var">STGen</span></a></span><span> </span><span class="annot"><span class="annottext">g
+</span><a href="#local-6989586621679076939"><span class="hs-identifier hs-var">g</span></a></span><span class="hs-special">)</span><span> </span><span class="annot"><span class="annottext">STGenM g s -&gt; ST s a
+forall s. STGenM g s -&gt; ST s a
+</span><a href="#local-6989586621679076938"><span class="hs-identifier hs-var">action</span></a></span><span class="hs-special">)</span><span>
+</span><span id="line-390"></span><span>
+</span><span id="line-391"></span><span class="hs-comment">-- | Runs a monadic generating action in the `ST` monad using a pure</span><span>
+</span><span id="line-392"></span><span class="hs-comment">-- pseudo-random number generator. Returns only the resulting pseudo-random</span><span>
+</span><span id="line-393"></span><span class="hs-comment">-- value.</span><span>
+</span><span id="line-394"></span><span class="hs-comment">--</span><span>
+</span><span id="line-395"></span><span class="hs-comment">-- @since 1.2</span><span>
+</span><span id="line-396"></span><span id="local-6989586621679076935"><span id="local-6989586621679076936"><span class="annot"><a href="System.Random.Monad.html#runSTGen_"><span class="hs-identifier hs-type">runSTGen_</span></a></span><span> </span><span class="hs-glyph">::</span><span> </span><span class="annot"><a href="System.Random.Internal.html#RandomGen"><span class="hs-identifier hs-type">RandomGen</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679076936"><span class="hs-identifier hs-type">g</span></a></span><span> </span><span class="hs-glyph">=&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679076936"><span class="hs-identifier hs-type">g</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="hs-special">(</span><span class="hs-keyword">forall</span><span> </span><span id="local-6989586621679077218"><span class="annot"><a href="#local-6989586621679077218"><span class="hs-identifier hs-type">s</span></a></span></span><span> </span><span class="hs-operator">.</span><span> </span><span class="annot"><a href="System.Random.Monad.html#STGenM"><span class="hs-identifier hs-type">STGenM</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679076936"><span class="hs-identifier hs-type">g</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679077218"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><span class="hs-identifier hs-type">ST</span></span><span> </span><span class="annot"><a href="#local-6989586621679077218"><span class="hs-identifier hs-type">s</span></a></span><span> </span><span class="annot"><a href="#local-6989586621679076935"><span class="hs-identifier hs-type">a</span></a></span><span class="hs-special">)</span><span> </span><span class="hs-glyph">-&gt;</span><span> </span><span class="annot"><a href="#local-6989586621679076935"><span class="hs-identifier hs-type">a</span></a></span></span></span><span>
+</span><span id="line-397"></span><span id="runSTGen_"><span class="annot"><span class="annottext">runSTGen_ :: g -&gt; (forall s. STGenM g s -&gt; ST s a) -&gt; a
+</span><a href="System.Random.Monad.html#runSTGen_"><span class="hs-identifier hs-var hs-var">runSTGen_</span></a></span></span><span> </span><span id="local-6989586621679076934"><span class="annot"><span class="annottext">g :: g
+</span><a href="#local-6989586621679076934"><span class="hs-identifier hs-var">g</span></a></span></span><span> </span><span id="local-6989586621679076933"><span class="annot"><span class="annottext">action :: forall s. STGenM g s -&gt; ST s a
+</span><a href="#local-6989586621679076933"><span class="hs-identifier hs-var">action</span></a></span></span><span> </span><span class="hs-glyph">=</span><span> </span><span class="annot"><span class="annottext">(a, g) -&gt; a
+forall a b. (a, b) -&gt; a
+</span><span class="hs-identifier hs-var">fst</span></span><span> </span><span class="annot"><span class="annottext">((a, g) -&gt; a) -&gt; (a, g) -&gt; a
+forall a b. (a -&gt; b) -&gt; a -&gt; b
+</span><span class="hs-operator hs-var">$</span></span><span> </span><span class="annot"><span class="annottext">g -&gt; (forall s. STGenM g s -&gt; ST s a) -&gt; (a, g)
+forall g a.
+RandomGen g =&gt;
+g -&gt; (forall s. STGenM g s -&gt; ST s a) -&gt; (a, g)
+</span><a href="System.Random.Monad.html#runSTGen"><span class="hs-identifier hs-var">runSTGen</span></a></span><span> </span><span class="annot"><span class="annottext">g
+</span><a href="#local-6989586621679076934"><span class="hs-identifier hs-var">g</span></a></span><span> </span><span class="annot"><span class="annottext">forall s. STGenM g s -&gt; ST s a
+</span><a href="#local-6989586621679076933"><span class="hs-identifier hs-var">action</span></a></span><span>
+</span><span id="line-398"></span><span>
+</span><span id="line-399"></span><span>
+</span><span id="line-400"></span><span class="hs-comment">-- $uniform</span><span>
+</span><span id="line-401"></span><span class="hs-comment">--</span><span>
+</span><span id="line-402"></span><span class="hs-comment">-- This library provides two type classes to generate pseudo-random values:</span><span>
+</span><span id="line-403"></span><span class="hs-comment">--</span><span>
+</span><span id="line-404"></span><span class="hs-comment">-- *   'UniformRange' is used to generate a value of a type uniformly within a</span><span>
+</span><span id="line-405"></span><span class="hs-comment">--     range.</span><span>
+</span><span id="line-406"></span><span class="hs-comment">-- *   'Uniform' is used to generate a value of a type uniformly over all</span><span>
+</span><span id="line-407"></span><span class="hs-comment">--     possible values of that type.</span><span>
+</span><span id="line-408"></span><span class="hs-comment">--</span><span>
+</span><span id="line-409"></span><span class="hs-comment">-- Types may have instances for both or just one of 'UniformRange' and</span><span>
+</span><span id="line-410"></span><span class="hs-comment">-- 'Uniform'. A few examples illustrate this:</span><span>
+</span><span id="line-411"></span><span class="hs-comment">--</span><span>
+</span><span id="line-412"></span><span class="hs-comment">-- *   'Int', 'Word16' and 'Bool' are instances of both 'UniformRange' and</span><span>
+</span><span id="line-413"></span><span class="hs-comment">--     'Uniform'.</span><span>
+</span><span id="line-414"></span><span class="hs-comment">-- *   'Integer', 'Float' and 'Double' each have an instance for 'UniformRange'</span><span>
+</span><span id="line-415"></span><span class="hs-comment">--     but no 'Uniform' instance.</span><span>
+</span><span id="line-416"></span><span class="hs-comment">-- *   A hypothetical type @Radian@ representing angles by taking values in the</span><span>
+</span><span id="line-417"></span><span class="hs-comment">--     range @[0, 2&#960;)@ has a trivial 'Uniform' instance, but no 'UniformRange'</span><span>
+</span><span id="line-418"></span><span class="hs-comment">--     instance: the problem is that two given @Radian@ values always span /two/</span><span>
+</span><span id="line-419"></span><span class="hs-comment">--     ranges, one clockwise and one anti-clockwise.</span><span>
+</span><span id="line-420"></span><span class="hs-comment">-- *   It is trivial to construct a @Uniform (a, b)@ instance given</span><span>
+</span><span id="line-421"></span><span class="hs-comment">--     @Uniform a@ and @Uniform b@ (and this library provides this tuple</span><span>
+</span><span id="line-422"></span><span class="hs-comment">--     instance).</span><span>
+</span><span id="line-423"></span><span class="hs-comment">-- *   On the other hand, there is no correct way to construct a</span><span>
+</span><span id="line-424"></span><span class="hs-comment">--     @UniformRange (a, b)@ instance based on just @UniformRange a@ and</span><span>
+</span><span id="line-425"></span><span class="hs-comment">--     @UniformRange b@.</span><span>
+</span><span id="line-426"></span><span>
+</span><span id="line-427"></span><span class="hs-comment">-------------------------------------------------------------------------------</span><span>
+</span><span id="line-428"></span><span class="hs-comment">-- Notes</span><span>
+</span><span id="line-429"></span><span class="hs-comment">-------------------------------------------------------------------------------</span><span>
+</span><span id="line-430"></span><span>
+</span><span id="line-431"></span><span class="hs-comment">-- $floating</span><span>
+</span><span id="line-432"></span><span class="hs-comment">--</span><span>
+</span><span id="line-433"></span><span class="hs-comment">-- The 'UniformRange' instances for 'Float' and 'Double' use the following</span><span>
+</span><span id="line-434"></span><span class="hs-comment">-- procedure to generate a random value in a range for @uniformRM (a, b) g@:</span><span>
+</span><span id="line-435"></span><span class="hs-comment">--</span><span>
+</span><span id="line-436"></span><span class="hs-comment">-- 1.  Generate \(x\) uniformly such that \(0 \leq x \leq 1\).</span><span>
+</span><span id="line-437"></span><span class="hs-comment">--</span><span>
+</span><span id="line-438"></span><span class="hs-comment">--     The method by which \(x\) is sampled does not cover all representable</span><span>
+</span><span id="line-439"></span><span class="hs-comment">--     floating point numbers in the unit interval. The method never generates</span><span>
+</span><span id="line-440"></span><span class="hs-comment">--     denormal floating point numbers, for example.</span><span>
+</span><span id="line-441"></span><span class="hs-comment">--</span><span>
+</span><span id="line-442"></span><span class="hs-comment">-- 2.  Return \((b - a) * x + a\).</span><span>
+</span><span id="line-443"></span><span class="hs-comment">--</span><span>
+</span><span id="line-444"></span><span class="hs-comment">--     Due to rounding errors, floating point operations are neither</span><span>
+</span><span id="line-445"></span><span class="hs-comment">--     commutative, nor associative, nor distributive the way the corresponding</span><span>
+</span><span id="line-446"></span><span class="hs-comment">--     operations on real numbers are. Additionally, floating point numbers</span><span>
+</span><span id="line-447"></span><span class="hs-comment">--     admit special values @NaN@ as well as negative and positive infinity.</span><span>
+</span><span id="line-448"></span><span class="hs-comment">--</span><span>
+</span><span id="line-449"></span><span class="hs-comment">-- For pathological values, step 2 can yield surprising results.</span><span>
+</span><span id="line-450"></span><span class="hs-comment">--</span><span>
+</span><span id="line-451"></span><span class="hs-comment">-- *   The result may be greater than @max a b@.</span><span>
+</span><span id="line-452"></span><span class="hs-comment">--</span><span>
+</span><span id="line-453"></span><span class="hs-comment">--     &gt;&gt;&gt; :{</span><span>
+</span><span id="line-454"></span><span class="hs-comment">--     let (a, b, x) = (-4.7021254e-38, -1.481e-42, 1.0)</span><span>
+</span><span id="line-455"></span><span class="hs-comment">--         result = (b - a) * x + a :: Float</span><span>
+</span><span id="line-456"></span><span class="hs-comment">--     in (result, result &gt; max a b)</span><span>
+</span><span id="line-457"></span><span class="hs-comment">--     :}</span><span>
+</span><span id="line-458"></span><span class="hs-comment">--     (-1.48e-42,True)</span><span>
+</span><span id="line-459"></span><span class="hs-comment">--</span><span>
+</span><span id="line-460"></span><span class="hs-comment">-- *   The result may be @NaN@ even if \(a\) and \(b\) are not.</span><span>
+</span><span id="line-461"></span><span class="hs-comment">--</span><span>
+</span><span id="line-462"></span><span class="hs-comment">--     &gt;&gt;&gt; :{</span><span>
+</span><span id="line-463"></span><span class="hs-comment">--     let (a, b, x) = (-1.7159568e38, 1.7159568e38, 0.0)</span><span>
+</span><span id="line-464"></span><span class="hs-comment">--     in (b - a) * x + a :: Float</span><span>
+</span><span id="line-465"></span><span class="hs-comment">--     :}</span><span>
+</span><span id="line-466"></span><span class="hs-comment">--     NaN</span><span>
+</span><span id="line-467"></span><span class="hs-comment">--</span><span>
+</span><span id="line-468"></span><span class="hs-comment">-- What happens when @NaN@ or @Infinity@ are given to 'uniformRM'? We first</span><span>
+</span><span id="line-469"></span><span class="hs-comment">-- define them as constants:</span><span>
+</span><span id="line-470"></span><span class="hs-comment">--</span><span>
+</span><span id="line-471"></span><span class="hs-comment">-- &gt;&gt;&gt; nan = read &quot;NaN&quot; :: Float</span><span>
+</span><span id="line-472"></span><span class="hs-comment">-- &gt;&gt;&gt; inf = read &quot;Infinity&quot; :: Float</span><span>
+</span><span id="line-473"></span><span class="hs-comment">--</span><span>
+</span><span id="line-474"></span><span class="hs-comment">-- *   If at least one of \(a\) or \(b\) is @NaN@, the result is @NaN@.</span><span>
+</span><span id="line-475"></span><span class="hs-comment">--</span><span>
+</span><span id="line-476"></span><span class="hs-comment">--     &gt;&gt;&gt; let (a, b, x) = (nan, 1, 0.5) in (b - a) * x + a</span><span>
+</span><span id="line-477"></span><span class="hs-comment">--     NaN</span><span>
+</span><span id="line-478"></span><span class="hs-comment">--     &gt;&gt;&gt; let (a, b, x) = (-1, nan, 0.5) in (b - a) * x + a</span><span>
+</span><span id="line-479"></span><span class="hs-comment">--     NaN</span><span>
+</span><span id="line-480"></span><span class="hs-comment">--</span><span>
+</span><span id="line-481"></span><span class="hs-comment">-- *   Otherwise, if \(a\) is @Infinity@ or @-Infinity@, the result is @NaN@.</span><span>
+</span><span id="line-482"></span><span class="hs-comment">--</span><span>
+</span><span id="line-483"></span><span class="hs-comment">--     &gt;&gt;&gt; let (a, b, x) = (inf, 1, 0.5) in (b - a) * x + a</span><span>
+</span><span id="line-484"></span><span class="hs-comment">--     NaN</span><span>
+</span><span id="line-485"></span><span class="hs-comment">--     &gt;&gt;&gt; let (a, b, x) = (-inf, 1, 0.5) in (b - a) * x + a</span><span>
+</span><span id="line-486"></span><span class="hs-comment">--     NaN</span><span>
+</span><span id="line-487"></span><span class="hs-comment">--</span><span>
+</span><span id="line-488"></span><span class="hs-comment">-- *   Otherwise, if \(b\) is @Infinity@ or @-Infinity@, the result is \(b\).</span><span>
+</span><span id="line-489"></span><span class="hs-comment">--</span><span>
+</span><span id="line-490"></span><span class="hs-comment">--     &gt;&gt;&gt; let (a, b, x) = (1, inf, 0.5) in (b - a) * x + a</span><span>
+</span><span id="line-491"></span><span class="hs-comment">--     Infinity</span><span>
+</span><span id="line-492"></span><span class="hs-comment">--     &gt;&gt;&gt; let (a, b, x) = (1, -inf, 0.5) in (b - a) * x + a</span><span>
+</span><span id="line-493"></span><span class="hs-comment">--     -Infinity</span><span>
+</span><span id="line-494"></span><span class="hs-comment">--</span><span>
+</span><span id="line-495"></span><span class="hs-comment">-- Note that the [GCC 10.1.0 C++ standard library](https://gcc.gnu.org/git/?p=gcc.git;a=blob;f=libstdc%2B%2B-v3/include/bits/random.h;h=19307fbc3ca401976ef6823e8fda893e4a263751;hb=63fa67847628e5f358e7e2e7edb8314f0ee31f30#l1859),</span><span>
+</span><span id="line-496"></span><span class="hs-comment">-- the [Java 10 standard library](https://docs.oracle.com/javase/10/docs/api/java/util/Random.html#doubles%28double,double%29)</span><span>
+</span><span id="line-497"></span><span class="hs-comment">-- and [CPython 3.8](https://github.com/python/cpython/blob/3.8/Lib/random.py#L417)</span><span>
+</span><span id="line-498"></span><span class="hs-comment">-- use the same procedure to generate floating point values in a range.</span><span>
+</span><span id="line-499"></span><span class="hs-comment">--</span><span>
+</span><span id="line-500"></span><span class="hs-comment">-- $implementmonadrandom</span><span>
+</span><span id="line-501"></span><span class="hs-comment">--</span><span>
+</span><span id="line-502"></span><span class="hs-comment">-- Typically, a monadic pseudo-random number generator has facilities to save</span><span>
+</span><span id="line-503"></span><span class="hs-comment">-- and restore its internal state in addition to generating pseudo-random</span><span>
+</span><span id="line-504"></span><span class="hs-comment">-- pseudo-random numbers.</span><span>
+</span><span id="line-505"></span><span class="hs-comment">--</span><span>
+</span><span id="line-506"></span><span class="hs-comment">-- Here is an example instance for the monadic pseudo-random number generator</span><span>
+</span><span id="line-507"></span><span class="hs-comment">-- from the @mwc-random@ package:</span><span>
+</span><span id="line-508"></span><span class="hs-comment">--</span><span>
+</span><span id="line-509"></span><span class="hs-comment">-- &gt; instance (s ~ PrimState m, PrimMonad m) =&gt; MonadRandom MWC.Gen s m where</span><span>
+</span><span id="line-510"></span><span class="hs-comment">-- &gt;   type Frozen MWC.Gen = MWC.Seed</span><span>
+</span><span id="line-511"></span><span class="hs-comment">-- &gt;   thawGen = MWC.restore</span><span>
+</span><span id="line-512"></span><span class="hs-comment">-- &gt;   freezeGen = MWC.save</span><span>
+</span><span id="line-513"></span><span class="hs-comment">-- &gt;   uniformWord8 = MWC.uniform</span><span>
+</span><span id="line-514"></span><span class="hs-comment">-- &gt;   uniformWord16 = MWC.uniform</span><span>
+</span><span id="line-515"></span><span class="hs-comment">-- &gt;   uniformWord32 = MWC.uniform</span><span>
+</span><span id="line-516"></span><span class="hs-comment">-- &gt;   uniformWord64 = MWC.uniform</span><span>
+</span><span id="line-517"></span><span class="hs-comment">-- &gt;   uniformShortByteString n g = unsafeSTToPrim (genShortByteStringST n (MWC.uniform g))</span><span>
+</span><span id="line-518"></span><span class="hs-comment">--</span><span>
+</span><span id="line-519"></span><span class="hs-comment">-- $references</span><span>
+</span><span id="line-520"></span><span class="hs-comment">--</span><span>
+</span><span id="line-521"></span><span class="hs-comment">-- 1. Guy L. Steele, Jr., Doug Lea, and Christine H. Flood. 2014. Fast</span><span>
+</span><span id="line-522"></span><span class="hs-comment">-- splittable pseudorandom number generators. In Proceedings of the 2014 ACM</span><span>
+</span><span id="line-523"></span><span class="hs-comment">-- International Conference on Object Oriented Programming Systems Languages &amp;</span><span>
+</span><span id="line-524"></span><span class="hs-comment">-- Applications (OOPSLA '14). ACM, New York, NY, USA, 453-472. DOI:</span><span>
+</span><span id="line-525"></span><span class="hs-comment">-- &lt;https://doi.org/10.1145/2660193.2660195&gt;</span><span>
+</span><span id="line-526"></span><span>
+</span><span id="line-527"></span><span class="hs-comment">-- $setup</span><span>
+</span><span id="line-528"></span><span class="hs-comment">-- &gt;&gt;&gt; import Control.Arrow (first, second)</span><span>
+</span><span id="line-529"></span><span class="hs-comment">-- &gt;&gt;&gt; import Control.Monad (replicateM)</span><span>
+</span><span id="line-530"></span><span class="hs-comment">-- &gt;&gt;&gt; import Control.Monad.Primitive</span><span>
+</span><span id="line-531"></span><span class="hs-comment">-- &gt;&gt;&gt; import Data.Bits</span><span>
+</span><span id="line-532"></span><span class="hs-comment">-- &gt;&gt;&gt; import Data.Int (Int32)</span><span>
+</span><span id="line-533"></span><span class="hs-comment">-- &gt;&gt;&gt; import Data.Word (Word8, Word16, Word32, Word64)</span><span>
+</span><span id="line-534"></span><span class="hs-comment">-- &gt;&gt;&gt; import System.IO (IOMode(WriteMode), withBinaryFile)</span><span>
+</span><span id="line-535"></span><span class="hs-comment">-- &gt;&gt;&gt; import System.Random.Monad</span><span>
+</span><span id="line-536"></span><span class="hs-comment">-- &gt;&gt;&gt; import qualified System.Random.MWC as MWC</span><span>
+</span><span id="line-537"></span><span class="hs-comment">--</span><span>
+</span><span id="line-538"></span><span class="hs-comment">-- &gt;&gt;&gt; :set -XFlexibleContexts</span><span>
+</span><span id="line-539"></span><span class="hs-comment">-- &gt;&gt;&gt; :set -XFlexibleInstances</span><span>
+</span><span id="line-540"></span><span class="hs-comment">-- &gt;&gt;&gt; :set -XMultiParamTypeClasses</span><span>
+</span><span id="line-541"></span><span class="hs-comment">-- &gt;&gt;&gt; :set -XTypeFamilies</span><span>
+</span><span id="line-542"></span><span class="hs-comment">-- &gt;&gt;&gt; :set -XUndecidableInstances</span><span>
+</span><span id="line-543"></span><span class="hs-comment">--</span><span>
+</span><span id="line-544"></span><span class="hs-comment">-- &gt;&gt;&gt; :{</span><span>
+</span><span id="line-545"></span><span class="hs-comment">-- instance (s ~ PrimState m, PrimMonad m) =&gt; MonadRandom MWC.Gen s m where</span><span>
+</span><span id="line-546"></span><span class="hs-comment">--   type Frozen MWC.Gen = MWC.Seed</span><span>
+</span><span id="line-547"></span><span class="hs-comment">--   thawGen = MWC.restore</span><span>
+</span><span id="line-548"></span><span class="hs-comment">--   freezeGen = MWC.save</span><span>
+</span><span id="line-549"></span><span class="hs-comment">--   uniformWord8 = MWC.uniform</span><span>
+</span><span id="line-550"></span><span class="hs-comment">--   uniformWord16 = MWC.uniform</span><span>
+</span><span id="line-551"></span><span class="hs-comment">--   uniformWord32 = MWC.uniform</span><span>
+</span><span id="line-552"></span><span class="hs-comment">--   uniformWord64 = MWC.uniform</span><span>
+</span><span id="line-553"></span><span class="hs-comment">--   uniformShortByteString n g = unsafeSTToPrim (genShortByteStringST n (MWC.uniform g))</span><span>
+</span><span id="line-554"></span><span class="hs-comment">-- :}</span><span>
+</span><span id="line-555"></span><span class="hs-comment">--</span><span>
+</span><span id="line-556"></span></pre></body></html>
