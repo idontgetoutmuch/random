@@ -73,7 +73,7 @@ This PR also addresses [#26][issue-26], [#44][issue-44], [#53][issue-53], [#55][
 [compatibility]: https://htmlpreview.github.io/?https://raw.githubusercontent.com/idontgetoutmuch/random/haddock-preview/doc/System-Random.html#g:6
 [compatibility-comment]: https://github.com/haskell/random/pull/61#issuecomment-628173793
 [fp-issue]: https://github.com/idontgetoutmuch/random/issues/105
-[fp-caveats]: https://github.com/idontgetoutmuch/random/pull/138#TODO-replace-by-haddocks-link
+[fp-caveats]: https://htmlpreview.github.io/?https://raw.githubusercontent.com/idontgetoutmuch/random/haddock-preview/doc/System-Random-Monad.html#g:14
 [issue-25]: https://github.com/haskell/random/issues/25
 [issue-26]: https://github.com/haskell/random/issues/26
 [issue-44]: https://github.com/haskell/random/issues/44
