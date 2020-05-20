@@ -6,7 +6,7 @@ Our goals were to fix [#25][issue-25] (filed in 2015) and [#51][issue-51] (filed
 
 In the process of tackling these two issues, we addressed a number of other issues too (see "Other issues addressed" below) and added a monadic interface to the library so monadic pseudo-random number generators can be used interchangeably with `random`, see "API changes" below.
 
-This PR is the result of that effort. The changes are considerable. To signal this, we propose to release this as version 1.2 (the previous released version is 1.1, from 2014).
+[This PR](this-pr) is the result of that effort. The changes are considerable. To signal this, we propose to release this as version 1.2 (the previous released version is 1.1, from 2014).
 
 However, the API changes are generally backwards-compatible, see "Compatibility" below.
 
@@ -91,4 +91,5 @@ This PR also addresses [#26][issue-26], [#44][issue-44], [#53][issue-53], [#55][
 [split-docs]: https://htmlpreview.github.io/?https://raw.githubusercontent.com/idontgetoutmuch/random/haddock-preview/doc/System-Random.html#v:split
 [split-issue]: https://github.com/idontgetoutmuch/random/issues/7
 [split-pr]: https://github.com/idontgetoutmuch/random/pull/9
+[this-pr]: https://github.com/haskell/random/pull/61
 [uniform-vs-uniformrange]: https://htmlpreview.github.io/?https://raw.githubusercontent.com/idontgetoutmuch/random/haddock-preview/doc/System-Random-Monad.html#g:10
