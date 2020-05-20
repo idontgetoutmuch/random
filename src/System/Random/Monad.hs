@@ -446,7 +446,7 @@ runSTGen_ g action = fst $ runSTGen g action
 --     operations on real numbers are. Additionally, floating point numbers
 --     admit special values @NaN@ as well as negative and positive infinity.
 --
--- For pathological values, step 2 can yield surprising results:
+-- For pathological values, step 2 can yield surprising results.
 --
 -- *   The result may be greater than @max a b@.
 --
@@ -464,6 +464,12 @@ runSTGen_ g action = fst $ runSTGen g action
 --     in (b - a) * x + a :: Float
 --     :}
 --     NaN
+--
+-- What happens when @NaN@ or @Infinity@ are given to 'uniformRM'? We first
+-- define them as constants:
+--
+-- >>> nan = read "NaN" :: Float
+-- >>> inf = read "Infinity" :: Float
 --
 -- *   If at least one of \(a\) or \(b\) is @NaN@, the result is @NaN@.
 --
@@ -534,9 +540,6 @@ runSTGen_ g action = fst $ runSTGen g action
 -- >>> :set -XMultiParamTypeClasses
 -- >>> :set -XTypeFamilies
 -- >>> :set -XUndecidableInstances
---
--- >>> nan = read "NaN" :: Float
--- >>> inf = read "Infinity" :: Float
 --
 -- >>> :{
 -- instance (s ~ PrimState m, PrimMonad m) => MonadRandom MWC.Gen s m where
