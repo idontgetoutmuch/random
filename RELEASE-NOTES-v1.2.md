@@ -26,9 +26,9 @@ By switching to `splitmix` and improving the API, this PR speeds up pseudo-rando
 
 # API changes
 
-## [`MonadRandom`][class-monadrandom]
+## `MonadRandom`
 
-The major API addition in this PR is the definition of a new class `MonadRandom`:
+The major API addition in this PR is the definition of a new class [`MonadRandom`][class-monadrandom]:
 
 ```haskell
 -- | 'MonadRandom' is an interface to monadic pseudo-random number generators.
@@ -49,7 +49,7 @@ Conceptually, in `MonadRandom g s m`, `g s` is the type of the generator, `s` is
 
 `Frozen` is the type of the generator's state "at rest". It is defined as an injective type family via `f -> g`, so there is no ambiguity as to which `g` any `Frozen g` belongs to.
 
-This definition is generic enough to accomodate, for example, the `Gen` type from `mwc-random`, which itself abstracts over the underlying primitive monad and state token. This is the full instance declaration (provided here as an example - this instance is not part of `random` as `random` does not depend on `mwc-random`):
+This definition is generic enough to accomodate, for example, the [`Gen` type from `mwc-random`][mwc-random-gen], which itself abstracts over the underlying primitive monad and state token. This is the full instance declaration (provided here as an example - this instance is not part of `random` as `random` does not depend on `mwc-random`):
 
 ```haskell
 instance (s ~ PrimState m, PrimMonad m) => MonadRandom MWC.Gen s m where
@@ -66,7 +66,7 @@ instance (s ~ PrimState m, PrimMonad m) => MonadRandom MWC.Gen s m where
 
 Four `MonadRandom` instances ("monadic adapters") are provided for pure generators to enable their use in monadic code. The documentation [describes them in detail][pure-gen].
 
-## [`Uniform`][class-uniform] and [`UniformRange`][class-uniformrange]
+## `Uniform` and `UniformRange`
 
 The `Random` typeclass has conceptually been split into [`Uniform` and `UniformRange`][uniform-vs-uniformrange]. The `Random` typeclass is still included for backwards compatibility. `Uniform` is for types where it is possible to sample from the type's entire domain; `UniformRange` is for types where one can sample from a specified range.
 
@@ -124,7 +124,7 @@ This PR also addresses [#26][issue-26], [#44][issue-44], [#53][issue-53], [#55][
 [issue-58]: https://github.com/haskell/random/issues/58
 [issue-59]: https://github.com/haskell/random/issues/59
 [issues-addressed]: https://github.com/idontgetoutmuch/random/blob/v1.2-proposal/CHANGELOG.md#issues-addressed
-[mwc-example]: https://htmlpreview.github.io/?https://raw.githubusercontent.com/idontgetoutmuch/random/haddock-preview/doc/System-Random-Monad.html#g:13
+[mwc-random-gen]: https://hackage.haskell.org/package/mwc-random-0.14.0.0/docs/System-Random-MWC.html#t:Gen
 [pure-gen]: https://htmlpreview.github.io/?https://raw.githubusercontent.com/idontgetoutmuch/random/haddock-preview/doc/System-Random-Monad.html#g:5
 [quality-repo]: https://github.com/tweag/random-quality
 [quality-results]: https://github.com/tweag/random-quality/tree/master/results
