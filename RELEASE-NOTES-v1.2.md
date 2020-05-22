@@ -26,11 +26,49 @@ By switching to `splitmix` and improving the API, this PR speeds up pseudo-rando
 
 # API changes
 
+## [`MonadRandom`][class-monadrandom]
+
+The major API addition in this PR is the definition of a new class `MonadRandom`:
+
+```haskell
+-- | 'MonadRandom' is an interface to monadic pseudo-random number generators.
+class Monad m => MonadRandom g s m | g m -> s where
+  {-# MINIMAL freezeGen,thawGen,(uniformWord32|uniformWord64) #-}
+
+  type Frozen g = (f :: Type) | f -> g
+  freezeGen :: g s -> m (Frozen g)
+  thawGen :: Frozen g -> m (g s)
+
+  uniformWord32 :: g s -> m Word32 -- default implementation in terms of uniformWord64
+  uniformWord64 :: g s -> m Word64 -- default implementation in terms of uniformWord32
+  -- plus methods for other word sizes and for byte strings
+  -- all have default implementations so the MINIMAL pragma holds
+```
+
+Conceptually, in `MonadRandom g s m`, `g s` is the type of the generator, `s` is the state type, and `m` the underlying monad. Via the functional dependency `g m -> s`, the state type is determined by the generator and monad.
+
+`Frozen` is the type of the generator's state "at rest". It is defined as an injective type family via `f -> g`, so there is no ambiguity as to which `g` any `Frozen g` belongs to.
+
+This definition is generic enough to accomodate, for example, the `Gen` type from `mwc-random`, which itself abstracts over the underlying primitive monad and state token. This is the full instance declaration (provided here as an example - this instance is not part of `random` as `random` does not depend on `mwc-random`):
+
+```haskell
+instance (s ~ PrimState m, PrimMonad m) => MonadRandom MWC.Gen s m where
+  type Frozen MWC.Gen = MWC.Seed
+  freezeGen = MWC.save
+  thawGen = MWC.restore
+
+  uniformWord8 = MWC.uniform
+  uniformWord16 = MWC.uniform
+  uniformWord32 = MWC.uniform
+  uniformWord64 = MWC.uniform
+  uniformShortByteString n g = unsafeSTToPrim (genShortByteStringST n (MWC.uniform g))
+```
+
+Four `MonadRandom` instances ("monadic adapters") are provided for pure generators to enable their use in monadic code. The documentation [describes them in detail][pure-gen].
+
+## [`Uniform`][class-uniform] and [`UniformRange`][class-uniformrange]
+
 The `Random` typeclass has conceptually been split into [`Uniform` and `UniformRange`][uniform-vs-uniformrange]. The `Random` typeclass is still included for backwards compatibility. `Uniform` is for types where it is possible to sample from the type's entire domain; `UniformRange` is for types where one can sample from a specified range.
-
-A new module [`System.Random.Monad`][random-monad] allows monadic pseudo-random number generators like `mwc-random` to be used via the new interface provided by `random`, see the docs for an [example of how this works][mwc-example].
-
-In addition, the module provides a convenient way to [run pure generators in monadic code][pure-gen].
 
 # Changes left out
 
@@ -67,6 +105,9 @@ This PR also addresses [#26][issue-26], [#44][issue-44], [#53][issue-53], [#55][
 [analysis-discussion]: https://www.reddit.com/r/haskell/comments/edr9n4/random_benchmarks/
 [announcement]: https://mail.haskell.org/pipermail/libraries/2020-February/030261.html
 [benchmarks]: https://github.com/idontgetoutmuch/random/blob/v1.2-proposal/CHANGELOG.md#benchmarks
+[class-monadrandom]: https://htmlpreview.github.io/?https://raw.githubusercontent.com/idontgetoutmuch/random/haddock-preview/doc/System-Random-Monad.html#t:MonadRandom
+[class-uniform]: https://htmlpreview.github.io/?https://raw.githubusercontent.com/idontgetoutmuch/random/haddock-preview/doc/System-Random-Monad.html#t:Uniform
+[class-uniformrange]: https://htmlpreview.github.io/?https://raw.githubusercontent.com/idontgetoutmuch/random/haddock-preview/doc/System-Random-Monad.html#t:UniformRange
 [clusivity-issue]: https://github.com/idontgetoutmuch/random/issues/113
 [clusivity-postponed]: https://github.com/idontgetoutmuch/random/issues/113#issuecomment-624041080
 [clusivity-pr]: https://github.com/idontgetoutmuch/random/pull/104
