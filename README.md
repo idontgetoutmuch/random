@@ -8,7 +8,7 @@ pseudo-random number library for Haskell.** It is a fork of [version
 1.1][upstream-1.1], the most recent [released version][hackage] of this
 library. The upstream repository lives at [`haskell/random`][upstream].
 
-[**Documentation for the `random` version 1.2 proposal**][haddock].
+[**You can browse the documentation for the `random` version 1.2 proposal here.**][haddock]
 
 [hackage]: https://hackage.haskell.org/package/random
 [haddock]: https://htmlpreview.github.io/?https://raw.githubusercontent.com/idontgetoutmuch/random/haddock-preview/doc/index.html
@@ -23,7 +23,7 @@ Our goals were to fix [#25][issue-25] (filed in 2015) and [#51][issue-51] (filed
 
 In the process of tackling these two issues, we addressed a number of other issues too (see "Other issues addressed" below) and added a monadic interface to the library so monadic pseudo-random number generators can be used interchangeably with `random`, see "API changes" below.
 
-[This PR](this-pr) is the result of that effort. The changes are considerable. To signal this, we propose to release this as version 1.2 (the previous released version is 1.1, from 2014).
+This proposal is the result of that effort. The changes are considerable. To signal this, we propose to release this as version 1.2 (the previous released version is 1.1, from 2014).
 
 However, the API changes are generally backwards-compatible, see "Compatibility" below.
 
@@ -39,13 +39,13 @@ As a result, we replaced the pseudo-random number generator implementation in `r
 
 @lehins' [performance analysis][analysis] has the data for `random` v1.1. It is slow, and using faster pseudo-random number generators via `random` v1.1 makes them slow.
 
-By switching to `splitmix` and improving the API, this PR speeds up pseudo-random number generation with `random` by one to three orders of magnitude, depending on the number type. See [Benchmarks][benchmarks] for details.
+By switching to `splitmix` and improving the API, this proposal speeds up pseudo-random number generation with `random` by one to three orders of magnitude, depending on the number type. See [Benchmarks][benchmarks] for details.
 
 ## API changes
 
 ### `MonadRandom`
 
-The major API addition in this PR is the definition of a new class [`MonadRandom`][class-monadrandom]:
+The major API addition in this proposal is the definition of a new class [`MonadRandom`][class-monadrandom]:
 
 ```haskell
 -- | 'MonadRandom' is an interface to monadic pseudo-random number generators.
@@ -89,7 +89,7 @@ The `Random` typeclass has conceptually been split into [`Uniform` and `UniformR
 
 ## Changes left out
 
-There were changes we considered and decided against including in this PR.
+There were changes we considered and decided against including in this proposal.
 
 Some pseudo-random number generators are splittable, others are not. A good way of communicating this is to have a separate typeclass, `Splittable`, say, which only splittable generators implement. After long discussions (see [this issue][split-issue] and [this PR][split-pr]), we decided against adding `Splittable`: the interface changes would either have been backwards-incompatible or too complex. For now, `split` stays part of the `RandomGen` typeclass. The new documentation suggests that [`split` should call `error`][split-docs] if the generator is not splittable.
 
@@ -110,13 +110,13 @@ The following changes may break existing packages:
 
 In addition, `genRange` and `next` have been deprecated.
 
-We have built all of Stackage against the code in this PR, and confirmed that no other build breakages occurred.
+We have built all of Stackage against the code in this proposal, and confirmed that no other build breakages occurred.
 
 For more details, see [this comment][compatibility-comment] and [the "Compatibility" section in the docs][compatibility].
 
 ## Other issues addressed
 
-This PR also addresses [#26][issue-26], [#44][issue-44], [#53][issue-53], [#55][issue-55], [#58][issue-58] and [#59][issue-59], see [Issues Addressed][issues-addressed] for details.
+This proposal also addresses [#26][issue-26], [#44][issue-44], [#53][issue-53], [#55][issue-55], [#58][issue-58] and [#59][issue-59], see [Issues Addressed][issues-addressed] for details.
 
 [analysis]: https://alexey.kuleshevi.ch/blog/2019/12/21/random-benchmarks/
 [analysis-discussion]: https://www.reddit.com/r/haskell/comments/edr9n4/random_benchmarks/
@@ -149,6 +149,5 @@ This PR also addresses [#26][issue-26], [#44][issue-44], [#53][issue-53], [#55][
 [split-docs]: https://htmlpreview.github.io/?https://raw.githubusercontent.com/idontgetoutmuch/random/haddock-preview/doc/System-Random.html#v:split
 [split-issue]: https://github.com/idontgetoutmuch/random/issues/7
 [split-pr]: https://github.com/idontgetoutmuch/random/pull/9
-[this-pr]: https://github.com/haskell/random/pull/61
 [uniform-vs-uniformrange]: https://htmlpreview.github.io/?https://raw.githubusercontent.com/idontgetoutmuch/random/haddock-preview/doc/System-Random-Monad.html#g:10
 
