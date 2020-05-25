@@ -1,4 +1,4 @@
-# `random`
+# random
 
 Pseudo-random number generation for Haskell.
 
