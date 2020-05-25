@@ -3,11 +3,7 @@
 [![Build Status](https://secure.travis-ci.org/idontgetoutmuch/random.svg?v1.2-proposal)](http://travis-ci.org/idontgetoutmuch/random)
 [![Coverage Status](https://coveralls.io/repos/github/idontgetoutmuch/random/badge.svg?branch=v1.2-proposal)](https://coveralls.io/github/idontgetoutmuch/random?branch=v1.2-proposal)
 
-[![Hackage](https://img.shields.io/hackage/v/random.svg)](https://hackage.haskell.org/package/random)
-[![Stackage nightly](https://www.stackage.org/package/random/badge/nightly)](https://www.stackage.org/nightly/package/random)
-[![Stackage LTS](https://www.stackage.org/package/random/badge/lts)](https://www.stackage.org/lts/package/random)
-
-Pseudo-random number generation for Haskell.
+**Pseudo-random number generation for Haskell.**
 
 This library provides
 - an interface for pure and optionally splittable pseudo-random number
