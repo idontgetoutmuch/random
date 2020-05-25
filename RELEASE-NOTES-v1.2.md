@@ -49,7 +49,7 @@ Conceptually, in `MonadRandom g s m`, `g s` is the type of the generator, `s` is
 
 `Frozen` is the type of the generator's state "at rest". It is defined as an injective type family via `f -> g`, so there is no ambiguity as to which `g` any `Frozen g` belongs to.
 
-This definition is generic enough to accomodate, for example, the [`Gen` type from `mwc-random`][mwc-random-gen], which itself abstracts over the underlying primitive monad and state token. This is the full instance declaration (provided here as an example - this instance is not part of `random` as `random` does not depend on `mwc-random`):
+This definition is generic enough to accommodate, for example, the [`Gen` type from `mwc-random`][mwc-random-gen], which itself abstracts over the underlying primitive monad and state token. This is the full instance declaration (provided here as an example - this instance is not part of `random` as `random` does not depend on `mwc-random`):
 
 ```haskell
 instance (s ~ PrimState m, PrimMonad m) => MonadRandom MWC.Gen s m where
