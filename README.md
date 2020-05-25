@@ -8,7 +8,7 @@ pseudo-random number library for Haskell.** It is a fork of [version
 1.1][upstream-1.1], the most recent [released version][hackage] of this
 library. The upstream repository lives at [`haskell/random`][upstream].
 
-[**You can browse the documentation for the `random` version 1.2 proposal here.**][haddock]
+[**You can browse the documentation for this proposal here.**][haddock]
 
 [hackage]: https://hackage.haskell.org/package/random
 [haddock]: https://htmlpreview.github.io/?https://raw.githubusercontent.com/idontgetoutmuch/random/haddock-preview/doc/index.html
