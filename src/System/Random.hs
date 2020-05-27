@@ -97,7 +97,7 @@ import qualified System.Random.SplitMix as SM
 -- pseudo-random number generator, use 'runGenState' and its variants.
 --
 -- >>> :{
--- let rollsM :: MonadRandom g s m => Int -> g s -> m [Word8]
+-- let rollsM :: MonadRandom g m => Int -> g -> m [Word8]
 --     rollsM n = replicateM n . uniformRM (1, 6)
 --     pureGen = mkStdGen 137
 -- in

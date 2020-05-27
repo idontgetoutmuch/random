@@ -1,6 +1,7 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE Safe #-}
@@ -28,8 +29,6 @@ module System.Random.Monad
   -- * Pure and monadic pseudo-random number generator interfaces
   -- $interfaces
   , MonadRandom(..)
-  , runGenM
-  , runGenM_
   , RandomGenM(..)
   , randomM
   , randomRM
@@ -39,7 +38,6 @@ module System.Random.Monad
   -- $monadicadapters
 
   -- ** Pure adapter
-  , StateGen(..)
   , StateGenM(..)
   , runStateGen
   , runStateGen_
@@ -47,16 +45,16 @@ module System.Random.Monad
   , runStateGenT_
   , runStateGenST
   -- ** Mutable adapter with atomic operations
-  , AtomicGen(..)
   , AtomicGenM(..)
+  , newAtomicGenM
   , applyAtomicGen
   -- ** Mutable adapter in 'IO'
-  , IOGen(..)
   , IOGenM(..)
+  , newIOGenM
   , applyIOGen
   -- ** Mutable adapter in 'ST'
-  , STGen(..)
   , STGenM(..)
+  , newSTGenM
   , applySTGen
   , runSTGen
   , runSTGen_
@@ -124,7 +122,7 @@ import System.Random.Internal
 -- number generator, you can run this probabilistic computation as follows:
 --
 -- >>> :{
--- let rollsM :: MonadRandom g s m => Int -> g s -> m [Word8]
+-- let rollsM :: MonadRandom g m => Int -> g -> m [Word8]
 --     rollsM n = replicateM n . uniformRM (1, 6)
 -- in do
 --     monadicGen <- MWC.create
@@ -134,15 +132,14 @@ import System.Random.Internal
 --
 -- Given a /pure/ pseudo-random number generator, you can run the monadic
 -- pseudo-random number computation @rollsM@ in an 'IO' or 'ST' context by
--- first applying a monadic adapter like 'AtomicGen', 'IOGen' or 'STGen' to the
--- pure pseudo-random number generator and then running it with 'runGenM'.
+-- using a monadic adapter like 'AtomicGenM', 'IOGenM' or 'STGenM'.
 --
 -- >>> :{
--- let rollsM :: MonadRandom g s m => Int -> g s -> m [Word8]
+-- let rollsM :: MonadRandom g m => Int -> g -> m [Word8]
 --     rollsM n = replicateM n . uniformRM (1, 6)
 --     pureGen = mkStdGen 42
 -- in
---     runGenM_ (IOGen pureGen) (rollsM 10) :: IO [Word8]
+--     newIOGenM pureGen >>= rollsM 10 :: IO [Word8]
 -- :}
 -- [5,1,4,3,3,2,5,2,2,4]
 
@@ -189,64 +186,44 @@ import System.Random.Internal
 -- | Interface to operations on 'RandomGen' wrappers like 'IOGenM' and 'StateGenM'.
 --
 -- @since 1.2
-class (RandomGen r, MonadRandom (g r) s m) => RandomGenM g r s m where
-  applyRandomGenM :: (r -> (a, r)) -> g r s -> m a
+class (RandomGen r, MonadRandom g m) => RandomGenM g r m | g -> r where
+  applyRandomGenM :: (r -> (a, r)) -> g -> m a
 
 -- | Splits a pseudo-random number generator into two. Overwrites the mutable
 -- wrapper with one of the resulting generators and returns the other.
 --
 -- @since 1.2
-splitGenM :: RandomGenM g r s m => g r s -> m r
+splitGenM :: RandomGenM g r m => g -> m r
 splitGenM = applyRandomGenM split
 
-instance (RandomGen r, MonadIO m) => RandomGenM IOGenM r RealWorld m where
+instance (RandomGen r, MonadIO m) => RandomGenM (IOGenM r) r m where
   applyRandomGenM = applyIOGen
 
-instance (RandomGen r, MonadIO m) => RandomGenM AtomicGenM r RealWorld m where
+instance (RandomGen r, MonadIO m) => RandomGenM (AtomicGenM r) r m where
   applyRandomGenM = applyAtomicGen
 
-instance (RandomGen r, MonadState r m) => RandomGenM StateGenM r r m where
+instance (RandomGen r, MonadState r m) => RandomGenM (StateGenM r) r m where
   applyRandomGenM f _ = state f
 
-instance RandomGen r => RandomGenM STGenM r s (ST s) where
+instance RandomGen r => RandomGenM (STGenM r s) r (ST s) where
   applyRandomGenM = applySTGen
-
--- | Runs a mutable pseudo-random number generator from its 'Frozen' state.
---
--- >>> import Data.Int (Int8)
--- >>> runGenM (IOGen (mkStdGen 217)) (`uniformListM` 5) :: IO ([Int8], IOGen StdGen)
--- ([-74,37,-50,-2,3],IOGen {unIOGen = StdGen {unStdGen = SMGen 4273268533320920145 15251669095119325999}})
---
--- @since 1.2
-runGenM :: MonadRandom g s m => Frozen g -> (g s -> m a) -> m (a, Frozen g)
-runGenM fg action = do
-  g <- thawGen fg
-  res <- action g
-  fg' <- freezeGen g
-  pure (res, fg')
-
--- | Same as 'runGenM', but only returns the generated value.
---
--- @since 1.2
-runGenM_ :: MonadRandom g s m => Frozen g -> (g s -> m a) -> m a
-runGenM_ fg action = fst <$> runGenM fg action
 
 -- | Generates a list of pseudo-random values.
 --
 -- @since 1.2
-uniformListM :: (MonadRandom g s m, Uniform a) => g s -> Int -> m [a]
+uniformListM :: (MonadRandom g m, Uniform a) => g -> Int -> m [a]
 uniformListM gen n = replicateM n (uniformM gen)
 
 -- | Generates a pseudo-random value using monadic interface and `Random` instance.
 --
 -- @since 1.2
-randomM :: (RandomGenM g r s m, Random a) => g r s -> m a
+randomM :: (RandomGenM g r m, Random a) => g -> m a
 randomM = applyRandomGenM random
 
 -- | Generates a pseudo-random value using monadic interface and `Random` instance.
 --
 -- @since 1.2
-randomRM :: (RandomGenM g r s m, Random a) => (a, a) -> g r s -> m a
+randomRM :: (RandomGenM g r m, Random a) => (a, a) -> g -> m a
 randomRM r = applyRandomGenM (randomR r)
 
 -- | Wraps an 'IORef' that holds a pure pseudo-random number generator. All
@@ -257,15 +234,12 @@ randomRM r = applyRandomGenM (randomR r)
 --     of its atomic operations.
 --
 -- @since 1.2
-newtype AtomicGenM g s = AtomicGenM { unAtomicGenM :: IORef g}
+newtype AtomicGenM g = AtomicGenM { unAtomicGenM :: IORef g}
 
-newtype AtomicGen g = AtomicGen { unAtomicGen :: g }
-    deriving stock (Eq, Show, Read)
+newAtomicGenM :: MonadIO m => g -> m (AtomicGenM g)
+newAtomicGenM = fmap AtomicGenM . liftIO . newIORef
 
-instance (RandomGen g, MonadIO m) => MonadRandom (AtomicGenM g) RealWorld m where
-  type Frozen (AtomicGenM g) = AtomicGen g
-  thawGen (AtomicGen g) = fmap AtomicGenM (liftIO $ newIORef g)
-  freezeGen (AtomicGenM gVar) = fmap AtomicGen (liftIO $ readIORef gVar)
+instance (RandomGen g, MonadIO m) => MonadRandom (AtomicGenM g) m where
   uniformWord32R r = applyAtomicGen (genWord32R r)
   {-# INLINE uniformWord32R #-}
   uniformWord64R r = applyAtomicGen (genWord64R r)
@@ -284,7 +258,7 @@ instance (RandomGen g, MonadIO m) => MonadRandom (AtomicGenM g) RealWorld m wher
 -- generator.
 --
 -- @since 1.2
-applyAtomicGen :: MonadIO m => (g -> (a, g)) -> AtomicGenM g RealWorld -> m a
+applyAtomicGen :: MonadIO m => (g -> (a, g)) -> (AtomicGenM g) -> m a
 applyAtomicGen op (AtomicGenM gVar) =
   liftIO $ atomicModifyIORef' gVar $ \g ->
     case op g of
@@ -306,18 +280,15 @@ applyAtomicGen op (AtomicGenM gVar) =
 --
 -- and then run it:
 --
--- >>> runGenM_ (IOGen (mkStdGen 1729)) ioGen
+-- >>> newIOGenM (mkStdGen 1729) >>= ioGen
 --
 -- @since 1.2
-newtype IOGenM g s = IOGenM { unIOGenM :: IORef g }
+newtype IOGenM g = IOGenM { unIOGenM :: IORef g }
 
-newtype IOGen g = IOGen { unIOGen :: g }
-    deriving stock (Eq, Show, Read)
+newIOGenM :: MonadIO m => g -> m (IOGenM g)
+newIOGenM = fmap IOGenM . liftIO . newIORef
 
-instance (RandomGen g, MonadIO m) => MonadRandom (IOGenM g) RealWorld m where
-  type Frozen (IOGenM g) = IOGen g
-  thawGen (IOGen g) = fmap IOGenM (liftIO $ newIORef g)
-  freezeGen (IOGenM gVar) = fmap IOGen (liftIO $ readIORef gVar)
+instance (RandomGen g, MonadIO m) => MonadRandom (IOGenM g) m where
   uniformWord32R r = applyIOGen (genWord32R r)
   {-# INLINE uniformWord32R #-}
   uniformWord64R r = applyIOGen (genWord64R r)
@@ -335,7 +306,7 @@ instance (RandomGen g, MonadIO m) => MonadRandom (IOGenM g) RealWorld m where
 -- | Applies a pure operation to the wrapped pseudo-random number generator.
 --
 -- @since 1.2
-applyIOGen :: MonadIO m => (g -> (a, g)) -> IOGenM g RealWorld -> m a
+applyIOGen :: MonadIO m => (g -> (a, g)) -> IOGenM g -> m a
 applyIOGen f (IOGenM ref) = liftIO $ do
   g <- readIORef ref
   case f g of
@@ -350,13 +321,11 @@ applyIOGen f (IOGenM ref) = liftIO $ do
 -- @since 1.2
 newtype STGenM g s = STGenM { unSTGenM :: STRef s g }
 
-newtype STGen g = STGen { unSTGen :: g }
-    deriving stock (Eq, Show, Read)
+newSTGenM :: g -> ST s (STGenM g s)
+newSTGenM = fmap STGenM . newSTRef
 
-instance RandomGen g => MonadRandom (STGenM g) s (ST s) where
-  type Frozen (STGenM g) = STGen g
-  thawGen (STGen g) = fmap STGenM (newSTRef g)
-  freezeGen (STGenM gVar) = fmap STGen (readSTRef gVar)
+
+instance RandomGen g => MonadRandom (STGenM g s) (ST s) where
   uniformWord32R r = applySTGen (genWord32R r)
   {-# INLINE uniformWord32R #-}
   uniformWord64R r = applySTGen (genWord64R r)
@@ -386,7 +355,11 @@ applySTGen f (STGenM ref) = do
 --
 -- @since 1.2
 runSTGen :: RandomGen g => g -> (forall s . STGenM g s -> ST s a) -> (a, g)
-runSTGen g action = unSTGen <$> runST (runGenM (STGen g) action)
+runSTGen g action = runST $ do
+  stGen <- newSTRef g
+  res <- action $ STGenM stGen
+  g' <- readSTRef stGen
+  pure (res, g')
 
 -- | Runs a monadic generating action in the `ST` monad using a pure
 -- pseudo-random number generator. Returns only the resulting pseudo-random
@@ -542,10 +515,7 @@ runSTGen_ g action = fst $ runSTGen g action
 -- >>> :set -XUndecidableInstances
 --
 -- >>> :{
--- instance (s ~ PrimState m, PrimMonad m) => MonadRandom MWC.Gen s m where
---   type Frozen MWC.Gen = MWC.Seed
---   thawGen = MWC.restore
---   freezeGen = MWC.save
+-- instance (s ~ PrimState m, PrimMonad m) => MonadRandom (MWC.Gen s) m where
 --   uniformWord8 = MWC.uniform
 --   uniformWord16 = MWC.uniform
 --   uniformWord32 = MWC.uniform
