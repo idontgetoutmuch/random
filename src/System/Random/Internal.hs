@@ -100,6 +100,7 @@ class RandomGen g where
   -- @since 1.2
   genWord8 :: g -> (Word8, g)
   genWord8 = first fromIntegral . genWord32
+  {-# INLINE genWord8 #-}
 
   -- | Returns a 'Word16' that is uniformly distributed over the entire 'Word16'
   -- range.
@@ -107,6 +108,7 @@ class RandomGen g where
   -- @since 1.2
   genWord16 :: g -> (Word16, g)
   genWord16 = first fromIntegral . genWord32
+  {-# INLINE genWord16 #-}
 
   -- | Returns a 'Word32' that is uniformly distributed over the entire 'Word32'
   -- range.
@@ -114,6 +116,7 @@ class RandomGen g where
   -- @since 1.2
   genWord32 :: g -> (Word32, g)
   genWord32 = randomIvalIntegral (minBound, maxBound)
+  {-# INLINE genWord32 #-}
   -- Once `next` is removed, this implementation should be used instead:
   -- first fromIntegral . genWord64
 
@@ -128,6 +131,7 @@ class RandomGen g where
         case genWord32 g' of
           (h32, g'') ->
             ((fromIntegral h32 `unsafeShiftL` 32) .|. fromIntegral l32, g'')
+  {-# INLINE genWord64 #-}
 
   -- | @genWord32R upperBound g@ returns a 'Word32' that is uniformly
   -- distributed over the range @[0, upperBound]@.
@@ -135,6 +139,7 @@ class RandomGen g where
   -- @since 1.2
   genWord32R :: Word32 -> g -> (Word32, g)
   genWord32R m g = runStateGen g (unbiasedWordMult32 m)
+  {-# INLINE genWord32R #-}
 
   -- | @genWord64R upperBound g@ returns a 'Word64' that is uniformly
   -- distributed over the range @[0, upperBound]@.
@@ -142,6 +147,7 @@ class RandomGen g where
   -- @since 1.2
   genWord64R :: Word64 -> g -> (Word64, g)
   genWord64R m g = runStateGen g (unsignedBitmaskWithRejectionM uniformWord64 m)
+  {-# INLINE genWord64R #-}
 
   -- | @genShortByteString n g@ returns a 'ShortByteString' of length @n@
   -- filled with pseudo-random bytes.
@@ -197,6 +203,7 @@ class Monad m => MonadRandom g m where
   -- @since 1.2
   uniformWord8 :: g -> m Word8
   uniformWord8 = fmap fromIntegral . uniformWord32
+  {-# INLINE uniformWord8 #-}
 
   -- | Generates a 'Word16' that is uniformly distributed over the entire
   -- 'Word16' range.
@@ -206,6 +213,7 @@ class Monad m => MonadRandom g m where
   -- @since 1.2
   uniformWord16 :: g -> m Word16
   uniformWord16 = fmap fromIntegral . uniformWord32
+  {-# INLINE uniformWord16 #-}
 
   -- | Generates a 'Word32' that is uniformly distributed over the entire
   -- 'Word32' range.
@@ -215,6 +223,7 @@ class Monad m => MonadRandom g m where
   -- @since 1.2
   uniformWord32 :: g -> m Word32
   uniformWord32 = fmap fromIntegral . uniformWord64
+  {-# INLINE uniformWord32 #-}
 
   -- | Generates a 'Word64' that is uniformly distributed over the entire
   -- 'Word64' range.
@@ -228,6 +237,7 @@ class Monad m => MonadRandom g m where
     l32 <- uniformWord32 g
     h32 <- uniformWord32 g
     pure (unsafeShiftL (fromIntegral h32) 32 .|. fromIntegral l32)
+  {-# INLINE uniformWord64 #-}
 
   -- | @uniformShortByteString n g@ generates a 'ShortByteString' of length @n@
   -- filled with pseudo-random bytes.
@@ -443,23 +453,28 @@ instance UniformRange Natural where
 
 instance Uniform Int8 where
   uniformM = fmap (fromIntegral :: Word8 -> Int8) . uniformWord8
+  {-# INLINE uniformM #-}
 instance UniformRange Int8 where
   uniformRM = signedBitmaskWithRejectionRM (fromIntegral :: Int8 -> Word8) fromIntegral
+  {-# INLINE uniformRM #-}
 
 instance Uniform Int16 where
   uniformM = fmap (fromIntegral :: Word16 -> Int16) . uniformWord16
+  {-# INLINE uniformM #-}
 instance UniformRange Int16 where
   uniformRM = signedBitmaskWithRejectionRM (fromIntegral :: Int16 -> Word16) fromIntegral
   {-# INLINE uniformRM #-}
 
 instance Uniform Int32 where
   uniformM = fmap (fromIntegral :: Word32 -> Int32) . uniformWord32
+  {-# INLINE uniformM #-}
 instance UniformRange Int32 where
   uniformRM = signedBitmaskWithRejectionRM (fromIntegral :: Int32 -> Word32) fromIntegral
   {-# INLINE uniformRM #-}
 
 instance Uniform Int64 where
   uniformM = fmap (fromIntegral :: Word64 -> Int64) . uniformWord64
+  {-# INLINE uniformM #-}
 instance UniformRange Int64 where
   uniformRM = signedBitmaskWithRejectionRM (fromIntegral :: Int64 -> Word64) fromIntegral
   {-# INLINE uniformRM #-}
@@ -481,37 +496,38 @@ instance Uniform Word where
 #else
   uniformM = fmap (fromIntegral :: Word64 -> Word) . uniformWord64
 #endif
+  {-# INLINE uniformM #-}
 instance UniformRange Word where
-  {-# INLINE uniformRM #-}
   uniformRM = unsignedBitmaskWithRejectionRM
+  {-# INLINE uniformRM #-}
 
 instance Uniform Word8 where
-  {-# INLINE uniformM #-}
   uniformM = uniformWord8
+  {-# INLINE uniformM #-}
 instance UniformRange Word8 where
-  {-# INLINE uniformRM #-}
   uniformRM = unbiasedWordMult32RM
+  {-# INLINE uniformRM #-}
 
 instance Uniform Word16 where
-  {-# INLINE uniformM #-}
   uniformM = uniformWord16
+  {-# INLINE uniformM #-}
 instance UniformRange Word16 where
-  {-# INLINE uniformRM #-}
   uniformRM = unbiasedWordMult32RM
+  {-# INLINE uniformRM #-}
 
 instance Uniform Word32 where
-  {-# INLINE uniformM #-}
   uniformM  = uniformWord32
+  {-# INLINE uniformM #-}
 instance UniformRange Word32 where
-  {-# INLINE uniformRM #-}
   uniformRM = unbiasedWordMult32RM
+  {-# INLINE uniformRM #-}
 
 instance Uniform Word64 where
-  {-# INLINE uniformM #-}
   uniformM  = uniformWord64
+  {-# INLINE uniformM #-}
 instance UniformRange Word64 where
-  {-# INLINE uniformRM #-}
   uniformRM = unsignedBitmaskWithRejectionRM
+  {-# INLINE uniformRM #-}
 
 instance Uniform CBool where
   uniformM = fmap CBool . uniformM
@@ -734,6 +750,7 @@ randomIvalInteger (l,h) rng
                  | otherwise = v' `seq`f (mag*b) v' g' where
                         (x,g') = next g
                         v' = v * b + (fromIntegral x - fromIntegral genlo)
+{-# INLINABLE randomIvalInteger #-}
 
 -- | Generate an integral in the range @[l, h]@ if @l <= h@ and @[h, l]@
 -- otherwise.
@@ -841,6 +858,7 @@ unbiasedWordMult32Exclusive r g = go
           l :: Word32
           l = fromIntegral m
       if l >= t then return (fromIntegral $ m `shiftR` 32) else go
+{-# INLINABLE unbiasedWordMult32Exclusive #-}
 
 -- | This only works for unsigned integrals
 unsignedBitmaskWithRejectionRM ::
