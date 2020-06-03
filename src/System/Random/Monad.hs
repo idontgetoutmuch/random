@@ -442,9 +442,9 @@ runSTGen_ g action = fst $ runSTGen g action
 -- 2.  Return \((b - a) * x + a\).
 --
 --     Due to rounding errors, floating point operations are neither
---     commutative, nor associative, nor distributive the way the corresponding
---     operations on real numbers are. Additionally, floating point numbers
---     admit special values @NaN@ as well as negative and positive infinity.
+--     associative nor distributive the way the corresponding operations on
+--     real numbers are. Additionally, floating point numbers admit special
+--     values @NaN@ as well as negative and positive infinity.
 --
 -- For pathological values, step 2 can yield surprising results.
 --
