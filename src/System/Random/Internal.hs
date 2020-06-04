@@ -175,6 +175,7 @@ class RandomGen g where
 
 -- | 'StatefulGen' is an interface to monadic pseudo-random number generators.
 class Monad m => StatefulGen g m where
+  {-# MINIMAL (uniformWord32|uniformWord64) #-}
   -- | @uniformWord32R upperBound g@ generates a 'Word32' that is uniformly
   -- distributed over the range @[0, upperBound]@.
   --
