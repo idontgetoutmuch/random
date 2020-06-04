@@ -481,10 +481,7 @@ runSTGen_ g action = fst $ runSTGen g action
 -- Here is an example instance for the monadic pseudo-random number generator
 -- from the @mwc-random@ package:
 --
--- > instance (s ~ PrimState m, PrimMonad m) => MonadRandom MWC.Gen s m where
--- >   type Frozen MWC.Gen = MWC.Seed
--- >   thawGen = MWC.restore
--- >   freezeGen = MWC.save
+-- > instance (s ~ PrimState m, PrimMonad m) => MonadRandom (MWC.Gen s) m where
 -- >   uniformWord8 = MWC.uniform
 -- >   uniformWord16 = MWC.uniform
 -- >   uniformWord32 = MWC.uniform
