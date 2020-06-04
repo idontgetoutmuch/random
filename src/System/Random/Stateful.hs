@@ -2,9 +2,10 @@
 {-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE Safe #-}
+{-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -26,10 +27,13 @@ module System.Random.Stateful
   -- * Usage
   -- $usagemonadic
 
-  -- * Pure and monadic pseudo-random number generator interfaces
+  -- * Mutable pseudo-random number generator interfaces
   -- $interfaces
   , StatefulGen(..)
+  , FrozenGen(..)
   , RandomGenM(..)
+  , runGenM
+  , runGenM_
   , randomM
   , randomRM
   , splitGenM
@@ -86,11 +90,13 @@ module System.Random.Stateful
   -- $references
   ) where
 
+import Control.DeepSeq
 import Control.Monad.IO.Class
 import Control.Monad.ST
 import Control.Monad.State.Strict
 import Data.IORef
 import Data.STRef
+import Foreign.Storable
 import System.Random
 import System.Random.Internal
 
@@ -214,6 +220,28 @@ instance (RandomGen r, MonadState r m) => RandomGenM (StateGenM r) r m where
 instance RandomGen r => RandomGenM (STGenM r s) r (ST s) where
   applyRandomGenM = applySTGen
 
+
+-- | Runs a mutable pseudo-random number generator from its 'Frozen' state.
+--
+-- >>> import Data.Int (Int8)
+-- >>> runGenM (IOGen (mkStdGen 217)) (`uniformListM` 5) :: IO ([Int8], IOGen StdGen)
+-- ([-74,37,-50,-2,3],IOGen {unIOGen = StdGen {unStdGen = SMGen 4273268533320920145 15251669095119325999}})
+--
+-- @since 1.2
+runGenM :: FrozenGen f m => f -> (MutableGen f m -> m a) -> m (a, f)
+runGenM fg action = do
+  g <- thawGen fg
+  res <- action g
+  fg' <- freezeGen g
+  pure (res, fg')
+
+-- | Same as 'runGenM', but only returns the generated value.
+--
+-- @since 1.2
+runGenM_ :: FrozenGen f m => f -> (MutableGen f m -> m a) -> m a
+runGenM_ fg action = fst <$> runGenM fg action
+
+
 -- | Generates a list of pseudo-random values.
 --
 -- @since 1.2
@@ -247,6 +275,8 @@ newtype AtomicGenM g = AtomicGenM { unAtomicGenM :: IORef g}
 --
 -- @since 1.2
 newtype AtomicGen g = AtomicGen { unAtomicGen :: g}
+  deriving stock (Eq, Ord, Show)
+  deriving newtype (RandomGen, Storable, NFData)
 
 -- | Creates a new 'AtomicGenM'.
 --
@@ -310,6 +340,8 @@ newtype IOGenM g = IOGenM { unIOGenM :: IORef g }
 --
 -- @since 1.2
 newtype IOGen g = IOGen { unIOGen :: g }
+  deriving stock (Eq, Ord, Show)
+  deriving newtype (RandomGen, Storable, NFData)
 
 
 -- | Creates a new 'IOGenM'.
@@ -362,6 +394,8 @@ newtype STGenM g s = STGenM { unSTGenM :: STRef s g }
 --
 -- @since 1.2
 newtype STGen g = STGen { unSTGen :: g }
+  deriving stock (Eq, Ord, Show)
+  deriving newtype (RandomGen, Storable, NFData)
 
 -- | Creates a new 'STGenM'.
 --
@@ -406,11 +440,7 @@ applySTGen f (STGenM ref) = do
 --
 -- @since 1.2
 runSTGen :: RandomGen g => g -> (forall s . STGenM g s -> ST s a) -> (a, g)
-runSTGen g action = runST $ do
-  stGen <- newSTRef g
-  res <- action $ STGenM stGen
-  g' <- readSTRef stGen
-  pure (res, g')
+runSTGen g action = unSTGen <$> runST (runGenM (STGen g) action)
 
 -- | Runs a monadic generating action in the `ST` monad using a pure
 -- pseudo-random number generator. Returns only the resulting pseudo-random
@@ -537,6 +567,11 @@ runSTGen_ g action = fst $ runSTGen g action
 -- >   uniformWord64 = MWC.uniform
 -- >   uniformShortByteString n g = unsafeSTToPrim (genShortByteStringST n (MWC.uniform g))
 --
+-- > instance PrimMonad m => FrozenGen MWC.Seed m where
+-- >   type MutableGen MWC.Seed m = MWC.Gen (PrimState m)
+-- >   thawGen = MWC.restore
+-- >   freezeGen = MWC.save
+--
 -- $references
 --
 -- 1. Guy L. Steele, Jr., Doug Lea, and Christine H. Flood. 2014. Fast
@@ -569,5 +604,9 @@ runSTGen_ g action = fst $ runSTGen g action
 --   uniformWord32 = MWC.uniform
 --   uniformWord64 = MWC.uniform
 --   uniformShortByteString n g = unsafeSTToPrim (genShortByteStringST n (MWC.uniform g))
+-- instance PrimMonad m => FrozenGen MWC.Seed m where
+--   type MutableGen MWC.Seed m = MWC.Gen (PrimState m)
+--   thawGen = MWC.restore
+--   freezeGen = MWC.save
 -- :}
 --
