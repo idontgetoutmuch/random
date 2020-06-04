@@ -9,14 +9,14 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 -- |
--- Module      :  System.Random.Monad
+-- Module      :  System.Random.Stateful
 -- Copyright   :  (c) The University of Glasgow 2001
 -- License     :  BSD-style (see the file LICENSE in the 'random' repository)
 -- Maintainer  :  libraries@haskell.org
 -- Stability   :  stable
 --
 -- This library deals with the common task of pseudo-random number generation.
-module System.Random.Monad
+module System.Random.Stateful
   (
   -- * Pure Random Generator
   module System.Random
@@ -28,7 +28,7 @@ module System.Random.Monad
 
   -- * Pure and monadic pseudo-random number generator interfaces
   -- $interfaces
-  , MonadRandom(..)
+  , StatefulGen(..)
   , RandomGenM(..)
   , randomM
   , randomRM
@@ -72,7 +72,7 @@ module System.Random.Monad
 
   -- * Appendix
 
-  -- ** How to implement 'MonadRandom'
+  -- ** How to implement 'StatefulGen'
   -- $implementmonadrandom
 
   -- ** Floating point number caveats
@@ -94,11 +94,11 @@ import System.Random.Internal
 --
 -- This module provides type classes and instances for the following concepts:
 --
--- [Monadic pseudo-random number generators] 'MonadRandom' is an interface to
+-- [Monadic pseudo-random number generators] 'StatefulGen' is an interface to
 --     monadic pseudo-random number generators.
 --
 -- [Monadic adapters] 'StateGenM', 'AtomicGenM', 'IOGenM' and 'STGenM' turn a
---     'RandomGen' instance into a 'MonadRandom' instance.
+--     'RandomGen' instance into a 'StatefulGen' instance.
 --
 -- [Drawing from a range] 'UniformRange' is used to generate a value of a
 --     type uniformly within a range.
@@ -118,11 +118,11 @@ import System.Random.Internal
 -- generate pseudo-random values via 'uniformM' and 'uniformRM', respectively.
 --
 -- As an example, @rollsM@ generates @n@ pseudo-random values of @Word8@ in the
--- range @[1, 6]@ in a 'MonadRandom' context; given a /monadic/ pseudo-random
+-- range @[1, 6]@ in a 'StatefulGen' context; given a /monadic/ pseudo-random
 -- number generator, you can run this probabilistic computation as follows:
 --
 -- >>> :{
--- let rollsM :: MonadRandom g m => Int -> g -> m [Word8]
+-- let rollsM :: StatefulGen g m => Int -> g -> m [Word8]
 --     rollsM n = replicateM n . uniformRM (1, 6)
 -- in do
 --     monadicGen <- MWC.create
@@ -137,7 +137,7 @@ import System.Random.Internal
 -- generator.
 --
 -- >>> :{
--- let rollsM :: MonadRandom g m => Int -> g -> m [Word8]
+-- let rollsM :: StatefulGen g m => Int -> g -> m [Word8]
 --     rollsM n = replicateM n . uniformRM (1, 6)
 --     pureGen = mkStdGen 42
 -- in
@@ -156,7 +156,7 @@ import System.Random.Internal
 -- ['System.Random.RandomGen': pure pseudo-random number generators]
 --     See "System.Random" module.
 --
--- ['MonadRandom': monadic pseudo-random number generators] These generators
+-- ['StatefulGen': monadic pseudo-random number generators] These generators
 --     mutate their own state as they produce pseudo-random values. They
 --     generally live in 'ST' or 'IO' or some transformer that implements
 --     @PrimMonad@.
@@ -188,7 +188,7 @@ import System.Random.Internal
 -- | Interface to operations on 'RandomGen' wrappers like 'IOGenM' and 'StateGenM'.
 --
 -- @since 1.2
-class (RandomGen r, MonadRandom g m) => RandomGenM g r m | g -> r where
+class (RandomGen r, StatefulGen g m) => RandomGenM g r m | g -> r where
   applyRandomGenM :: (r -> (a, r)) -> g -> m a
 
 -- | Splits a pseudo-random number generator into two. Overwrites the mutable
@@ -213,7 +213,7 @@ instance RandomGen r => RandomGenM (STGenM r s) r (ST s) where
 -- | Generates a list of pseudo-random values.
 --
 -- @since 1.2
-uniformListM :: (MonadRandom g m, Uniform a) => g -> Int -> m [a]
+uniformListM :: (StatefulGen g m, Uniform a) => g -> Int -> m [a]
 uniformListM gen n = replicateM n (uniformM gen)
 
 -- | Generates a pseudo-random value using monadic interface and `Random` instance.
@@ -241,7 +241,7 @@ newtype AtomicGenM g = AtomicGenM { unAtomicGenM :: IORef g}
 newAtomicGenM :: MonadIO m => g -> m (AtomicGenM g)
 newAtomicGenM = fmap AtomicGenM . liftIO . newIORef
 
-instance (RandomGen g, MonadIO m) => MonadRandom (AtomicGenM g) m where
+instance (RandomGen g, MonadIO m) => StatefulGen (AtomicGenM g) m where
   uniformWord32R r = applyAtomicGen (genWord32R r)
   {-# INLINE uniformWord32R #-}
   uniformWord64R r = applyAtomicGen (genWord64R r)
@@ -290,7 +290,7 @@ newtype IOGenM g = IOGenM { unIOGenM :: IORef g }
 newIOGenM :: MonadIO m => g -> m (IOGenM g)
 newIOGenM = fmap IOGenM . liftIO . newIORef
 
-instance (RandomGen g, MonadIO m) => MonadRandom (IOGenM g) m where
+instance (RandomGen g, MonadIO m) => StatefulGen (IOGenM g) m where
   uniformWord32R r = applyIOGen (genWord32R r)
   {-# INLINE uniformWord32R #-}
   uniformWord64R r = applyIOGen (genWord64R r)
@@ -327,7 +327,7 @@ newSTGenM :: g -> ST s (STGenM g s)
 newSTGenM = fmap STGenM . newSTRef
 
 
-instance RandomGen g => MonadRandom (STGenM g s) (ST s) where
+instance RandomGen g => StatefulGen (STGenM g s) (ST s) where
   uniformWord32R r = applySTGen (genWord32R r)
   {-# INLINE uniformWord32R #-}
   uniformWord64R r = applySTGen (genWord64R r)
@@ -481,7 +481,7 @@ runSTGen_ g action = fst $ runSTGen g action
 -- Here is an example instance for the monadic pseudo-random number generator
 -- from the @mwc-random@ package:
 --
--- > instance (s ~ PrimState m, PrimMonad m) => MonadRandom (MWC.Gen s) m where
+-- > instance (s ~ PrimState m, PrimMonad m) => StatefulGen (MWC.Gen s) m where
 -- >   uniformWord8 = MWC.uniform
 -- >   uniformWord16 = MWC.uniform
 -- >   uniformWord32 = MWC.uniform
@@ -504,7 +504,7 @@ runSTGen_ g action = fst $ runSTGen g action
 -- >>> import Data.Int (Int32)
 -- >>> import Data.Word (Word8, Word16, Word32, Word64)
 -- >>> import System.IO (IOMode(WriteMode), withBinaryFile)
--- >>> import System.Random.Monad
+-- >>> import System.Random.Stateful
 -- >>> import qualified System.Random.MWC as MWC
 --
 -- >>> :set -XFlexibleContexts
@@ -514,7 +514,7 @@ runSTGen_ g action = fst $ runSTGen g action
 -- >>> :set -XUndecidableInstances
 --
 -- >>> :{
--- instance (s ~ PrimState m, PrimMonad m) => MonadRandom (MWC.Gen s) m where
+-- instance (s ~ PrimState m, PrimMonad m) => StatefulGen (MWC.Gen s) m where
 --   uniformWord8 = MWC.uniform
 --   uniformWord16 = MWC.uniform
 --   uniformWord32 = MWC.uniform

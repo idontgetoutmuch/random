@@ -97,7 +97,7 @@ import qualified System.Random.SplitMix as SM
 -- pseudo-random number generator, use 'runGenState' and its variants.
 --
 -- >>> :{
--- let rollsM :: MonadRandom g m => Int -> g -> m [Word8]
+-- let rollsM :: StatefulGen g m => Int -> g -> m [Word8]
 --     rollsM n = replicateM n . uniformRM (1, 6)
 --     pureGen = mkStdGen 137
 -- in
@@ -123,14 +123,14 @@ import qualified System.Random.SplitMix as SM
 --     produced by the two resulting generators are not correlated. See [1] for
 --     some background on splittable pseudo-random generators.
 --
--- ['System.Random.Monad.MonadRandom': monadic pseudo-random number generators]
---     See "System.Random.Monad" module
+-- ['System.Random.Stateful.StatefulGen': monadic pseudo-random number generators]
+--     See "System.Random.Stateful" module
 --
 
 -- | Generates a value uniformly distributed over all possible values of that
 -- type.
 --
--- This is a pure version of 'System.Random.Monad.uniformM'.
+-- This is a pure version of 'System.Random.Stateful.uniformM'.
 --
 -- @since 1.2
 uniform :: (RandomGen g, Uniform a) => g -> (a, g)
@@ -149,7 +149,7 @@ uniform g = runStateGen g uniformM
 --
 -- > uniformR (a, b) = uniformR (b, a)
 --
--- This is a pure version of 'System.Random.Monad.uniformRM'.
+-- This is a pure version of 'System.Random.Stateful.uniformRM'.
 --
 -- @since 1.2
 uniformR :: (RandomGen g, UniformRange a) => (a, a) -> g -> (a, g)

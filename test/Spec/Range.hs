@@ -6,7 +6,7 @@ module Spec.Range
   , uniformRangeWithinExcluded
   ) where
 
-import System.Random.Monad
+import System.Random.Stateful
 
 symmetric :: (RandomGen g, UniformRange a, Eq a) => g -> (a, a) -> Bool
 symmetric g (l, r) = fst (uniformR (l, r) g) == fst (uniformR (r, l) g)

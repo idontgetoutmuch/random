@@ -28,7 +28,7 @@
 module System.Random.Internal
   (-- * Pure and monadic pseudo-random number generator interfaces
     RandomGen(..)
-  , MonadRandom(..)
+  , StatefulGen(..)
 
   -- ** Standard pseudo-random number generator
   , StdGen(..)
@@ -173,8 +173,8 @@ class RandomGen g where
   split :: g -> (g, g)
 
 
--- | 'MonadRandom' is an interface to monadic pseudo-random number generators.
-class Monad m => MonadRandom g m where
+-- | 'StatefulGen' is an interface to monadic pseudo-random number generators.
+class Monad m => StatefulGen g m where
   -- | @uniformWord32R upperBound g@ generates a 'Word32' that is uniformly
   -- distributed over the range @[0, upperBound]@.
   --
@@ -306,7 +306,7 @@ pinnedByteArrayToForeignPtr ba# =
 -- | Generates a pseudo-random 'ByteString' of the specified size.
 --
 -- @since 1.2
-uniformByteString :: MonadRandom g m => Int -> g -> m ByteString
+uniformByteString :: StatefulGen g m => Int -> g -> m ByteString
 uniformByteString n g = do
   ba@(SBS ba#) <- uniformShortByteString n g
   pure $
@@ -322,7 +322,7 @@ uniformByteString n g = do
 -- @since 1.2
 data StateGenM g = StateGenM
 
-instance (RandomGen g, MonadState g m) => MonadRandom (StateGenM g) m where
+instance (RandomGen g, MonadState g m) => StatefulGen (StateGenM g) m where
   uniformWord32R r _ = state (genWord32R r)
   uniformWord64R r _ = state (genWord64R r)
   uniformWord8 _ = state genWord8
@@ -412,7 +412,7 @@ class Uniform a where
   -- type.
   --
   -- @since 1.2
-  uniformM :: MonadRandom g m => g -> m a
+  uniformM :: StatefulGen g m => g -> m a
 
 -- | The class of types for which a uniformly distributed value can be drawn
 -- from a range.
@@ -433,7 +433,7 @@ class UniformRange a where
   -- > uniformRM (a, b) = uniformRM (b, a)
   --
   -- @since 1.2
-  uniformRM :: MonadRandom g m => (a, a) -> g -> m a
+  uniformRM :: StatefulGen g m => (a, a) -> g -> m a
 
 instance UniformRange Integer where
   uniformRM = uniformIntegralM
@@ -672,7 +672,7 @@ instance UniformRange Bool where
   uniformRM (True, True)   _g = return True
   uniformRM _               g = uniformM g
 
--- | See /Floating point number caveats/ in "System.Random.Monad".
+-- | See /Floating point number caveats/ in "System.Random.Stateful".
 instance UniformRange Double where
   uniformRM (l, h) g = do
     w64 <- uniformWord64 g
@@ -688,7 +688,7 @@ word64ToDoubleInUnitInterval w64 = d / m
     m = fromIntegral (maxBound :: Word64) :: Double
 {-# INLINE word64ToDoubleInUnitInterval #-}
 
--- | See /Floating point number caveats/ in "System.Random.Monad".
+-- | See /Floating point number caveats/ in "System.Random.Stateful".
 instance UniformRange Float where
   uniformRM (l, h) g = do
     w32 <- uniformWord32 g
@@ -737,7 +737,7 @@ randomIvalInteger (l,h) rng
 
 -- | Generate an integral in the range @[l, h]@ if @l <= h@ and @[h, l]@
 -- otherwise.
-uniformIntegralM :: (Bits a, Integral a, MonadRandom g m) => (a, a) -> g -> m a
+uniformIntegralM :: (Bits a, Integral a, StatefulGen g m) => (a, a) -> g -> m a
 uniformIntegralM (l, h) gen = case l `compare` h of
   LT -> do
     let limit = h - l
@@ -761,7 +761,7 @@ uniformIntegralM (l, h) gen = case l `compare` h of
 -- https://doi.org/10.1145/3230636
 --
 -- PRECONDITION (unchecked): s > 0
-boundedExclusiveIntegralM :: forall a g m . (Bits a, Integral a, MonadRandom g m) => a -> g -> m a
+boundedExclusiveIntegralM :: forall a g m . (Bits a, Integral a, StatefulGen g m) => a -> g -> m a
 boundedExclusiveIntegralM (s :: a) gen = go
   where
     n = integralWordSize s
@@ -772,7 +772,7 @@ boundedExclusiveIntegralM (s :: a) gen = go
     modTwoToKMask = twoToK - 1
 
     t = (twoToK - s) `mod` s
-    go :: (Bits a, Integral a, MonadRandom g m) => m a
+    go :: (Bits a, Integral a, StatefulGen g m) => m a
     go = do
       x <- uniformIntegralWords n gen
       let m = x * s
@@ -796,7 +796,7 @@ integralWordSize = go 0
 
 -- | @uniformIntegralWords n@ is a uniformly pseudo-random integral in the range
 -- @[0, WORD_SIZE_IN_BITS^n)@.
-uniformIntegralWords :: (Bits a, Integral a, MonadRandom g m) => Int -> g -> m a
+uniformIntegralWords :: (Bits a, Integral a, StatefulGen g m) => Int -> g -> m a
 uniformIntegralWords n gen = go 0 n
   where
     go !acc i
@@ -809,14 +809,14 @@ uniformIntegralWords n gen = go 0 n
 -- | Uniformly generate an 'Integral' in an inclusive-inclusive range.
 --
 -- Only use for integrals size less than or equal to that of 'Word32'.
-unbiasedWordMult32RM :: (MonadRandom g m, Integral a) => (a, a) -> g -> m a
+unbiasedWordMult32RM :: (StatefulGen g m, Integral a) => (a, a) -> g -> m a
 unbiasedWordMult32RM (b, t) g
   | b <= t    = (+b) . fromIntegral <$> unbiasedWordMult32 (fromIntegral (t - b)) g
   | otherwise = (+t) . fromIntegral <$> unbiasedWordMult32 (fromIntegral (b - t)) g
-{-# SPECIALIZE unbiasedWordMult32RM :: MonadRandom g m => (Word8, Word8) -> g -> m Word8 #-}
+{-# SPECIALIZE unbiasedWordMult32RM :: StatefulGen g m => (Word8, Word8) -> g -> m Word8 #-}
 
 -- | Uniformly generate Word32 in @[0, s]@.
-unbiasedWordMult32 :: MonadRandom g m => Word32 -> g -> m Word32
+unbiasedWordMult32 :: StatefulGen g m => Word32 -> g -> m Word32
 unbiasedWordMult32 s g
   | s == maxBound = uniformWord32 g
   | otherwise = unbiasedWordMult32Exclusive (s+1) g
@@ -828,12 +828,12 @@ unbiasedWordMult32 s g
 -- more directly [O\'Neill's github
 -- repo](https://github.com/imneme/bounded-rands/blob/3d71f53c975b1e5b29f2f3b05a74e26dab9c3d84/bounded32.cpp#L234).
 -- N.B. The range is [0,t) **not** [0,t].
-unbiasedWordMult32Exclusive :: forall g m . MonadRandom g m => Word32 -> g -> m Word32
+unbiasedWordMult32Exclusive :: forall g m . StatefulGen g m => Word32 -> g -> m Word32
 unbiasedWordMult32Exclusive r g = go
   where
     t :: Word32
     t = (-r) `mod` r -- Calculates 2^32 `mod` r!!!
-    go :: MonadRandom g m => m Word32
+    go :: StatefulGen g m => m Word32
     go = do
       x <- uniformWord32 g
       let m :: Word64
@@ -844,7 +844,7 @@ unbiasedWordMult32Exclusive r g = go
 
 -- | This only works for unsigned integrals
 unsignedBitmaskWithRejectionRM ::
-     (MonadRandom g m, FiniteBits a, Num a, Ord a, Uniform a)
+     (StatefulGen g m, FiniteBits a, Num a, Ord a, Uniform a)
   => (a, a)
   -> g
   -> m a
@@ -857,7 +857,7 @@ unsignedBitmaskWithRejectionRM (bottom, top) gen
 
 -- | This works for signed integrals by explicit conversion to unsigned and abusing overflow
 signedBitmaskWithRejectionRM ::
-     (Num a, Num b, Ord b, Ord a, FiniteBits a, MonadRandom g f, Uniform a)
+     (Num a, Num b, Ord b, Ord a, FiniteBits a, StatefulGen g f, Uniform a)
   => (b -> a)
   -> (a -> b)
   -> (b, b)
@@ -876,7 +876,7 @@ signedBitmaskWithRejectionRM toUnsigned fromUnsigned (bottom, top) gen
 {-# INLINE signedBitmaskWithRejectionRM #-}
 
 unsignedBitmaskWithRejectionM ::
-  forall a g m . (Ord a, FiniteBits a, Num a, MonadRandom g m) => (g -> m a) -> a -> g -> m a
+  forall a g m . (Ord a, FiniteBits a, Num a, StatefulGen g m) => (g -> m a) -> a -> g -> m a
 unsignedBitmaskWithRejectionM genUniformM range gen = go
   where
     mask :: a

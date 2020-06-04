@@ -17,7 +17,7 @@ import Gauge.Main
 import Numeric.Natural (Natural)
 import System.Random.SplitMix as SM
 
-import System.Random.Monad
+import System.Random.Stateful
 
 main :: IO ()
 main = do
