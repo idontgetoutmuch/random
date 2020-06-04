@@ -35,7 +35,7 @@ module System.Random.Monad
   , randomRM
   , splitGenM
 
-  -- * Monadic adapters for pure pseudo-random number generators
+  -- * Monadic adapters for pure pseudo-random number generators #monadicadapters#
   -- $monadicadapters
 
   -- ** Pure adapter
@@ -134,8 +134,9 @@ import System.Random.Internal
 --
 -- Given a /pure/ pseudo-random number generator, you can run the monadic
 -- pseudo-random number computation @rollsM@ in an 'IO' or 'ST' context by
--- first applying a monadic adapter like 'AtomicGen', 'IOGen' or 'STGen' to the
--- pure pseudo-random number generator and then running it with 'runGenM'.
+-- first applying a monadic adapter like 'AtomicGen', 'IOGen' or 'STGen'
+-- (see [monadic-adapters](#monadicadapters)) to the pure pseudo-random number
+-- generator and then running it with 'runGenM'.
 --
 -- >>> :{
 -- let rollsM :: MonadRandom g s m => Int -> g s -> m [Word8]
