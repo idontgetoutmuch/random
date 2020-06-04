@@ -38,6 +38,7 @@ module System.Random.Stateful
   -- $monadicadapters
 
   -- ** Pure adapter
+  , StateGen(..)
   , StateGenM(..)
   , runStateGen
   , runStateGen_
@@ -45,14 +46,17 @@ module System.Random.Stateful
   , runStateGenT_
   , runStateGenST
   -- ** Mutable adapter with atomic operations
+  , AtomicGen(..)
   , AtomicGenM(..)
   , newAtomicGenM
   , applyAtomicGen
   -- ** Mutable adapter in 'IO'
+  , IOGen(..)
   , IOGenM(..)
   , newIOGenM
   , applyIOGen
   -- ** Mutable adapter in 'ST'
+  , STGen(..)
   , STGenM(..)
   , newSTGenM
   , applySTGen
@@ -238,6 +242,12 @@ randomRM r = applyRandomGenM (randomR r)
 -- @since 1.2
 newtype AtomicGenM g = AtomicGenM { unAtomicGenM :: IORef g}
 
+
+-- | Frozen version of mutable `AtomicGenM` generator
+--
+-- @since 1.2
+newtype AtomicGen g = AtomicGen { unAtomicGen :: g}
+
 -- | Creates a new 'AtomicGenM'.
 --
 -- @since 1.2
@@ -258,6 +268,12 @@ instance (RandomGen g, MonadIO m) => StatefulGen (AtomicGenM g) m where
   uniformWord64 = applyAtomicGen genWord64
   {-# INLINE uniformWord64 #-}
   uniformShortByteString n = applyAtomicGen (genShortByteString n)
+
+
+instance (RandomGen g, MonadIO m) => FrozenGen (AtomicGen g) m where
+  type MutableGen (AtomicGen g) m = AtomicGenM g
+  freezeGen = fmap AtomicGen . liftIO . readIORef . unAtomicGenM
+  thawGen (AtomicGen g) = newAtomicGenM g
 
 -- | Atomically applies a pure operation to the wrapped pseudo-random number
 -- generator.
@@ -290,6 +306,12 @@ applyAtomicGen op (AtomicGenM gVar) =
 -- @since 1.2
 newtype IOGenM g = IOGenM { unIOGenM :: IORef g }
 
+-- | Frozen version of mutable `IOGenM` generator
+--
+-- @since 1.2
+newtype IOGen g = IOGen { unIOGen :: g }
+
+
 -- | Creates a new 'IOGenM'.
 --
 -- @since 1.2
@@ -311,6 +333,13 @@ instance (RandomGen g, MonadIO m) => StatefulGen (IOGenM g) m where
   {-# INLINE uniformWord64 #-}
   uniformShortByteString n = applyIOGen (genShortByteString n)
 
+
+instance (RandomGen g, MonadIO m) => FrozenGen (IOGen g) m where
+  type MutableGen (IOGen g) m = IOGenM g
+  freezeGen = fmap IOGen . liftIO . readIORef . unIOGenM
+  thawGen (IOGen g) = newIOGenM g
+
+
 -- | Applies a pure operation to the wrapped pseudo-random number generator.
 --
 -- @since 1.2
@@ -328,6 +357,11 @@ applyIOGen f (IOGenM ref) = liftIO $ do
 --
 -- @since 1.2
 newtype STGenM g s = STGenM { unSTGenM :: STRef s g }
+
+-- | Frozen version of mutable `STGenM` generator
+--
+-- @since 1.2
+newtype STGen g = STGen { unSTGen :: g }
 
 -- | Creates a new 'STGenM'.
 --
@@ -350,6 +384,12 @@ instance RandomGen g => StatefulGen (STGenM g s) (ST s) where
   uniformWord64 = applySTGen genWord64
   {-# INLINE uniformWord64 #-}
   uniformShortByteString n = applySTGen (genShortByteString n)
+
+instance RandomGen g => FrozenGen (STGen g) (ST s) where
+  type MutableGen (STGen g) (ST s) = STGenM g s
+  freezeGen = fmap STGen . readSTRef . unSTGenM
+  thawGen (STGen g) = newSTGenM g
+
 
 -- | Applies a pure operation to the wrapped pseudo-random number generator.
 --

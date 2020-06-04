@@ -11,6 +11,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE Trustworthy #-}
+{-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE UnboxedTuples #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE UnliftedFFITypes #-}
@@ -29,6 +30,7 @@ module System.Random.Internal
   (-- * Pure and monadic pseudo-random number generator interfaces
     RandomGen(..)
   , StatefulGen(..)
+  , FrozenGen(..)
 
   -- ** Standard pseudo-random number generator
   , StdGen(..)
@@ -36,6 +38,7 @@ module System.Random.Internal
 
   -- * Monadic adapters for pure pseudo-random number generators
   -- ** Pure adapter
+  , StateGen(..)
   , StateGenM(..)
   , splitGen
   , runStateGen
@@ -66,6 +69,7 @@ import Data.ByteString.Builder.Prim.Internal (runF)
 import Data.ByteString.Internal (ByteString(PS))
 import Data.ByteString.Short.Internal (ShortByteString(SBS), fromShort)
 import Data.Int
+import Data.Kind
 import Data.Word
 import Foreign.C.Types
 import Foreign.Ptr (plusPtr)
@@ -241,6 +245,25 @@ class Monad m => StatefulGen g m where
 
 
 
+-- | This class is designed for stateful RNGs that can be saved as immutable data type.
+--
+-- @since 1.2
+class StatefulGen (MutableGen f m) m => FrozenGen f m where
+  -- | Represents the state of the pseudo-random number generator for use with
+  -- 'thawGen' and 'freezeGen'.
+  --
+  -- @since 1.2
+  type MutableGen f m = (g :: Type) | g -> f
+  -- | Saves the state of the pseudo-random number generator as a frozen 'Seed'.
+  --
+  -- @since 1.2
+  freezeGen :: MutableGen f m -> m f
+  -- | Restores the pseudo-random number generator from its frozen 'Seed'.
+  --
+  -- @since 1.2
+  thawGen :: f -> m (MutableGen f m)
+
+
 data MBA s = MBA (MutableByteArray# s)
 
 
@@ -323,6 +346,12 @@ uniformByteString n g = do
 -- @since 1.2
 data StateGenM g = StateGenM
 
+-- | Wrapper for pure state gen, which acts as an immutable seed for the corresponding
+-- stateful generator `StateGenM`
+--
+-- @since 1.2
+newtype StateGen g = StateGen g
+
 instance (RandomGen g, MonadState g m) => StatefulGen (StateGenM g) m where
   uniformWord32R r _ = state (genWord32R r)
   uniformWord64R r _ = state (genWord64R r)
@@ -332,7 +361,10 @@ instance (RandomGen g, MonadState g m) => StatefulGen (StateGenM g) m where
   uniformWord64 _ = state genWord64
   uniformShortByteString n _ = state (genShortByteString n)
 
-
+instance (RandomGen g, MonadState g m) => FrozenGen (StateGen g) m where
+  type MutableGen (StateGen g) m = StateGenM g
+  freezeGen _ = fmap StateGen get
+  thawGen (StateGen g) = StateGenM <$ put g
 
 -- | Splits a pseudo-random number generator into two. Updates the state with
 -- one of the resulting generators and returns the other.
