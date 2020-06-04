@@ -37,21 +37,21 @@ description:
     As an example, here is how you can simulate rolls of a six-sided die using
     'System.Random.Stateful.uniformRM':
     .
-    >>> let rollM = uniformRM (1, 6)                 :: MonadRandom g s m => g s -> m Word8
+    >>> let rollM = uniformRM (1, 6)                 :: StatefulGen g s m => g s -> m Word8
     >>> let pureGen = mkStdGen 42
     >>> runGenState_ pureGen (replicateM 10 . rollM) :: m [Word8]
     [1,1,3,2,4,5,3,4,6,2]
     .
     The monadic adapter 'System.Random.Stateful.runGenState_' is used here to lift
     the pure pseudo-random number generator @pureGen@ into the
-    'System.Random.Stateful.MonadRandom' context.
+    'System.Random.Stateful.StatefulGen' context.
     .
     The monadic interface can also be used with existing monadic pseudo-random
     number generators. In this example, we use the one provided in the
     <https://hackage.haskell.org/package/mwc-random mwc-random> package:
     .
     >>> import System.Random.MWC as MWC
-    >>> let rollM = uniformRM (1, 6)       :: MonadRandom g s m => g s -> m Word8
+    >>> let rollM = uniformRM (1, 6)       :: StatefulGen g s m => g s -> m Word8
     >>> monadicGen <- MWC.create
     >>> (replicateM 10 . rollM) monadicGen :: m [Word8]
     [2,3,6,6,4,4,3,1,5,4]
@@ -82,17 +82,16 @@ library
 
     hs-source-dirs:   src
     default-language: Haskell2010
-    ghc-options:
-        -Weverything -Wno-implicit-prelude -Wno-missing-import-lists
-        -Wno-missing-local-signatures -Wno-redundant-constraints
-        -Wno-unsafe
+    ghc-options: -Wall
+                 -Wincomplete-record-updates
+                 -Wincomplete-uni-patterns
 
     build-depends:
         base >=4.10 && <5,
-        bytestring >=0.10 && <0.11,
+        bytestring >=0.10.4 && <0.11,
         deepseq >=1.1 && <2,
         mtl >=2.2 && <2.3,
-        splitmix >=0.0.3 && <0.1
+        splitmix >=0.1 && <0.2
 
 test-suite legacy-test
     type:             exitcode-stdio-1.0
@@ -108,7 +107,7 @@ test-suite legacy-test
     default-language: Haskell2010
     ghc-options:      -with-rtsopts=-M4M -Wno-deprecations
     build-depends:
-        base >=4.10 && <5,
+        base -any,
         containers >=0.5 && <0.7,
         random -any
 
@@ -118,7 +117,7 @@ test-suite doctests
     hs-source-dirs:   test
     default-language: Haskell2010
     build-depends:
-        base >=4.10 && <5,
+        base -any,
         doctest >=0.15 && <0.17,
         mwc-random >=0.13 && <0.15,
         primitive >=0.6 && <0.8,
@@ -136,8 +135,8 @@ test-suite spec
     default-language: Haskell2010
     ghc-options:      -Wall
     build-depends:
-        base >=4.10 && <5,
-        bytestring >=0.10 && <0.11,
+        base -any,
+        bytestring -any,
         random -any,
         smallcheck >=1.1 && <1.2,
         tasty >=1.0 && <1.3,
@@ -155,7 +154,7 @@ benchmark legacy-bench
         -Wall -O2 -threaded -rtsopts -with-rtsopts=-N -Wno-deprecations
 
     build-depends:
-        base >=4.10 && <5,
+        base -any,
         random -any,
         rdtsc -any,
         split >=0.2 && <0.3,
@@ -168,7 +167,7 @@ benchmark bench
     default-language: Haskell2010
     ghc-options:      -Wall -O2
     build-depends:
-        base >=4.10 && <5,
+        base -any,
         gauge >=0.2.3 && <0.3,
         random -any,
-        splitmix >=0.0.3 && <0.1
+        splitmix >=0.1 && <0.2
