@@ -238,6 +238,9 @@ randomRM r = applyRandomGenM (randomR r)
 -- @since 1.2
 newtype AtomicGenM g = AtomicGenM { unAtomicGenM :: IORef g}
 
+-- | Creates a new 'AtomicGenM'.
+--
+-- @since 1.2
 newAtomicGenM :: MonadIO m => g -> m (AtomicGenM g)
 newAtomicGenM = fmap AtomicGenM . liftIO . newIORef
 
@@ -287,6 +290,9 @@ applyAtomicGen op (AtomicGenM gVar) =
 -- @since 1.2
 newtype IOGenM g = IOGenM { unIOGenM :: IORef g }
 
+-- | Creates a new 'IOGenM'.
+--
+-- @since 1.2
 newIOGenM :: MonadIO m => g -> m (IOGenM g)
 newIOGenM = fmap IOGenM . liftIO . newIORef
 
@@ -323,6 +329,9 @@ applyIOGen f (IOGenM ref) = liftIO $ do
 -- @since 1.2
 newtype STGenM g s = STGenM { unSTGenM :: STRef s g }
 
+-- | Creates a new 'STGenM'.
+--
+-- @since 1.2
 newSTGenM :: g -> ST s (STGenM g s)
 newSTGenM = fmap STGenM . newSTRef
 
