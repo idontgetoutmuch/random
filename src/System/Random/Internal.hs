@@ -245,7 +245,8 @@ class Monad m => StatefulGen g m where
 
 
 
--- | This class is designed for stateful RNGs that can be saved as immutable data type.
+-- | This class is designed for stateful pseudo-random number generators that
+-- can be saved as and restored from an immutable data type.
 --
 -- @since 1.2
 class StatefulGen (MutableGen f m) m => FrozenGen f m where
