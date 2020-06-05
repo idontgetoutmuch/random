@@ -259,7 +259,7 @@ class StatefulGen (MutableGen f m) m => FrozenGen f m where
   --
   -- @since 1.2
   freezeGen :: MutableGen f m -> m f
-  -- | Restores the pseudo-random number generator from its frozen 'Seed'.
+  -- | Restores the pseudo-random number generator from its frozen seed.
   --
   -- @since 1.2
   thawGen :: f -> m (MutableGen f m)
