@@ -255,7 +255,7 @@ class StatefulGen (MutableGen f m) m => FrozenGen f m where
   --
   -- @since 1.2
   type MutableGen f m = (g :: Type) | g -> f
-  -- | Saves the state of the pseudo-random number generator as a frozen 'Seed'.
+  -- | Saves the state of the pseudo-random number generator as a frozen seed.
   --
   -- @since 1.2
   freezeGen :: MutableGen f m -> m f
