@@ -30,7 +30,7 @@ Version 1.2 introduces these breaking changes:
 
 * requires `base >= 4.10` (GHC-8.2)
 * `StdGen` is no longer an instance of `Read`
-* `randomIO` and `randomRIO` where extracted from the `Random` class into
+* `randomIO` and `randomRIO` were extracted from the `Random` class into
   separate functions
 
 In addition, there may be import clashes with new functions, e.g. `uniform` and
