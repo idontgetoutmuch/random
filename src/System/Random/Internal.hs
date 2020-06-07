@@ -29,7 +29,8 @@
 module System.Random.Internal
   (-- * Pure and monadic pseudo-random number generator interfaces
     RandomGen(..)
-  , MonadRandom(..)
+  , StatefulGen(..)
+  , FrozenGen(..)
 
   -- ** Standard pseudo-random number generator
   , StdGen(..)
@@ -68,7 +69,7 @@ import Data.ByteString.Builder.Prim.Internal (runF)
 import Data.ByteString.Internal (ByteString(PS))
 import Data.ByteString.Short.Internal (ShortByteString(SBS), fromShort)
 import Data.Int
-import Data.Kind (Type)
+import Data.Kind
 import Data.Word
 import Foreign.C.Types
 import Foreign.Ptr (plusPtr)
@@ -176,39 +177,21 @@ class RandomGen g where
   split :: g -> (g, g)
 
 
--- | 'MonadRandom' is an interface to monadic pseudo-random number generators.
-class Monad m => MonadRandom g s m | g m -> s where
-  -- | Represents the state of the pseudo-random number generator for use with
-  -- 'thawGen' and 'freezeGen'.
-  --
-  -- @since 1.2
-  type Frozen g = (f :: Type) | f -> g
-  {-# MINIMAL freezeGen,thawGen,(uniformWord32|uniformWord64) #-}
-
-  -- | Restores the pseudo-random number generator from its 'Frozen'
-  -- representation.
-  --
-  -- @since 1.2
-  thawGen :: Frozen g -> m (g s)
-
-  -- | Saves the state of the pseudo-random number generator to its 'Frozen'
-  -- representation.
-  --
-  -- @since 1.2
-  freezeGen :: g s -> m (Frozen g)
-
+-- | 'StatefulGen' is an interface to monadic pseudo-random number generators.
+class Monad m => StatefulGen g m where
+  {-# MINIMAL (uniformWord32|uniformWord64) #-}
   -- | @uniformWord32R upperBound g@ generates a 'Word32' that is uniformly
   -- distributed over the range @[0, upperBound]@.
   --
   -- @since 1.2
-  uniformWord32R :: Word32 -> g s -> m Word32
+  uniformWord32R :: Word32 -> g -> m Word32
   uniformWord32R = unsignedBitmaskWithRejectionM uniformWord32
 
   -- | @uniformWord64R upperBound g@ generates a 'Word64' that is uniformly
   -- distributed over the range @[0, upperBound]@.
   --
   -- @since 1.2
-  uniformWord64R :: Word64 -> g s -> m Word64
+  uniformWord64R :: Word64 -> g -> m Word64
   uniformWord64R = unsignedBitmaskWithRejectionM uniformWord64
 
   -- | Generates a 'Word8' that is uniformly distributed over the entire 'Word8'
@@ -217,7 +200,7 @@ class Monad m => MonadRandom g s m | g m -> s where
   -- The default implementation extracts a 'Word8' from 'uniformWord32'.
   --
   -- @since 1.2
-  uniformWord8 :: g s -> m Word8
+  uniformWord8 :: g -> m Word8
   uniformWord8 = fmap fromIntegral . uniformWord32
 
   -- | Generates a 'Word16' that is uniformly distributed over the entire
@@ -226,7 +209,7 @@ class Monad m => MonadRandom g s m | g m -> s where
   -- The default implementation extracts a 'Word16' from 'uniformWord32'.
   --
   -- @since 1.2
-  uniformWord16 :: g s -> m Word16
+  uniformWord16 :: g -> m Word16
   uniformWord16 = fmap fromIntegral . uniformWord32
 
   -- | Generates a 'Word32' that is uniformly distributed over the entire
@@ -235,7 +218,7 @@ class Monad m => MonadRandom g s m | g m -> s where
   -- The default implementation extracts a 'Word32' from 'uniformWord64'.
   --
   -- @since 1.2
-  uniformWord32 :: g s -> m Word32
+  uniformWord32 :: g -> m Word32
   uniformWord32 = fmap fromIntegral . uniformWord64
 
   -- | Generates a 'Word64' that is uniformly distributed over the entire
@@ -245,7 +228,7 @@ class Monad m => MonadRandom g s m | g m -> s where
   -- one 'Word64'.
   --
   -- @since 1.2
-  uniformWord64 :: g s -> m Word64
+  uniformWord64 :: g -> m Word64
   uniformWord64 g = do
     l32 <- uniformWord32 g
     h32 <- uniformWord32 g
@@ -255,11 +238,31 @@ class Monad m => MonadRandom g s m | g m -> s where
   -- filled with pseudo-random bytes.
   --
   -- @since 1.2
-  uniformShortByteString :: Int -> g s -> m ShortByteString
-  default uniformShortByteString :: MonadIO m => Int -> g s -> m ShortByteString
+  uniformShortByteString :: Int -> g -> m ShortByteString
+  default uniformShortByteString :: MonadIO m => Int -> g -> m ShortByteString
   uniformShortByteString n = genShortByteStringIO n . uniformWord64
   {-# INLINE uniformShortByteString #-}
 
+
+
+-- | This class is designed for stateful pseudo-random number generators that
+-- can be saved as and restored from an immutable data type.
+--
+-- @since 1.2
+class StatefulGen (MutableGen f m) m => FrozenGen f m where
+  -- | Represents the state of the pseudo-random number generator for use with
+  -- 'thawGen' and 'freezeGen'.
+  --
+  -- @since 1.2
+  type MutableGen f m = (g :: Type) | g -> f
+  -- | Saves the state of the pseudo-random number generator as a frozen seed.
+  --
+  -- @since 1.2
+  freezeGen :: MutableGen f m -> m f
+  -- | Restores the pseudo-random number generator from its frozen seed.
+  --
+  -- @since 1.2
+  thawGen :: f -> m (MutableGen f m)
 
 
 data MBA s = MBA (MutableByteArray# s)
@@ -328,7 +331,7 @@ pinnedByteArrayToForeignPtr ba# =
 -- | Generates a pseudo-random 'ByteString' of the specified size.
 --
 -- @since 1.2
-uniformByteString :: MonadRandom g s m => Int -> g s -> m ByteString
+uniformByteString :: StatefulGen g m => Int -> g -> m ByteString
 uniformByteString n g = do
   ba@(SBS ba#) <- uniformShortByteString n g
   pure $
@@ -342,13 +345,15 @@ uniformByteString n g = do
 -- generator.
 --
 -- @since 1.2
-data StateGenM g s = StateGenM
+data StateGenM g = StateGenM
+
+-- | Wrapper for pure state gen, which acts as an immutable seed for the corresponding
+-- stateful generator `StateGenM`
+--
+-- @since 1.2
 newtype StateGen g = StateGen g
 
-instance (RandomGen g, MonadState g m) => MonadRandom (StateGenM g) g m where
-  type Frozen (StateGenM g) = StateGen g
-  thawGen (StateGen g) = StateGenM <$ put g
-  freezeGen _ = fmap StateGen get
+instance (RandomGen g, MonadState g m) => StatefulGen (StateGenM g) m where
   uniformWord32R r _ = state (genWord32R r)
   uniformWord64R r _ = state (genWord64R r)
   uniformWord8 _ = state genWord8
@@ -357,7 +362,10 @@ instance (RandomGen g, MonadState g m) => MonadRandom (StateGenM g) g m where
   uniformWord64 _ = state genWord64
   uniformShortByteString n _ = state (genShortByteString n)
 
-
+instance (RandomGen g, MonadState g m) => FrozenGen (StateGen g) m where
+  type MutableGen (StateGen g) m = StateGenM g
+  freezeGen _ = fmap StateGen get
+  thawGen (StateGen g) = StateGenM <$ put g
 
 -- | Splits a pseudo-random number generator into two. Updates the state with
 -- one of the resulting generators and returns the other.
@@ -370,7 +378,7 @@ splitGen = state split
 -- pseudo-random number generator.
 --
 -- @since 1.2
-runStateGen :: RandomGen g => g -> (StateGenM g g -> State g a) -> (a, g)
+runStateGen :: RandomGen g => g -> (StateGenM g -> State g a) -> (a, g)
 runStateGen g f = runState (f StateGenM) g
 
 -- | Runs a monadic generating action in the `State` monad using a pure
@@ -378,14 +386,14 @@ runStateGen g f = runState (f StateGenM) g
 -- value.
 --
 -- @since 1.2
-runStateGen_ :: RandomGen g => g -> (StateGenM g g -> State g a) -> a
+runStateGen_ :: RandomGen g => g -> (StateGenM g -> State g a) -> a
 runStateGen_ g = fst . runStateGen g
 
 -- | Runs a monadic generating action in the `StateT` monad using a pure
 -- pseudo-random number generator.
 --
 -- @since 1.2
-runStateGenT :: RandomGen g => g -> (StateGenM g g -> StateT g m a) -> m (a, g)
+runStateGenT :: RandomGen g => g -> (StateGenM g -> StateT g m a) -> m (a, g)
 runStateGenT g f = runStateT (f StateGenM) g
 
 -- | Runs a monadic generating action in the `StateT` monad using a pure
@@ -393,14 +401,14 @@ runStateGenT g f = runStateT (f StateGenM) g
 -- value.
 --
 -- @since 1.2
-runStateGenT_ :: (RandomGen g, Functor f) => g -> (StateGenM g g -> StateT g f a) -> f a
+runStateGenT_ :: (RandomGen g, Functor f) => g -> (StateGenM g -> StateT g f a) -> f a
 runStateGenT_ g = fmap fst . runStateGenT g
 
 -- | Runs a monadic generating action in the `ST` monad using a pure
 -- pseudo-random number generator.
 --
 -- @since 1.2
-runStateGenST :: RandomGen g => g -> (forall s . StateGenM g g -> StateT g (ST s) a) -> (a, g)
+runStateGenST :: RandomGen g => g -> (forall s . StateGenM g -> StateT g (ST s) a) -> (a, g)
 runStateGenST g action = runST $ runStateGenT g action
 {-# INLINE runStateGenST #-}
 
@@ -438,7 +446,7 @@ class Uniform a where
   -- type.
   --
   -- @since 1.2
-  uniformM :: MonadRandom g s m => g s -> m a
+  uniformM :: StatefulGen g m => g -> m a
 
 -- | The class of types for which a uniformly distributed value can be drawn
 -- from a range.
@@ -459,7 +467,7 @@ class UniformRange a where
   -- > uniformRM (a, b) = uniformRM (b, a)
   --
   -- @since 1.2
-  uniformRM :: MonadRandom g s m => (a, a) -> g s -> m a
+  uniformRM :: StatefulGen g m => (a, a) -> g -> m a
 
 instance UniformRange Integer where
   uniformRM = uniformIntegralM
@@ -698,7 +706,7 @@ instance UniformRange Bool where
   uniformRM (True, True)   _g = return True
   uniformRM _               g = uniformM g
 
--- | See /Floating point number caveats/ in "System.Random.Monad".
+-- | See /Floating point number caveats/ in "System.Random.Stateful".
 instance UniformRange Double where
   uniformRM (l, h) g = do
     w64 <- uniformWord64 g
@@ -714,7 +722,7 @@ word64ToDoubleInUnitInterval w64 = d / m
     m = fromIntegral (maxBound :: Word64) :: Double
 {-# INLINE word64ToDoubleInUnitInterval #-}
 
--- | See /Floating point number caveats/ in "System.Random.Monad".
+-- | See /Floating point number caveats/ in "System.Random.Stateful".
 instance UniformRange Float where
   uniformRM (l, h) g = do
     w32 <- uniformWord32 g
@@ -743,7 +751,7 @@ randomIvalInteger (l,h) rng
  | otherwise = case f 1 0 rng of (v, rng') -> (fromInteger (l + v `mod` k), rng')
      where
        (genlo, genhi) = genRange rng
-       b = fromIntegral genhi - fromIntegral genlo + 1
+       b = fromIntegral genhi - fromIntegral genlo + 1 :: Integer
 
        -- Probabilities of the most likely and least likely result
        -- will differ at most by a factor of (1 +- 1/q). Assuming the RandomGen
@@ -763,7 +771,7 @@ randomIvalInteger (l,h) rng
 
 -- | Generate an integral in the range @[l, h]@ if @l <= h@ and @[h, l]@
 -- otherwise.
-uniformIntegralM :: (Bits a, Integral a, MonadRandom g s m) => (a, a) -> g s -> m a
+uniformIntegralM :: (Bits a, Integral a, StatefulGen g m) => (a, a) -> g -> m a
 uniformIntegralM (l, h) gen = case l `compare` h of
   LT -> do
     let limit = h - l
@@ -787,7 +795,7 @@ uniformIntegralM (l, h) gen = case l `compare` h of
 -- https://doi.org/10.1145/3230636
 --
 -- PRECONDITION (unchecked): s > 0
-boundedExclusiveIntegralM :: (Bits a, Integral a, MonadRandom g s m) => a -> g s -> m a
+boundedExclusiveIntegralM :: forall a g m . (Bits a, Integral a, StatefulGen g m) => a -> g -> m a
 boundedExclusiveIntegralM (s :: a) gen = go
   where
     n = integralWordSize s
@@ -798,6 +806,7 @@ boundedExclusiveIntegralM (s :: a) gen = go
     modTwoToKMask = twoToK - 1
 
     t = (twoToK - s) `mod` s
+    go :: (Bits a, Integral a, StatefulGen g m) => m a
     go = do
       x <- uniformIntegralWords n gen
       let m = x * s
@@ -821,7 +830,7 @@ integralWordSize = go 0
 
 -- | @uniformIntegralWords n@ is a uniformly pseudo-random integral in the range
 -- @[0, WORD_SIZE_IN_BITS^n)@.
-uniformIntegralWords :: (Bits a, Integral a, MonadRandom g s m) => Int -> g s -> m a
+uniformIntegralWords :: (Bits a, Integral a, StatefulGen g m) => Int -> g -> m a
 uniformIntegralWords n gen = go 0 n
   where
     go !acc i
@@ -834,14 +843,14 @@ uniformIntegralWords n gen = go 0 n
 -- | Uniformly generate an 'Integral' in an inclusive-inclusive range.
 --
 -- Only use for integrals size less than or equal to that of 'Word32'.
-unbiasedWordMult32RM :: (MonadRandom g s m, Integral a) => (a, a) -> g s -> m a
+unbiasedWordMult32RM :: (StatefulGen g m, Integral a) => (a, a) -> g -> m a
 unbiasedWordMult32RM (b, t) g
   | b <= t    = (+b) . fromIntegral <$> unbiasedWordMult32 (fromIntegral (t - b)) g
   | otherwise = (+t) . fromIntegral <$> unbiasedWordMult32 (fromIntegral (b - t)) g
-{-# SPECIALIZE unbiasedWordMult32RM :: MonadRandom g s m => (Word8, Word8) -> g s -> m Word8 #-}
+{-# SPECIALIZE unbiasedWordMult32RM :: StatefulGen g m => (Word8, Word8) -> g -> m Word8 #-}
 
 -- | Uniformly generate Word32 in @[0, s]@.
-unbiasedWordMult32 :: MonadRandom g s m => Word32 -> g s -> m Word32
+unbiasedWordMult32 :: StatefulGen g m => Word32 -> g -> m Word32
 unbiasedWordMult32 s g
   | s == maxBound = uniformWord32 g
   | otherwise = unbiasedWordMult32Exclusive (s+1) g
@@ -853,11 +862,12 @@ unbiasedWordMult32 s g
 -- more directly [O\'Neill's github
 -- repo](https://github.com/imneme/bounded-rands/blob/3d71f53c975b1e5b29f2f3b05a74e26dab9c3d84/bounded32.cpp#L234).
 -- N.B. The range is [0,t) **not** [0,t].
-unbiasedWordMult32Exclusive  :: MonadRandom g s m => Word32 -> g s -> m Word32
+unbiasedWordMult32Exclusive :: forall g m . StatefulGen g m => Word32 -> g -> m Word32
 unbiasedWordMult32Exclusive r g = go
   where
     t :: Word32
     t = (-r) `mod` r -- Calculates 2^32 `mod` r!!!
+    go :: StatefulGen g m => m Word32
     go = do
       x <- uniformWord32 g
       let m :: Word64
@@ -868,9 +878,9 @@ unbiasedWordMult32Exclusive r g = go
 
 -- | This only works for unsigned integrals
 unsignedBitmaskWithRejectionRM ::
-     (MonadRandom g s m, FiniteBits a, Num a, Ord a, Uniform a)
+     (StatefulGen g m, FiniteBits a, Num a, Ord a, Uniform a)
   => (a, a)
-  -> g s
+  -> g
   -> m a
 unsignedBitmaskWithRejectionRM (bottom, top) gen
   | bottom == top = pure top
@@ -881,11 +891,11 @@ unsignedBitmaskWithRejectionRM (bottom, top) gen
 
 -- | This works for signed integrals by explicit conversion to unsigned and abusing overflow
 signedBitmaskWithRejectionRM ::
-     (Num a, Num b, Ord b, Ord a, FiniteBits a, MonadRandom g s f, Uniform a)
+     (Num a, Num b, Ord b, Ord a, FiniteBits a, StatefulGen g f, Uniform a)
   => (b -> a)
   -> (a -> b)
   -> (b, b)
-  -> g s
+  -> g
   -> f b
 signedBitmaskWithRejectionRM toUnsigned fromUnsigned (bottom, top) gen
   | bottom == top = pure top
@@ -899,9 +909,11 @@ signedBitmaskWithRejectionRM toUnsigned fromUnsigned (bottom, top) gen
         else (bottom, toUnsigned top - toUnsigned bottom)
 {-# INLINE signedBitmaskWithRejectionRM #-}
 
-unsignedBitmaskWithRejectionM :: (Ord a, FiniteBits a, Num a, MonadRandom g s m) => (g s -> m a) -> a -> g s -> m a
+unsignedBitmaskWithRejectionM ::
+  forall a g m . (Ord a, FiniteBits a, Num a, StatefulGen g m) => (g -> m a) -> a -> g -> m a
 unsignedBitmaskWithRejectionM genUniformM range gen = go
   where
+    mask :: a
     mask = complement zeroBits `shiftR` countLeadingZeros (range .|. 1)
     go = do
       x <- genUniformM gen
