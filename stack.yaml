@@ -3,3 +3,4 @@ packages:
 - .
 extra-deps:
 - splitmix-0.1@sha256:d50c4d0801a35be7875a040470c09863342514930c82a7d25780a6c2efc4fda9,5249
+- doctest-0.17

@@ -4,7 +4,6 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Main (main) where
 
@@ -31,49 +30,51 @@ main =
   defaultMain $
   testGroup
     "Spec"
-    [ floatingSpec @Double
-    , floatingSpec @Float
-    , floatingSpec @CDouble
-    , floatingSpec @CFloat
-    , integralSpec @Word8
-    , integralSpec @Word16
-    , integralSpec @Word32
-    , integralSpec @Word64
-    , integralSpec @Word
-    , integralSpec @Int8
-    , integralSpec @Int16
-    , integralSpec @Int32
-    , integralSpec @Int64
-    , integralSpec @Int
-    , integralSpec @Char
-    , integralSpec @Bool
-    , integralSpec @CBool
-    , integralSpec @CChar
-    , integralSpec @CSChar
-    , integralSpec @CUChar
-    , integralSpec @CShort
-    , integralSpec @CUShort
-    , integralSpec @CInt
-    , integralSpec @CUInt
-    , integralSpec @CLong
-    , integralSpec @CULong
-    , integralSpec @CPtrdiff
-    , integralSpec @CSize
-    , integralSpec @CWchar
-    , integralSpec @CSigAtomic
-    , integralSpec @CLLong
-    , integralSpec @CULLong
-    , integralSpec @CIntPtr
-    , integralSpec @CUIntPtr
-    , integralSpec @CIntMax
-    , integralSpec @CUIntMax
-    , integralSpec @Integer
-    , integralSpec @Natural
-    -- , bitmaskSpec @Word8
-    -- , bitmaskSpec @Word16
-    -- , bitmaskSpec @Word32
-    -- , bitmaskSpec @Word64
-    -- , bitmaskSpec @Word
+    [ floatingSpec (Proxy :: Proxy Double)
+    , floatingSpec (Proxy :: Proxy Float)
+    , floatingSpec (Proxy :: Proxy CDouble)
+    , floatingSpec (Proxy :: Proxy CFloat)
+    , integralSpec (Proxy :: Proxy Word8)
+    , integralSpec (Proxy :: Proxy Word16)
+    , integralSpec (Proxy :: Proxy Word32)
+    , integralSpec (Proxy :: Proxy Word64)
+    , integralSpec (Proxy :: Proxy Word)
+    , integralSpec (Proxy :: Proxy Int8)
+    , integralSpec (Proxy :: Proxy Int16)
+    , integralSpec (Proxy :: Proxy Int32)
+    , integralSpec (Proxy :: Proxy Int64)
+    , integralSpec (Proxy :: Proxy Int)
+    , integralSpec (Proxy :: Proxy Char)
+    , integralSpec (Proxy :: Proxy Bool)
+#if __GLASGOW_HASKELL >= 802
+    , integralSpec (Proxy :: Proxy CBool)
+#endif
+    , integralSpec (Proxy :: Proxy CChar)
+    , integralSpec (Proxy :: Proxy CSChar)
+    , integralSpec (Proxy :: Proxy CUChar)
+    , integralSpec (Proxy :: Proxy CShort)
+    , integralSpec (Proxy :: Proxy CUShort)
+    , integralSpec (Proxy :: Proxy CInt)
+    , integralSpec (Proxy :: Proxy CUInt)
+    , integralSpec (Proxy :: Proxy CLong)
+    , integralSpec (Proxy :: Proxy CULong)
+    , integralSpec (Proxy :: Proxy CPtrdiff)
+    , integralSpec (Proxy :: Proxy CSize)
+    , integralSpec (Proxy :: Proxy CWchar)
+    , integralSpec (Proxy :: Proxy CSigAtomic)
+    , integralSpec (Proxy :: Proxy CLLong)
+    , integralSpec (Proxy :: Proxy CULLong)
+    , integralSpec (Proxy :: Proxy CIntPtr)
+    , integralSpec (Proxy :: Proxy CUIntPtr)
+    , integralSpec (Proxy :: Proxy CIntMax)
+    , integralSpec (Proxy :: Proxy CUIntMax)
+    , integralSpec (Proxy :: Proxy Integer)
+    , integralSpec (Proxy :: Proxy Natural)
+    -- , bitmaskSpec (Proxy :: Proxy Word8)
+    -- , bitmaskSpec (Proxy :: Proxy Word16)
+    -- , bitmaskSpec (Proxy :: Proxy Word32)
+    -- , bitmaskSpec (Proxy :: Proxy Word64)
+    -- , bitmaskSpec (Proxy :: Proxy Word)
     , runSpec
     , floatTests
     , byteStringSpec
@@ -91,8 +92,8 @@ floatTests = testGroup "(Float)"
     "Does not contain 1.0e-45"
   ]
 
-showsType :: forall t . Typeable t => ShowS
-showsType = showsTypeRep (typeRep (Proxy :: Proxy t))
+showsType :: forall t . Typeable t => Proxy t -> ShowS
+showsType px = showsTypeRep (typeRep px)
 
 byteStringSpec :: TestTree
 byteStringSpec =
@@ -111,32 +112,32 @@ byteStringSpec =
 rangeSpec ::
      forall a.
      (SC.Serial IO a, Typeable a, Ord a, UniformRange a, Show a)
-  => TestTree
-rangeSpec =
-  testGroup ("Range (" ++ showsType @a ")")
-  [ SC.testProperty "uniformR" $ seeded $ Range.uniformRangeWithin @_ @a
+  => Proxy a -> TestTree
+rangeSpec px =
+  testGroup ("Range (" ++ showsType px ")")
+  [ SC.testProperty "uniformR" $ seeded $ Range.uniformRangeWithin px
   ]
 
 integralSpec ::
      forall a.
      (SC.Serial IO a, Typeable a, Ord a, UniformRange a, Show a)
-  => TestTree
-integralSpec  =
-  testGroup ("(" ++ showsType @a ")")
-  [ SC.testProperty "symmetric" $ seeded $ Range.symmetric @_ @a
-  , SC.testProperty "bounded" $ seeded $ Range.bounded @_ @a
-  , SC.testProperty "singleton" $ seeded $ Range.singleton @_ @a
-  , rangeSpec @a
+  => Proxy a -> TestTree
+integralSpec px =
+  testGroup ("(" ++ showsType px ")")
+  [ SC.testProperty "symmetric" $ seeded $ Range.symmetric px
+  , SC.testProperty "bounded" $ seeded $ Range.bounded px
+  , SC.testProperty "singleton" $ seeded $ Range.singleton px
+  , rangeSpec px
   -- TODO: Add more tests
   ]
 
 floatingSpec ::
      forall a.
      (SC.Serial IO a, Typeable a, Num a, Ord a, Random a, UniformRange a, Show a)
-  => TestTree
-floatingSpec  =
-  testGroup ("(" ++ showsType @a ")")
-  [ SC.testProperty "uniformR" $ seeded $ Range.uniformRangeWithin @_ @a
+  => Proxy a -> TestTree
+floatingSpec px =
+  testGroup ("(" ++ showsType px ")")
+  [ SC.testProperty "uniformR" $ seeded $ Range.uniformRangeWithin px
   -- TODO: Add more tests
   ]
 
@@ -153,8 +154,10 @@ instance Monad m => Serial m CFloat where
   series = coerce <$> (series :: Series m Float)
 instance Monad m => Serial m CDouble where
   series = coerce <$> (series :: Series m Double)
+#if __GLASGOW_HASKELL >= 802
 instance Monad m => Serial m CBool where
   series = coerce <$> (series :: Series m HTYPE_BOOL)
+#endif
 instance Monad m => Serial m CChar where
   series = coerce <$> (series :: Series m HTYPE_CHAR)
 instance Monad m => Serial m CSChar where

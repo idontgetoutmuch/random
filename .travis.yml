@@ -42,6 +42,18 @@ jobs:
   include:
   # We grab the appropriate GHC and cabal-install versions from hvr's PPA. See:
   # https://github.com/hvr/multi-ghc-travis
+  - env: BUILD=stack ARGS="--resolver lts-3.22" STACK_YAML="--stack-yaml stack-really-old.yaml"
+    compiler: ": #stack 7.10.2"
+    addons: {apt: {packages: [libgmp-dev]}}
+
+  - env: BUILD=stack ARGS="--resolver lts-6.35" STACK_YAML="--stack-yaml stack-really-old.yaml"
+    compiler: ": #stack 7.10.3"
+    addons: {apt: {packages: [libgmp-dev]}}
+
+  - env: BUILD=stack ARGS="--resolver lts-9.21" STACK_YAML="--stack-yaml stack-really-old.yaml"
+    compiler: ": #stack 8.0.2"
+    addons: {apt: {packages: [libgmp-dev]}}
+
   - env: BUILD=stack ARGS="--resolver lts-11.22" STACK_YAML="--stack-yaml stack-old.yaml"
     compiler: ": #stack 8.2.2"
     addons: {apt: {packages: [libgmp-dev]}}

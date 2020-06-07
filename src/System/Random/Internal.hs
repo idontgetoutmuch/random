@@ -1,7 +1,6 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DefaultSignatures #-}
-{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
@@ -11,10 +10,15 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE Trustworthy #-}
-{-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE UnboxedTuples #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE UnliftedFFITypes #-}
+#if __GLASGOW_HASKELL__ >= 800
+{-# LANGUAGE TypeFamilyDependencies #-}
+#else
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE KindSignatures #-}
+#endif
 {-# OPTIONS_HADDOCK hide, not-home #-}
 #include "MachDeps.h"
 
@@ -66,22 +70,28 @@ import Control.Monad.State.Strict
 import Data.Bits
 import Data.ByteString.Builder.Prim (word64LE)
 import Data.ByteString.Builder.Prim.Internal (runF)
-import Data.ByteString.Internal (ByteString(PS))
 import Data.ByteString.Short.Internal (ShortByteString(SBS), fromShort)
 import Data.Int
-import Data.Kind
 import Data.Word
 import Foreign.C.Types
 import Foreign.Ptr (plusPtr)
 import Foreign.Storable (pokeByteOff)
 import GHC.Exts
-import GHC.ForeignPtr
 import GHC.IO (IO(..))
 import GHC.Word
 import Numeric.Natural (Natural)
 import System.IO.Unsafe (unsafePerformIO)
 import qualified System.Random.SplitMix as SM
 import qualified System.Random.SplitMix32 as SM32
+#if __GLASGOW_HASKELL__ >= 800
+import Data.Kind
+#endif
+#if __GLASGOW_HASKELL__ >= 802
+import Data.ByteString.Internal (ByteString(PS))
+import GHC.ForeignPtr
+#else
+import Data.ByteString (ByteString)
+#endif
 
 -- | 'RandomGen' is an interface to pure pseudo-random number generators.
 --
@@ -254,7 +264,11 @@ class StatefulGen (MutableGen f m) m => FrozenGen f m where
   -- 'thawGen' and 'freezeGen'.
   --
   -- @since 1.2
+#if __GLASGOW_HASKELL__ >= 800
   type MutableGen f m = (g :: Type) | g -> f
+#else
+  type MutableGen f m :: *
+#endif
   -- | Saves the state of the pseudo-random number generator as a frozen seed.
   --
   -- @since 1.2
@@ -269,11 +283,14 @@ data MBA s = MBA (MutableByteArray# s)
 
 
 -- | Efficiently generates a sequence of pseudo-random bytes in a platform
--- independent manner. The allocated memory is be pinned, so it is safe to use
--- with FFI calls.
+-- independent manner.
 --
 -- @since 1.2
-genShortByteStringIO :: MonadIO m => Int -> m Word64 -> m ShortByteString
+genShortByteStringIO ::
+     MonadIO m
+  => Int -- ^ Number of bytes to generate
+  -> m Word64 -- ^ IO action that can generate 8 random bytes at a time
+  -> m ShortByteString
 genShortByteStringIO n0 gen64 = do
   let !n@(I# n#) = max 0 n0
       (n64, nrem64) = n `quotRem` 8
@@ -317,6 +334,23 @@ genShortByteStringST :: Int -> ST s Word64 -> ST s ShortByteString
 genShortByteStringST n action =
   unsafeIOToST (genShortByteStringIO n (unsafeSTToIO action))
 
+
+-- | Generates a pseudo-random 'ByteString' of the specified size.
+--
+-- @since 1.2
+{-# INLINE uniformByteString #-}
+uniformByteString :: StatefulGen g m => Int -> g -> m ByteString
+uniformByteString n g = do
+  ba <- uniformShortByteString n g
+  pure $
+#if __GLASGOW_HASKELL__ < 802
+       fromShort ba
+#else
+    let !(SBS ba#) = ba in
+    if isTrue# (isByteArrayPinned# ba#)
+      then pinnedByteArrayToByteString ba#
+      else fromShort ba
+
 pinnedByteArrayToByteString :: ByteArray# -> ByteString
 pinnedByteArrayToByteString ba# =
   PS (pinnedByteArrayToForeignPtr ba#) 0 (I# (sizeofByteArray# ba#))
@@ -326,19 +360,7 @@ pinnedByteArrayToForeignPtr :: ByteArray# -> ForeignPtr a
 pinnedByteArrayToForeignPtr ba# =
   ForeignPtr (byteArrayContents# ba#) (PlainPtr (unsafeCoerce# ba#))
 {-# INLINE pinnedByteArrayToForeignPtr #-}
-
-
--- | Generates a pseudo-random 'ByteString' of the specified size.
---
--- @since 1.2
-uniformByteString :: StatefulGen g m => Int -> g -> m ByteString
-uniformByteString n g = do
-  ba@(SBS ba#) <- uniformShortByteString n g
-  pure $
-    if isTrue# (isByteArrayPinned# ba#)
-      then pinnedByteArrayToByteString ba#
-      else fromShort ba
-{-# INLINE uniformByteString #-}
+#endif
 
 
 -- | Opaque data type that carries the type of a pure pseudo-random number
@@ -415,8 +437,7 @@ runStateGenST g action = runST $ runStateGenT g action
 
 -- | The standard pseudo-random number generator.
 newtype StdGen = StdGen { unStdGen :: SM.SMGen }
-  deriving newtype (RandomGen, NFData)
-  deriving stock   (Show)
+  deriving (Show, RandomGen, NFData)
 
 instance Eq StdGen where
   StdGen x1 == StdGen x2 = SM.unseedSMGen x1 == SM.unseedSMGen x2
@@ -547,11 +568,13 @@ instance UniformRange Word64 where
   {-# INLINE uniformRM #-}
   uniformRM = unsignedBitmaskWithRejectionRM
 
+#if __GLASGOW_HASKELL >= 802
 instance Uniform CBool where
   uniformM = fmap CBool . uniformM
 instance UniformRange CBool where
   uniformRM (CBool b, CBool t) = fmap CBool . uniformRM (b, t)
   {-# INLINE uniformRM #-}
+#endif
 
 instance Uniform CChar where
   uniformM = fmap CChar . uniformM
