@@ -70,11 +70,6 @@ main =
     , integralSpec (Proxy :: Proxy CUIntMax)
     , integralSpec (Proxy :: Proxy Integer)
     , integralSpec (Proxy :: Proxy Natural)
-    -- , bitmaskSpec (Proxy :: Proxy Word8)
-    -- , bitmaskSpec (Proxy :: Proxy Word16)
-    -- , bitmaskSpec (Proxy :: Proxy Word32)
-    -- , bitmaskSpec (Proxy :: Proxy Word64)
-    -- , bitmaskSpec (Proxy :: Proxy Word)
     , runSpec
     , floatTests
     , byteStringSpec
