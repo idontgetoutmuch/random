@@ -51,6 +51,10 @@ module System.Random.Internal
   , Uniform(..)
   , UniformRange(..)
   , uniformByteString
+  , uniformDouble01M
+  , uniformDoublePos01M
+  , uniformFloat01M
+  , uniformFloatPos01M
 
   -- * Generators for sequences of pseudo-random bytes
   , genShortByteStringIO
@@ -709,34 +713,47 @@ instance UniformRange Bool where
 -- | See /Floating point number caveats/ in "System.Random.Stateful".
 instance UniformRange Double where
   uniformRM (l, h) g = do
-    w64 <- uniformWord64 g
-    let x = word64ToDoubleInUnitInterval w64
+    x <- uniformDouble01M g
     return $ (h - l) * x + l
 
--- | Turns a given uniformly distributed 'Word64' value into a uniformly
--- distributed 'Double' value in the range [0, 1].
-word64ToDoubleInUnitInterval :: Word64 -> Double
-word64ToDoubleInUnitInterval w64 = d / m
+-- | Generate uniformly distributed 'Double' in the range [0, 1].
+uniformDouble01M :: StatefulGen g m => g -> m Double
+uniformDouble01M g = do
+  w64 <- uniformWord64 g
+  return $ fromIntegral w64 / m
   where
-    d = fromIntegral w64 :: Double
     m = fromIntegral (maxBound :: Word64) :: Double
-{-# INLINE word64ToDoubleInUnitInterval #-}
+
+-- | Generate uniformly distributed 'Double' in the range (0, 1]. That
+--   is result is guaranteed to be positive
+uniformDoublePos01M :: StatefulGen g m => g -> m Double
+uniformDoublePos01M g = (+ d) <$> uniformDouble01M g
+  where
+    -- We add small constant to shift generated value from zero. It's
+    -- selected as 1/2 of smallest possible nonzero value
+    d = 2.710505431213761e-20 -- 2**(-65)
 
 -- | See /Floating point number caveats/ in "System.Random.Stateful".
 instance UniformRange Float where
   uniformRM (l, h) g = do
-    w32 <- uniformWord32 g
-    let x = word32ToFloatInUnitInterval w32
+    x <- uniformFloat01M g
     return $ (h - l) * x + l
 
--- | Turns a given uniformly distributed 'Word32' value into a uniformly
--- distributed 'Float' value in the range [0,1].
-word32ToFloatInUnitInterval :: Word32 -> Float
-word32ToFloatInUnitInterval w32 = f / m
+-- | Generate uniformly distributed 'Float' in the range [0, 1].
+uniformFloat01M :: StatefulGen g m => g -> m Float
+uniformFloat01M g = do
+  w32 <- uniformWord32 g
+  return $ fromIntegral w32 / m
   where
-    f = fromIntegral w32 :: Float
     m = fromIntegral (maxBound :: Word32) :: Float
-{-# INLINE word32ToFloatInUnitInterval #-}
+
+-- | Generate uniformly distributed 'Float' in the range (0, 1]. That
+--   is result is guaranteed to be positive.
+uniformFloatPos01M :: StatefulGen g m => g -> m Float
+uniformFloatPos01M g = (+ d) <$> uniformFloat01M g
+  where
+    -- See uniformDoublePos01M
+    d = 1.1641532182693481e-10 -- 2**(-33)
 
 -- The two integer functions below take an [inclusive,inclusive] range.
 randomIvalIntegral :: (RandomGen g, Integral a) => (a, a) -> g -> (a, g)
