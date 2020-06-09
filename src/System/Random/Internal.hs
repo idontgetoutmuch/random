@@ -52,9 +52,9 @@ module System.Random.Internal
   , UniformRange(..)
   , uniformByteString
   , uniformDouble01M
-  , uniformDoublePos01M
+  , uniformDoublePositive01M
   , uniformFloat01M
-  , uniformFloatPos01M
+  , uniformFloatPositive01M
 
   -- * Generators for sequences of pseudo-random bytes
   , genShortByteStringIO
@@ -726,8 +726,8 @@ uniformDouble01M g = do
 
 -- | Generates uniformly distributed 'Double' in the range (0, 1]. That
 --   is result is guaranteed to be positive
-uniformDoublePos01M :: StatefulGen g m => g -> m Double
-uniformDoublePos01M g = (+ d) <$> uniformDouble01M g
+uniformDoublePositive01M :: StatefulGen g m => g -> m Double
+uniformDoublePositive01M g = (+ d) <$> uniformDouble01M g
   where
     -- We add small constant to shift generated value from zero. It's
     -- selected as 1/2 of smallest possible nonzero value
@@ -749,10 +749,10 @@ uniformFloat01M g = do
 
 -- | Generates uniformly distributed 'Float' in the range (0, 1]. That
 --   is result is guaranteed to be positive.
-uniformFloatPos01M :: StatefulGen g m => g -> m Float
-uniformFloatPos01M g = (+ d) <$> uniformFloat01M g
+uniformFloatPositive01M :: StatefulGen g m => g -> m Float
+uniformFloatPositive01M g = (+ d) <$> uniformFloat01M g
   where
-    -- See uniformDoublePos01M
+    -- See uniformDoublePositive01M
     d = 1.1641532182693481e-10 -- 2**(-33)
 
 -- The two integer functions below take an [inclusive,inclusive] range.

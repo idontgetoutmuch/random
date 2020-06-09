@@ -78,9 +78,9 @@ module System.Random.Stateful
   , genShortByteStringST
   , uniformByteString
   , uniformDouble01M
-  , uniformDoublePos01M
+  , uniformDoublePositive01M
   , uniformFloat01M
-  , uniformFloatPos01M
+  , uniformFloatPositive01M
 
   -- * Appendix
 
