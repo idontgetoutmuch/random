@@ -222,11 +222,14 @@ instance RandomGen r => RandomGenM (STGenM r s) r (ST s) where
 
 -- | Runs a mutable pseudo-random number generator from its 'Frozen' state.
 --
+-- @since 1.2
+--
+-- ====__Examples__
+--
 -- >>> import Data.Int (Int8)
 -- >>> runGenM (IOGen (mkStdGen 217)) (`uniformListM` 5) :: IO ([Int8], IOGen StdGen)
 -- ([-74,37,-50,-2,3],IOGen {unIOGen = StdGen {unStdGen = SMGen 4273268533320920145 15251669095119325999}})
 --
--- @since 1.2
 runGenM :: FrozenGen f m => f -> (MutableGen f m -> m a) -> m (a, f)
 runGenM fg action = do
   g <- thawGen fg
@@ -237,6 +240,14 @@ runGenM fg action = do
 -- | Same as 'runGenM', but only returns the generated value.
 --
 -- @since 1.2
+--
+-- ====__Examples__
+--
+-- >>> import System.Random.Stateful
+-- >>> let pureGen = mkStdGen 137
+-- >>> runGenM_ (IOGen pureGen) (uniformRM (1 :: Int, 6 :: Int))
+-- 4
+--
 runGenM_ :: FrozenGen f m => f -> (MutableGen f m -> m a) -> m a
 runGenM_ fg action = fst <$> runGenM fg action
 
@@ -244,18 +255,41 @@ runGenM_ fg action = fst <$> runGenM fg action
 -- | Generates a list of pseudo-random values.
 --
 -- @since 1.2
+--
+-- ====__Examples__
+--
+-- >>> import System.Random.Stateful
+-- >>> let pureGen = mkStdGen 137
+-- >>> do {g <- newIOGenM pureGen; uniformListM g 10 :: IO [Bool]}
+-- [True,True,True,True,False,True,True,False,False,False]
+--
 uniformListM :: (StatefulGen g m, Uniform a) => g -> Int -> m [a]
 uniformListM gen n = replicateM n (uniformM gen)
 
 -- | Generates a pseudo-random value using monadic interface and `Random` instance.
 --
 -- @since 1.2
+--
+-- ====__Examples__
+--
+-- >>> import System.Random.Stateful
+-- >>> let pureGen = mkStdGen 137
+-- >>> do {g <- newIOGenM pureGen; randomM g} :: IO Double
+-- 0.42716450643454884
+--
 randomM :: (RandomGenM g r m, Random a) => g -> m a
 randomM = applyRandomGenM random
 
 -- | Generates a pseudo-random value using monadic interface and `Random` instance.
 --
 -- @since 1.2
+--
+-- ====__Examples__
+--
+-- >>> import System.Random.Stateful
+-- >>> let pureGen = mkStdGen 137
+-- >>> do {g <- newIOGenM pureGen; randomRM (1, 100) g} :: IO Int
+-- 52
 randomRM :: (RandomGenM g r m, Random a) => (a, a) -> g -> m a
 randomRM r = applyRandomGenM (randomR r)
 
@@ -307,6 +341,14 @@ instance (RandomGen g, MonadIO m) => FrozenGen (AtomicGen g) m where
 -- generator.
 --
 -- @since 1.2
+--
+-- ====__Examples__
+--
+-- >>> import System.Random.Stateful
+-- >>> let pureGen = mkStdGen 137
+-- >>> do {g <- newAtomicGenM pureGen; applyAtomicGen random g} :: IO Int
+-- 7879794327570578227
+--
 applyAtomicGen :: MonadIO m => (g -> (a, g)) -> (AtomicGenM g) -> m a
 applyAtomicGen op (AtomicGenM gVar) =
   liftIO $ atomicModifyIORef' gVar $ \g ->
@@ -372,6 +414,14 @@ instance (RandomGen g, MonadIO m) => FrozenGen (IOGen g) m where
 -- | Applies a pure operation to the wrapped pseudo-random number generator.
 --
 -- @since 1.2
+--
+-- ====__Examples__
+--
+-- >>> import System.Random.Stateful
+-- >>> let pureGen = mkStdGen 137
+-- >>> do {g <- newIOGenM pureGen; applyIOGen random g} :: IO Int
+-- 7879794327570578227
+--
 applyIOGen :: MonadIO m => (g -> (a, g)) -> IOGenM g -> m a
 applyIOGen f (IOGenM ref) = liftIO $ do
   g <- readIORef ref
@@ -424,6 +474,14 @@ instance RandomGen g => FrozenGen (STGen g) (ST s) where
 -- | Applies a pure operation to the wrapped pseudo-random number generator.
 --
 -- @since 1.2
+--
+-- ====__Examples__
+--
+-- >>> import System.Random.Stateful
+-- >>> let pureGen = mkStdGen 137
+-- >>> (runSTGen pureGen (\g -> applySTGen random g)) :: (Int, StdGen)
+-- (7879794327570578227,StdGen {unStdGen = SMGen 11285859549637045894 7641485672361121627})
+--
 applySTGen :: (g -> (a, g)) -> STGenM g s -> ST s a
 applySTGen f (STGenM ref) = do
   g <- readSTRef ref
@@ -435,6 +493,14 @@ applySTGen f (STGenM ref) = do
 -- pseudo-random number generator.
 --
 -- @since 1.2
+--
+-- ====__Examples__
+--
+-- >>> import System.Random.Stateful
+-- >>> let pureGen = mkStdGen 137
+-- >>> (runSTGen pureGen (\g -> applySTGen random g)) :: (Int, StdGen)
+-- (7879794327570578227,StdGen {unStdGen = SMGen 11285859549637045894 7641485672361121627})
+--
 runSTGen :: RandomGen g => g -> (forall s . STGenM g s -> ST s a) -> (a, g)
 runSTGen g action = unSTGen <$> runST (runGenM (STGen g) action)
 
@@ -443,6 +509,14 @@ runSTGen g action = unSTGen <$> runST (runGenM (STGen g) action)
 -- value.
 --
 -- @since 1.2
+--
+-- ====__Examples__
+--
+-- >>> import System.Random.Stateful
+-- >>> let pureGen = mkStdGen 137
+-- >>> (runSTGen_ pureGen (\g -> applySTGen random g)) :: Int
+-- 7879794327570578227
+--
 runSTGen_ :: RandomGen g => g -> (forall s . STGenM g s -> ST s a) -> a
 runSTGen_ g action = fst $ runSTGen g action
 

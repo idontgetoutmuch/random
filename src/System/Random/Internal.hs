@@ -400,6 +400,15 @@ splitGen = state split
 -- pseudo-random number generator.
 --
 -- @since 1.2
+--
+-- ====__Examples__
+--
+-- >>> import System.Random.Stateful
+-- >>> import Control.Monad.State
+-- >>> let pureGen = mkStdGen 137
+-- >>> (runStateGen pureGen (\_ -> state random)) :: (Int, StdGen)
+-- (7879794327570578227,StdGen {unStdGen = SMGen 11285859549637045894 7641485672361121627})
+--
 runStateGen :: RandomGen g => g -> (StateGenM g -> State g a) -> (a, g)
 runStateGen g f = runState (f StateGenM) g
 
@@ -408,6 +417,15 @@ runStateGen g f = runState (f StateGenM) g
 -- value.
 --
 -- @since 1.2
+--
+-- ====__Examples__
+--
+-- >>> import System.Random.Stateful
+-- >>> import Control.Monad.State
+-- >>> let pureGen = mkStdGen 137
+-- >>> (runStateGen_ pureGen (\_ -> state random)) :: Int
+-- 7879794327570578227
+--
 runStateGen_ :: RandomGen g => g -> (StateGenM g -> State g a) -> a
 runStateGen_ g = fst . runStateGen g
 
@@ -415,6 +433,16 @@ runStateGen_ g = fst . runStateGen g
 -- pseudo-random number generator.
 --
 -- @since 1.2
+--
+-- ====__Examples__
+--
+-- >>> import System.Random.Stateful
+-- >>> import Control.Monad.State
+-- >>> import Data.Functor.Identity
+-- >>> let pureGen = mkStdGen 137
+-- >>> (runIdentity $ (runStateGenT pureGen (\_ -> state random))) :: (Int, StdGen)
+-- (7879794327570578227,StdGen {unStdGen = SMGen 11285859549637045894 7641485672361121627})
+--
 runStateGenT :: RandomGen g => g -> (StateGenM g -> StateT g m a) -> m (a, g)
 runStateGenT g f = runStateT (f StateGenM) g
 
@@ -423,6 +451,16 @@ runStateGenT g f = runStateT (f StateGenM) g
 -- value.
 --
 -- @since 1.2
+--
+-- ====__Examples__
+--
+-- >>> import System.Random.Stateful
+-- >>> import Control.Monad.State
+-- >>> import Data.Functor.Identity
+-- >>> let pureGen = mkStdGen 137
+-- >>> (runIdentity $ (runStateGenT_ pureGen (\_ -> state random))) :: Int
+-- 7879794327570578227
+--
 runStateGenT_ :: (RandomGen g, Functor f) => g -> (StateGenM g -> StateT g f a) -> f a
 runStateGenT_ g = fmap fst . runStateGenT g
 
