@@ -568,7 +568,7 @@ instance UniformRange Word64 where
   {-# INLINE uniformRM #-}
   uniformRM = unsignedBitmaskWithRejectionRM
 
-#if __GLASGOW_HASKELL >= 802
+#if __GLASGOW_HASKELL__ >= 802
 instance Uniform CBool where
   uniformM = fmap CBool . uniformM
 instance UniformRange CBool where
