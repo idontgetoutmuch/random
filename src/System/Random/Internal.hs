@@ -399,6 +399,13 @@ splitGen = state split
 -- | Runs a monadic generating action in the `State` monad using a pure
 -- pseudo-random number generator.
 --
+-- ====__Examples__
+--
+-- >>> import System.Random.Stateful
+-- >>> let pureGen = mkStdGen 137
+-- >>> runStateGen pureGen randomM :: (Int, StdGen)
+-- (7879794327570578227,StdGen {unStdGen = SMGen 11285859549637045894 7641485672361121627})
+--
 -- @since 1.2.0
 runStateGen :: RandomGen g => g -> (StateGenM g -> State g a) -> (a, g)
 runStateGen g f = runState (f StateGenM) g
@@ -407,12 +414,26 @@ runStateGen g f = runState (f StateGenM) g
 -- pseudo-random number generator. Returns only the resulting pseudo-random
 -- value.
 --
+-- ====__Examples__
+--
+-- >>> import System.Random.Stateful
+-- >>> let pureGen = mkStdGen 137
+-- >>> runStateGen_ pureGen  randomM :: Int
+-- 7879794327570578227
+--
 -- @since 1.2.0
 runStateGen_ :: RandomGen g => g -> (StateGenM g -> State g a) -> a
 runStateGen_ g = fst . runStateGen g
 
 -- | Runs a monadic generating action in the `StateT` monad using a pure
 -- pseudo-random number generator.
+--
+-- ====__Examples__
+--
+-- >>> import System.Random.Stateful
+-- >>> let pureGen = mkStdGen 137
+-- >>> runStateGenT pureGen randomM :: IO (Int, StdGen)
+-- (7879794327570578227,StdGen {unStdGen = SMGen 11285859549637045894 7641485672361121627})
 --
 -- @since 1.2.0
 runStateGenT :: RandomGen g => g -> (StateGenM g -> StateT g m a) -> m (a, g)
@@ -421,6 +442,13 @@ runStateGenT g f = runStateT (f StateGenM) g
 -- | Runs a monadic generating action in the `StateT` monad using a pure
 -- pseudo-random number generator. Returns only the resulting pseudo-random
 -- value.
+--
+-- ====__Examples__
+--
+-- >>> import System.Random.Stateful
+-- >>> let pureGen = mkStdGen 137
+-- >>> runStateGenT_ pureGen randomM :: IO Int
+-- 7879794327570578227
 --
 -- @since 1.2.0
 runStateGenT_ :: (RandomGen g, Functor f) => g -> (StateGenM g -> StateT g f a) -> f a
