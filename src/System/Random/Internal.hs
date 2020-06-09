@@ -724,8 +724,7 @@ uniformDouble01M g = do
   where
     m = fromIntegral (maxBound :: Word64) :: Double
 
--- | Generates uniformly distributed 'Double' in the range (0, 1]. That
---   is result is guaranteed to be positive
+-- | Generates uniformly distributed 'Double' in the range (0, 1].
 uniformDoublePositive01M :: StatefulGen g m => g -> m Double
 uniformDoublePositive01M g = (+ d) <$> uniformDouble01M g
   where
@@ -747,8 +746,7 @@ uniformFloat01M g = do
   where
     m = fromIntegral (maxBound :: Word32) :: Float
 
--- | Generates uniformly distributed 'Float' in the range (0, 1]. That
---   is result is guaranteed to be positive.
+-- | Generates uniformly distributed 'Float' in the range (0, 1].
 uniformFloatPositive01M :: StatefulGen g m => g -> m Float
 uniformFloatPositive01M g = (+ d) <$> uniformFloat01M g
   where
