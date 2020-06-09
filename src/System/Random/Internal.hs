@@ -739,7 +739,7 @@ instance UniformRange Float where
     x <- uniformFloat01M g
     return $ (h - l) * x + l
 
--- | Generate uniformly distributed 'Float' in the range [0, 1].
+-- | Generates uniformly distributed 'Float' in the range [0, 1].
 uniformFloat01M :: StatefulGen g m => g -> m Float
 uniformFloat01M g = do
   w32 <- uniformWord32 g
