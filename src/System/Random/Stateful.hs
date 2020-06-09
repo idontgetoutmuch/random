@@ -1,5 +1,4 @@
 {-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE DerivingStrategies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -275,8 +274,7 @@ newtype AtomicGenM g = AtomicGenM { unAtomicGenM :: IORef g}
 --
 -- @since 1.2
 newtype AtomicGen g = AtomicGen { unAtomicGen :: g}
-  deriving stock (Eq, Ord, Show)
-  deriving newtype (RandomGen, Storable, NFData)
+  deriving (Eq, Ord, Show, RandomGen, Storable, NFData)
 
 -- | Creates a new 'AtomicGenM'.
 --
@@ -340,8 +338,7 @@ newtype IOGenM g = IOGenM { unIOGenM :: IORef g }
 --
 -- @since 1.2
 newtype IOGen g = IOGen { unIOGen :: g }
-  deriving stock (Eq, Ord, Show)
-  deriving newtype (RandomGen, Storable, NFData)
+  deriving (Eq, Ord, Show, RandomGen, Storable, NFData)
 
 
 -- | Creates a new 'IOGenM'.
@@ -394,8 +391,7 @@ newtype STGenM g s = STGenM { unSTGenM :: STRef s g }
 --
 -- @since 1.2
 newtype STGen g = STGen { unSTGen :: g }
-  deriving stock (Eq, Ord, Show)
-  deriving newtype (RandomGen, Storable, NFData)
+  deriving (Eq, Ord, Show, RandomGen, Storable, NFData)
 
 -- | Creates a new 'STGenM'.
 --

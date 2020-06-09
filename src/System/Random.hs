@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE Trustworthy #-}
 
@@ -234,7 +235,9 @@ instance Random Word8
 instance Random Word16
 instance Random Word32
 instance Random Word64
+#if __GLASGOW_HASKELL >= 802
 instance Random CBool
+#endif
 instance Random CChar
 instance Random CSChar
 instance Random CUChar
