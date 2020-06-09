@@ -1,4 +1,4 @@
-# 1.2
+# 1.2.0
 
 1. Breaking change which mostly maintains backwards compatibility, see
    "Breaking Changes" below.
@@ -26,9 +26,9 @@
 
 ### Breaking Changes
 
-Version 1.2 introduces these breaking changes:
+Version 1.2.0 introduces these breaking changes:
 
-* requires `base >= 4.10` (GHC-8.2)
+* requires `base >= 4.8` (GHC-7.10)
 * `StdGen` is no longer an instance of `Read`
 * `randomIO` and `randomRIO` were extracted from the `Random` class into
   separate functions
@@ -38,7 +38,7 @@ In addition, there may be import clashes with new functions, e.g. `uniform` and
 
 ### Deprecations
 
-Version 1.2 introduces `genWord64`, `genWord32` and similar methods to the
+Version 1.2.0 introduces `genWord64`, `genWord32` and similar methods to the
 `RandomGen` class. The significantly slower method `next` and its companion
 `genRange` are now deprecated.
 
