@@ -716,7 +716,7 @@ instance UniformRange Double where
     x <- uniformDouble01M g
     return $ (h - l) * x + l
 
--- | Generate uniformly distributed 'Double' in the range [0, 1].
+-- | Generates uniformly distributed 'Double' in the range [0, 1].
 uniformDouble01M :: StatefulGen g m => g -> m Double
 uniformDouble01M g = do
   w64 <- uniformWord64 g
