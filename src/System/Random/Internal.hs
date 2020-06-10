@@ -75,7 +75,7 @@ import Data.Int
 import Data.Word
 import Foreign.C.Types
 import Foreign.Ptr (plusPtr)
-import Foreign.Storable (pokeByteOff)
+import Foreign.Storable (Storable(pokeByteOff))
 import GHC.Exts
 import GHC.IO (IO(..))
 import GHC.Word
@@ -373,7 +373,8 @@ data StateGenM g = StateGenM
 -- stateful generator `StateGenM`
 --
 -- @since 1.2
-newtype StateGen g = StateGen g
+newtype StateGen g = StateGen { unStateGen :: g }
+  deriving (Eq, Ord, Show, RandomGen, Storable, NFData)
 
 instance (RandomGen g, MonadState g m) => StatefulGen (StateGenM g) m where
   uniformWord32R r _ = state (genWord32R r)
