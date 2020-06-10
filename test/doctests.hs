@@ -1,7 +1,7 @@
 {-# LANGUAGE CPP #-}
 module Main where
 
-#if __GLASGOW_HASKELL__ >= 800
+#if __GLASGOW_HASKELL__ >= 802
 
 import Build_doctests (flags, pkgs, module_sources)
 import Data.Foldable (traverse_)
