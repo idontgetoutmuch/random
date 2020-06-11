@@ -20,7 +20,6 @@
 {-# LANGUAGE KindSignatures #-}
 #endif
 {-# OPTIONS_HADDOCK hide, not-home #-}
-#include "MachDeps.h"
 
 -- |
 -- Module      :  System.Random.Internal
@@ -520,23 +519,27 @@ instance UniformRange Int64 where
   uniformRM = signedBitmaskWithRejectionRM (fromIntegral :: Int64 -> Word64) fromIntegral
   {-# INLINE uniformRM #-}
 
+wordSizeInBits :: Int
+wordSizeInBits = finiteBitSize (0 :: Word)
+
 instance Uniform Int where
-#if WORD_SIZE_IN_BITS < 64
-  uniformM = fmap (fromIntegral :: Word32 -> Int) . uniformWord32
-#else
-  uniformM = fmap (fromIntegral :: Word64 -> Int) . uniformWord64
-#endif
-  {-# INLINE uniformM #-}
+  uniformM
+    | wordSizeInBits == 64 =
+      fmap (fromIntegral :: Word64 -> Int) . uniformWord64
+    | otherwise =
+      fmap (fromIntegral :: Word32 -> Int) . uniformWord32
+
 instance UniformRange Int where
   uniformRM = signedBitmaskWithRejectionRM (fromIntegral :: Int -> Word) fromIntegral
   {-# INLINE uniformRM #-}
 
 instance Uniform Word where
-#if WORD_SIZE_IN_BITS < 64
-  uniformM = fmap (fromIntegral :: Word32 -> Word) . uniformWord32
-#else
-  uniformM = fmap (fromIntegral :: Word64 -> Word) . uniformWord64
-#endif
+  uniformM
+    | wordSizeInBits == 64 =
+      fmap (fromIntegral :: Word64 -> Word) . uniformWord64
+    | otherwise =
+      fmap (fromIntegral :: Word32 -> Word) . uniformWord32
+
 instance UniformRange Word where
   {-# INLINE uniformRM #-}
   uniformRM = unsignedBitmaskWithRejectionRM
@@ -825,7 +828,7 @@ boundedExclusiveIntegralM (s :: a) gen = go
     n = integralWordSize s
     -- We renamed 'L' from the paper to 'k' here because 'L' is not a valid
     -- variable name in Haskell and 'l' is already used in the algorithm.
-    k = WORD_SIZE_IN_BITS * n
+    k = wordSizeInBits * n
     twoToK = (1::a) `shiftL` k
     modTwoToKMask = twoToK - 1
 
@@ -849,7 +852,7 @@ integralWordSize = go 0
   where
     go !acc i
       | i == 0 = acc
-      | otherwise = go (acc + 1) (i `shiftR` WORD_SIZE_IN_BITS)
+      | otherwise = go (acc + 1) (i `shiftR` wordSizeInBits)
 {-# INLINE integralWordSize #-}
 
 -- | @uniformIntegralWords n@ is a uniformly pseudo-random integral in the range
@@ -861,7 +864,7 @@ uniformIntegralWords n gen = go 0 n
       | i == 0 = return acc
       | otherwise = do
         (w :: Word) <- uniformM gen
-        go ((acc `shiftL` WORD_SIZE_IN_BITS) .|. fromIntegral w) (i - 1)
+        go ((acc `shiftL` wordSizeInBits) .|. fromIntegral w) (i - 1)
 {-# INLINE uniformIntegralWords #-}
 
 -- | Uniformly generate an 'Integral' in an inclusive-inclusive range.
