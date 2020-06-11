@@ -31,8 +31,8 @@ module System.Random.Stateful
   , StatefulGen(..)
   , FrozenGen(..)
   , RandomGenM(..)
-  , runGenM
-  , runGenM_
+  , withMutableGen
+  , withMutableGen_
   , randomM
   , randomRM
   , splitGenM
@@ -223,22 +223,22 @@ instance RandomGen r => RandomGenM (STGenM r s) r (ST s) where
 -- | Runs a mutable pseudo-random number generator from its 'Frozen' state.
 --
 -- >>> import Data.Int (Int8)
--- >>> runGenM (IOGen (mkStdGen 217)) (`uniformListM` 5) :: IO ([Int8], IOGen StdGen)
+-- >>> withMutableGen (IOGen (mkStdGen 217)) (`uniformListM` 5) :: IO ([Int8], IOGen StdGen)
 -- ([-74,37,-50,-2,3],IOGen {unIOGen = StdGen {unStdGen = SMGen 4273268533320920145 15251669095119325999}})
 --
 -- @since 1.2
-runGenM :: FrozenGen f m => f -> (MutableGen f m -> m a) -> m (a, f)
-runGenM fg action = do
+withMutableGen :: FrozenGen f m => f -> (MutableGen f m -> m a) -> m (a, f)
+withMutableGen fg action = do
   g <- thawGen fg
   res <- action g
   fg' <- freezeGen g
   pure (res, fg')
 
--- | Same as 'runGenM', but only returns the generated value.
+-- | Same as 'withMutableGen', but only returns the generated value.
 --
 -- @since 1.2
-runGenM_ :: FrozenGen f m => f -> (MutableGen f m -> m a) -> m a
-runGenM_ fg action = fst <$> runGenM fg action
+withMutableGen_ :: FrozenGen f m => f -> (MutableGen f m -> m a) -> m a
+withMutableGen_ fg action = fst <$> withMutableGen fg action
 
 
 -- | Generates a list of pseudo-random values.
@@ -436,7 +436,7 @@ applySTGen f (STGenM ref) = do
 --
 -- @since 1.2
 runSTGen :: RandomGen g => g -> (forall s . STGenM g s -> ST s a) -> (a, g)
-runSTGen g action = unSTGen <$> runST (runGenM (STGen g) action)
+runSTGen g action = unSTGen <$> runST (withMutableGen (STGen g) action)
 
 -- | Runs a monadic generating action in the `ST` monad using a pure
 -- pseudo-random number generator. Returns only the resulting pseudo-random
