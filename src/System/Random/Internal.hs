@@ -111,21 +111,21 @@ class RandomGen g where
   -- | Returns a 'Word8' that is uniformly distributed over the entire 'Word8'
   -- range.
   --
-  -- @since 1.2
+  -- @since 1.2.0
   genWord8 :: g -> (Word8, g)
   genWord8 = first fromIntegral . genWord32
 
   -- | Returns a 'Word16' that is uniformly distributed over the entire 'Word16'
   -- range.
   --
-  -- @since 1.2
+  -- @since 1.2.0
   genWord16 :: g -> (Word16, g)
   genWord16 = first fromIntegral . genWord32
 
   -- | Returns a 'Word32' that is uniformly distributed over the entire 'Word32'
   -- range.
   --
-  -- @since 1.2
+  -- @since 1.2.0
   genWord32 :: g -> (Word32, g)
   genWord32 = randomIvalIntegral (minBound, maxBound)
   -- Once `next` is removed, this implementation should be used instead:
@@ -134,7 +134,7 @@ class RandomGen g where
   -- | Returns a 'Word64' that is uniformly distributed over the entire 'Word64'
   -- range.
   --
-  -- @since 1.2
+  -- @since 1.2.0
   genWord64 :: g -> (Word64, g)
   genWord64 g =
     case genWord32 g of
@@ -146,21 +146,21 @@ class RandomGen g where
   -- | @genWord32R upperBound g@ returns a 'Word32' that is uniformly
   -- distributed over the range @[0, upperBound]@.
   --
-  -- @since 1.2
+  -- @since 1.2.0
   genWord32R :: Word32 -> g -> (Word32, g)
   genWord32R m g = runStateGen g (unbiasedWordMult32 m)
 
   -- | @genWord64R upperBound g@ returns a 'Word64' that is uniformly
   -- distributed over the range @[0, upperBound]@.
   --
-  -- @since 1.2
+  -- @since 1.2.0
   genWord64R :: Word64 -> g -> (Word64, g)
   genWord64R m g = runStateGen g (unsignedBitmaskWithRejectionM uniformWord64 m)
 
   -- | @genShortByteString n g@ returns a 'ShortByteString' of length @n@
   -- filled with pseudo-random bytes.
   --
-  -- @since 1.2
+  -- @since 1.2.0
   genShortByteString :: Int -> g -> (ShortByteString, g)
   genShortByteString n g =
     unsafePerformIO $ runStateGenT g (genShortByteStringIO n . uniformWord64)
@@ -193,14 +193,14 @@ class Monad m => StatefulGen g m where
   -- | @uniformWord32R upperBound g@ generates a 'Word32' that is uniformly
   -- distributed over the range @[0, upperBound]@.
   --
-  -- @since 1.2
+  -- @since 1.2.0
   uniformWord32R :: Word32 -> g -> m Word32
   uniformWord32R = unsignedBitmaskWithRejectionM uniformWord32
 
   -- | @uniformWord64R upperBound g@ generates a 'Word64' that is uniformly
   -- distributed over the range @[0, upperBound]@.
   --
-  -- @since 1.2
+  -- @since 1.2.0
   uniformWord64R :: Word64 -> g -> m Word64
   uniformWord64R = unsignedBitmaskWithRejectionM uniformWord64
 
@@ -209,7 +209,7 @@ class Monad m => StatefulGen g m where
   --
   -- The default implementation extracts a 'Word8' from 'uniformWord32'.
   --
-  -- @since 1.2
+  -- @since 1.2.0
   uniformWord8 :: g -> m Word8
   uniformWord8 = fmap fromIntegral . uniformWord32
 
@@ -218,7 +218,7 @@ class Monad m => StatefulGen g m where
   --
   -- The default implementation extracts a 'Word16' from 'uniformWord32'.
   --
-  -- @since 1.2
+  -- @since 1.2.0
   uniformWord16 :: g -> m Word16
   uniformWord16 = fmap fromIntegral . uniformWord32
 
@@ -227,7 +227,7 @@ class Monad m => StatefulGen g m where
   --
   -- The default implementation extracts a 'Word32' from 'uniformWord64'.
   --
-  -- @since 1.2
+  -- @since 1.2.0
   uniformWord32 :: g -> m Word32
   uniformWord32 = fmap fromIntegral . uniformWord64
 
@@ -237,7 +237,7 @@ class Monad m => StatefulGen g m where
   -- The default implementation combines two 'Word32' from 'uniformWord32' into
   -- one 'Word64'.
   --
-  -- @since 1.2
+  -- @since 1.2.0
   uniformWord64 :: g -> m Word64
   uniformWord64 g = do
     l32 <- uniformWord32 g
@@ -247,7 +247,7 @@ class Monad m => StatefulGen g m where
   -- | @uniformShortByteString n g@ generates a 'ShortByteString' of length @n@
   -- filled with pseudo-random bytes.
   --
-  -- @since 1.2
+  -- @since 1.2.0
   uniformShortByteString :: Int -> g -> m ShortByteString
   default uniformShortByteString :: MonadIO m => Int -> g -> m ShortByteString
   uniformShortByteString n = genShortByteStringIO n . uniformWord64
@@ -258,12 +258,12 @@ class Monad m => StatefulGen g m where
 -- | This class is designed for stateful pseudo-random number generators that
 -- can be saved as and restored from an immutable data type.
 --
--- @since 1.2
+-- @since 1.2.0
 class StatefulGen (MutableGen f m) m => FrozenGen f m where
   -- | Represents the state of the pseudo-random number generator for use with
   -- 'thawGen' and 'freezeGen'.
   --
-  -- @since 1.2
+  -- @since 1.2.0
 #if __GLASGOW_HASKELL__ >= 800
   type MutableGen f m = (g :: Type) | g -> f
 #else
@@ -271,11 +271,11 @@ class StatefulGen (MutableGen f m) m => FrozenGen f m where
 #endif
   -- | Saves the state of the pseudo-random number generator as a frozen seed.
   --
-  -- @since 1.2
+  -- @since 1.2.0
   freezeGen :: MutableGen f m -> m f
   -- | Restores the pseudo-random number generator from its frozen seed.
   --
-  -- @since 1.2
+  -- @since 1.2.0
   thawGen :: f -> m (MutableGen f m)
 
 
@@ -285,7 +285,7 @@ data MBA s = MBA (MutableByteArray# s)
 -- | Efficiently generates a sequence of pseudo-random bytes in a platform
 -- independent manner.
 --
--- @since 1.2
+-- @since 1.2.0
 genShortByteStringIO ::
      MonadIO m
   => Int -- ^ Number of bytes to generate
@@ -329,7 +329,7 @@ genShortByteStringIO n0 gen64 = do
 
 -- | Same as 'genShortByteStringIO', but runs in 'ST'.
 --
--- @since 1.2
+-- @since 1.2.0
 genShortByteStringST :: Int -> ST s Word64 -> ST s ShortByteString
 genShortByteStringST n action =
   unsafeIOToST (genShortByteStringIO n (unsafeSTToIO action))
@@ -337,7 +337,7 @@ genShortByteStringST n action =
 
 -- | Generates a pseudo-random 'ByteString' of the specified size.
 --
--- @since 1.2
+-- @since 1.2.0
 {-# INLINE uniformByteString #-}
 uniformByteString :: StatefulGen g m => Int -> g -> m ByteString
 uniformByteString n g = do
@@ -366,13 +366,13 @@ pinnedByteArrayToForeignPtr ba# =
 -- | Opaque data type that carries the type of a pure pseudo-random number
 -- generator.
 --
--- @since 1.2
+-- @since 1.2.0
 data StateGenM g = StateGenM
 
 -- | Wrapper for pure state gen, which acts as an immutable seed for the corresponding
 -- stateful generator `StateGenM`
 --
--- @since 1.2
+-- @since 1.2.0
 newtype StateGen g = StateGen { unStateGen :: g }
   deriving (Eq, Ord, Show, RandomGen, Storable, NFData)
 
@@ -393,14 +393,14 @@ instance (RandomGen g, MonadState g m) => FrozenGen (StateGen g) m where
 -- | Splits a pseudo-random number generator into two. Updates the state with
 -- one of the resulting generators and returns the other.
 --
--- @since 1.2
+-- @since 1.2.0
 splitGen :: (MonadState g m, RandomGen g) => m g
 splitGen = state split
 
 -- | Runs a monadic generating action in the `State` monad using a pure
 -- pseudo-random number generator.
 --
--- @since 1.2
+-- @since 1.2.0
 runStateGen :: RandomGen g => g -> (StateGenM g -> State g a) -> (a, g)
 runStateGen g f = runState (f StateGenM) g
 
@@ -408,14 +408,14 @@ runStateGen g f = runState (f StateGenM) g
 -- pseudo-random number generator. Returns only the resulting pseudo-random
 -- value.
 --
--- @since 1.2
+-- @since 1.2.0
 runStateGen_ :: RandomGen g => g -> (StateGenM g -> State g a) -> a
 runStateGen_ g = fst . runStateGen g
 
 -- | Runs a monadic generating action in the `StateT` monad using a pure
 -- pseudo-random number generator.
 --
--- @since 1.2
+-- @since 1.2.0
 runStateGenT :: RandomGen g => g -> (StateGenM g -> StateT g m a) -> m (a, g)
 runStateGenT g f = runStateT (f StateGenM) g
 
@@ -423,14 +423,14 @@ runStateGenT g f = runStateT (f StateGenM) g
 -- pseudo-random number generator. Returns only the resulting pseudo-random
 -- value.
 --
--- @since 1.2
+-- @since 1.2.0
 runStateGenT_ :: (RandomGen g, Functor f) => g -> (StateGenM g -> StateT g f a) -> f a
 runStateGenT_ g = fmap fst . runStateGenT g
 
 -- | Runs a monadic generating action in the `ST` monad using a pure
 -- pseudo-random number generator.
 --
--- @since 1.2
+-- @since 1.2.0
 runStateGenST :: RandomGen g => g -> (forall s . StateGenM g -> StateT g (ST s) a) -> (a, g)
 runStateGenST g action = runST $ runStateGenT g action
 {-# INLINE runStateGenST #-}
@@ -462,18 +462,18 @@ mkStdGen = StdGen . SM.mkSMGen . fromIntegral
 -- | The class of types for which a uniformly distributed value can be drawn
 -- from all possible values of the type.
 --
--- @since 1.2
+-- @since 1.2.0
 class Uniform a where
   -- | Generates a value uniformly distributed over all possible values of that
   -- type.
   --
-  -- @since 1.2
+  -- @since 1.2.0
   uniformM :: StatefulGen g m => g -> m a
 
 -- | The class of types for which a uniformly distributed value can be drawn
 -- from a range.
 --
--- @since 1.2
+-- @since 1.2.0
 class UniformRange a where
   -- | Generates a value uniformly distributed over the provided range, which
   -- is interpreted as inclusive in the lower and upper bound.
@@ -488,7 +488,7 @@ class UniformRange a where
   --
   -- > uniformRM (a, b) = uniformRM (b, a)
   --
-  -- @since 1.2
+  -- @since 1.2.0
   uniformRM :: StatefulGen g m => (a, a) -> g -> m a
 
 instance UniformRange Integer where
