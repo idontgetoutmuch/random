@@ -196,14 +196,14 @@ import System.Random.Internal
 
 -- | Interface to operations on 'RandomGen' wrappers like 'IOGenM' and 'StateGenM'.
 --
--- @since 1.2
+-- @since 1.2.0
 class (RandomGen r, StatefulGen g m) => RandomGenM g r m | g -> r where
   applyRandomGenM :: (r -> (a, r)) -> g -> m a
 
 -- | Splits a pseudo-random number generator into two. Overwrites the mutable
 -- wrapper with one of the resulting generators and returns the other.
 --
--- @since 1.2
+-- @since 1.2.0
 splitGenM :: RandomGenM g r m => g -> m r
 splitGenM = applyRandomGenM split
 
@@ -226,7 +226,7 @@ instance RandomGen r => RandomGenM (STGenM r s) r (ST s) where
 -- >>> withMutableGen (IOGen (mkStdGen 217)) (`uniformListM` 5) :: IO ([Int8], IOGen StdGen)
 -- ([-74,37,-50,-2,3],IOGen {unIOGen = StdGen {unStdGen = SMGen 4273268533320920145 15251669095119325999}})
 --
--- @since 1.2
+-- @since 1.2.0
 withMutableGen :: FrozenGen f m => f -> (MutableGen f m -> m a) -> m (a, f)
 withMutableGen fg action = do
   g <- thawGen fg
@@ -236,26 +236,26 @@ withMutableGen fg action = do
 
 -- | Same as 'withMutableGen', but only returns the generated value.
 --
--- @since 1.2
+-- @since 1.2.0
 withMutableGen_ :: FrozenGen f m => f -> (MutableGen f m -> m a) -> m a
 withMutableGen_ fg action = fst <$> withMutableGen fg action
 
 
 -- | Generates a list of pseudo-random values.
 --
--- @since 1.2
+-- @since 1.2.0
 uniformListM :: (StatefulGen g m, Uniform a) => g -> Int -> m [a]
 uniformListM gen n = replicateM n (uniformM gen)
 
 -- | Generates a pseudo-random value using monadic interface and `Random` instance.
 --
--- @since 1.2
+-- @since 1.2.0
 randomM :: (RandomGenM g r m, Random a) => g -> m a
 randomM = applyRandomGenM random
 
 -- | Generates a pseudo-random value using monadic interface and `Random` instance.
 --
--- @since 1.2
+-- @since 1.2.0
 randomRM :: (RandomGenM g r m, Random a) => (a, a) -> g -> m a
 randomRM r = applyRandomGenM (randomR r)
 
@@ -266,19 +266,19 @@ randomRM r = applyRandomGenM (randomR r)
 -- *   'AtomicGenM' is the slowest of the monadic adapters due to the overhead
 --     of its atomic operations.
 --
--- @since 1.2
+-- @since 1.2.0
 newtype AtomicGenM g = AtomicGenM { unAtomicGenM :: IORef g}
 
 
 -- | Frozen version of mutable `AtomicGenM` generator
 --
--- @since 1.2
+-- @since 1.2.0
 newtype AtomicGen g = AtomicGen { unAtomicGen :: g}
   deriving (Eq, Ord, Show, RandomGen, Storable, NFData)
 
 -- | Creates a new 'AtomicGenM'.
 --
--- @since 1.2
+-- @since 1.2.0
 newAtomicGenM :: MonadIO m => g -> m (AtomicGenM g)
 newAtomicGenM = fmap AtomicGenM . liftIO . newIORef
 
@@ -306,7 +306,7 @@ instance (RandomGen g, MonadIO m) => FrozenGen (AtomicGen g) m where
 -- | Atomically applies a pure operation to the wrapped pseudo-random number
 -- generator.
 --
--- @since 1.2
+-- @since 1.2.0
 applyAtomicGen :: MonadIO m => (g -> (a, g)) -> (AtomicGenM g) -> m a
 applyAtomicGen op (AtomicGenM gVar) =
   liftIO $ atomicModifyIORef' gVar $ \g ->
@@ -331,19 +331,19 @@ applyAtomicGen op (AtomicGenM gVar) =
 --
 -- >>> newIOGenM (mkStdGen 1729) >>= ioGen
 --
--- @since 1.2
+-- @since 1.2.0
 newtype IOGenM g = IOGenM { unIOGenM :: IORef g }
 
 -- | Frozen version of mutable `IOGenM` generator
 --
--- @since 1.2
+-- @since 1.2.0
 newtype IOGen g = IOGen { unIOGen :: g }
   deriving (Eq, Ord, Show, RandomGen, Storable, NFData)
 
 
 -- | Creates a new 'IOGenM'.
 --
--- @since 1.2
+-- @since 1.2.0
 newIOGenM :: MonadIO m => g -> m (IOGenM g)
 newIOGenM = fmap IOGenM . liftIO . newIORef
 
@@ -371,7 +371,7 @@ instance (RandomGen g, MonadIO m) => FrozenGen (IOGen g) m where
 
 -- | Applies a pure operation to the wrapped pseudo-random number generator.
 --
--- @since 1.2
+-- @since 1.2.0
 applyIOGen :: MonadIO m => (g -> (a, g)) -> IOGenM g -> m a
 applyIOGen f (IOGenM ref) = liftIO $ do
   g <- readIORef ref
@@ -384,18 +384,18 @@ applyIOGen f (IOGenM ref) = liftIO $ do
 -- *   'STGenM' is safe in the presence of exceptions, but not concurrency.
 -- *   'STGenM' is slower than 'StateGenM' due to the extra pointer indirection.
 --
--- @since 1.2
+-- @since 1.2.0
 newtype STGenM g s = STGenM { unSTGenM :: STRef s g }
 
 -- | Frozen version of mutable `STGenM` generator
 --
--- @since 1.2
+-- @since 1.2.0
 newtype STGen g = STGen { unSTGen :: g }
   deriving (Eq, Ord, Show, RandomGen, Storable, NFData)
 
 -- | Creates a new 'STGenM'.
 --
--- @since 1.2
+-- @since 1.2.0
 newSTGenM :: g -> ST s (STGenM g s)
 newSTGenM = fmap STGenM . newSTRef
 
@@ -423,7 +423,7 @@ instance RandomGen g => FrozenGen (STGen g) (ST s) where
 
 -- | Applies a pure operation to the wrapped pseudo-random number generator.
 --
--- @since 1.2
+-- @since 1.2.0
 applySTGen :: (g -> (a, g)) -> STGenM g s -> ST s a
 applySTGen f (STGenM ref) = do
   g <- readSTRef ref
@@ -434,7 +434,7 @@ applySTGen f (STGenM ref) = do
 -- | Runs a monadic generating action in the `ST` monad using a pure
 -- pseudo-random number generator.
 --
--- @since 1.2
+-- @since 1.2.0
 runSTGen :: RandomGen g => g -> (forall s . STGenM g s -> ST s a) -> (a, g)
 runSTGen g action = unSTGen <$> runST (withMutableGen (STGen g) action)
 
@@ -442,7 +442,7 @@ runSTGen g action = unSTGen <$> runST (withMutableGen (STGen g) action)
 -- pseudo-random number generator. Returns only the resulting pseudo-random
 -- value.
 --
--- @since 1.2
+-- @since 1.2.0
 runSTGen_ :: RandomGen g => g -> (forall s . STGenM g s -> ST s a) -> a
 runSTGen_ g action = fst $ runSTGen g action
 

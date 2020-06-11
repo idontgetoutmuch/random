@@ -133,7 +133,7 @@ import qualified System.Random.SplitMix as SM
 --
 -- This is a pure version of 'System.Random.Stateful.uniformM'.
 --
--- @since 1.2
+-- @since 1.2.0
 uniform :: (RandomGen g, Uniform a) => g -> (a, g)
 uniform g = runStateGen g uniformM
 
@@ -152,14 +152,14 @@ uniform g = runStateGen g uniformM
 --
 -- This is a pure version of 'System.Random.Stateful.uniformRM'.
 --
--- @since 1.2
+-- @since 1.2.0
 uniformR :: (RandomGen g, UniformRange a) => (a, a) -> g -> (a, g)
 uniformR r g = runStateGen g (uniformRM r)
 
 -- | Generates a 'ByteString' of the specified size using a pure pseudo-random
 -- number generator. See 'uniformByteString' for the monadic version.
 --
--- @since 1.2
+-- @since 1.2.0
 genByteString :: RandomGen g => Int -> g -> (ByteString, g)
 genByteString n g = runStateGenST g (uniformByteString n)
 {-# INLINE genByteString #-}
