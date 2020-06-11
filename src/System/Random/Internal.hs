@@ -141,7 +141,7 @@ class RandomGen g where
       (l32, g') ->
         case genWord32 g' of
           (h32, g'') ->
-            ((fromIntegral h32 `unsafeShiftL` 32) .|. fromIntegral l32, g'')
+            ((fromIntegral h32 `shiftL` 32) .|. fromIntegral l32, g'')
 
   -- | @genWord32R upperBound g@ returns a 'Word32' that is uniformly
   -- distributed over the range @[0, upperBound]@.
@@ -242,7 +242,7 @@ class Monad m => StatefulGen g m where
   uniformWord64 g = do
     l32 <- uniformWord32 g
     h32 <- uniformWord32 g
-    pure (unsafeShiftL (fromIntegral h32) 32 .|. fromIntegral l32)
+    pure (shiftL (fromIntegral h32) 32 .|. fromIntegral l32)
 
   -- | @uniformShortByteString n g@ generates a 'ShortByteString' of length @n@
   -- filled with pseudo-random bytes.
@@ -319,7 +319,7 @@ genShortByteStringIO n0 gen64 = do
       let goRem64 z i =
             when (i < nrem64) $ do
               pokeByteOff ptr i (fromIntegral z :: Word8)
-              goRem64 (z `unsafeShiftR` 8) (i + 1)
+              goRem64 (z `shiftR` 8) (i + 1)
       goRem64 w64 0
   liftIO $
     IO $ \s# ->
