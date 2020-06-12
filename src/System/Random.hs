@@ -120,9 +120,9 @@ import qualified System.Random.SplitMix as SM
 --
 --     Pure pseudo-random number generators should implement 'split' if they
 --     are /splittable/, that is, if there is an efficient method to turn one
---     instance of the generator into two such that the pseudo-random numbers
---     produced by the two resulting generators are not correlated. See [1] for
---     some background on splittable pseudo-random generators.
+--     generator into two. The pseudo-random numbers produced by the two
+--     resulting generators should not be correlated. See [1] for some
+--     background on splittable pseudo-random generators.
 --
 -- ['System.Random.Stateful.StatefulGen': monadic pseudo-random number generators]
 --     See "System.Random.Stateful" module
