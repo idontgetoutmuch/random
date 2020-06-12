@@ -694,10 +694,12 @@ instance UniformRange CUIntMax where
   uniformRM (CUIntMax b, CUIntMax t) = fmap CUIntMax . uniformRM (b, t)
   {-# INLINE uniformRM #-}
 
+-- | See [Floating point number caveats](System-Random-Stateful.html#fpcaveats).
 instance UniformRange CFloat where
   uniformRM (CFloat l, CFloat h) = fmap CFloat . uniformRM (l, h)
   {-# INLINE uniformRM #-}
 
+-- | See [Floating point number caveats](System-Random-Stateful.html#fpcaveats).
 instance UniformRange CDouble where
   uniformRM (CDouble l, CDouble h) = fmap CDouble . uniformRM (l, h)
   {-# INLINE uniformRM #-}
@@ -733,7 +735,7 @@ instance UniformRange Bool where
   uniformRM (True, True)   _g = return True
   uniformRM _               g = uniformM g
 
--- | See /Floating point number caveats/ in "System.Random.Stateful".
+-- | See [Floating point number caveats](System-Random-Stateful.html#fpcaveats).
 instance UniformRange Double where
   uniformRM (l, h) g = do
     w64 <- uniformWord64 g
@@ -749,7 +751,7 @@ word64ToDoubleInUnitInterval w64 = d / m
     m = fromIntegral (maxBound :: Word64) :: Double
 {-# INLINE word64ToDoubleInUnitInterval #-}
 
--- | See /Floating point number caveats/ in "System.Random.Stateful".
+-- | See [Floating point number caveats](System-Random-Stateful.html#fpcaveats).
 instance UniformRange Float where
   uniformRM (l, h) g = do
     w32 <- uniformWord32 g
