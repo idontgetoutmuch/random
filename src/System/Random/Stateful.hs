@@ -82,7 +82,7 @@ module System.Random.Stateful
   -- ** How to implement 'StatefulGen'
   -- $implementmonadrandom
 
-  -- ** Floating point number caveats
+  -- ** Floating point number caveats #fpcaveats#
   -- $floating
 
   -- * References
