@@ -577,14 +577,7 @@ runSTGen_ g action = fst $ runSTGen g action
 -- <https://doi.org/10.1145/2660193.2660195>
 
 -- $setup
--- >>> import Control.Arrow (first, second)
--- >>> import Control.Monad (replicateM)
 -- >>> import Control.Monad.Primitive
--- >>> import Data.Bits
--- >>> import Data.Int (Int32)
--- >>> import Data.Word (Word8, Word16, Word32, Word64)
--- >>> import System.IO (IOMode(WriteMode), withBinaryFile)
--- >>> import System.Random.Stateful
 -- >>> import qualified System.Random.MWC as MWC
 --
 -- >>> :set -XFlexibleContexts
