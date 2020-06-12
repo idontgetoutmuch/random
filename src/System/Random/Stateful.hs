@@ -126,18 +126,18 @@ import System.Random.Internal
 -- In monadic code, use the relevant 'Uniform' and 'UniformRange' instances to
 -- generate pseudo-random values via 'uniformM' and 'uniformRM', respectively.
 --
--- As an example, @rollsM@ generates @n@ pseudo-random values of @Word8@ in the
+-- As an example, @rollsM@ generates @n@ pseudo-random values of @Word@ in the
 -- range @[1, 6]@ in a 'StatefulGen' context; given a /monadic/ pseudo-random
 -- number generator, you can run this probabilistic computation as follows:
 --
 -- >>> :{
--- let rollsM :: StatefulGen g m => Int -> g -> m [Word8]
+-- let rollsM :: StatefulGen g m => Int -> g -> m [Word]
 --     rollsM n = replicateM n . uniformRM (1, 6)
 -- in do
 --     monadicGen <- MWC.create
---     rollsM 10 monadicGen :: IO [Word8]
+--     rollsM 10 monadicGen :: IO [Word]
 -- :}
--- [4,1,2,4,4,5,2,1,5,4]
+-- [3,4,3,1,4,6,1,6,1,4]
 --
 -- Given a /pure/ pseudo-random number generator, you can run the monadic
 -- pseudo-random number computation @rollsM@ in an 'IO' or 'ST' context by
@@ -146,13 +146,13 @@ import System.Random.Internal
 -- generator.
 --
 -- >>> :{
--- let rollsM :: StatefulGen g m => Int -> g -> m [Word8]
+-- let rollsM :: StatefulGen g m => Int -> g -> m [Word]
 --     rollsM n = replicateM n . uniformRM (1, 6)
 --     pureGen = mkStdGen 42
 -- in
---     newIOGenM pureGen >>= rollsM 10 :: IO [Word8]
+--     newIOGenM pureGen >>= rollsM 10 :: IO [Word]
 -- :}
--- [5,1,4,3,3,2,5,2,2,4]
+-- [1,1,3,2,4,5,3,4,6,2]
 
 -------------------------------------------------------------------------------
 -- Pseudo-random number generator interfaces
@@ -577,14 +577,7 @@ runSTGen_ g action = fst $ runSTGen g action
 -- <https://doi.org/10.1145/2660193.2660195>
 
 -- $setup
--- >>> import Control.Arrow (first, second)
--- >>> import Control.Monad (replicateM)
 -- >>> import Control.Monad.Primitive
--- >>> import Data.Bits
--- >>> import Data.Int (Int32)
--- >>> import Data.Word (Word8, Word16, Word32, Word64)
--- >>> import System.IO (IOMode(WriteMode), withBinaryFile)
--- >>> import System.Random.Stateful
 -- >>> import qualified System.Random.MWC as MWC
 --
 -- >>> :set -XFlexibleContexts
