@@ -86,25 +86,25 @@ import qualified System.Random.SplitMix as SM
 -- with a pure pseudo-random number generator like 'StdGen'.
 --
 -- >>> :{
--- let rolls :: RandomGen g => Int -> g -> [Word8]
+-- let rolls :: RandomGen g => Int -> g -> [Word]
 --     rolls n = take n . unfoldr (Just . uniformR (1, 6))
 --     pureGen = mkStdGen 137
 -- in
---     rolls 10 pureGen :: [Word8]
+--     rolls 10 pureGen :: [Word]
 -- :}
--- [1,2,6,6,5,1,4,6,5,4]
+-- [4,2,6,1,6,6,5,1,1,5]
 --
 -- To run use a /monadic/ pseudo-random computation in pure code with a pure
 -- pseudo-random number generator, use 'runGenState' and its variants.
 --
 -- >>> :{
--- let rollsM :: StatefulGen g m => Int -> g -> m [Word8]
+-- let rollsM :: StatefulGen g m => Int -> g -> m [Word]
 --     rollsM n = replicateM n . uniformRM (1, 6)
 --     pureGen = mkStdGen 137
 -- in
---     runStateGen_ pureGen (rollsM 10) :: [Word8]
+--     runStateGen_ pureGen (rollsM 10) :: [Word]
 -- :}
--- [1,2,6,6,5,1,4,6,5,4]
+-- [4,2,6,1,6,6,5,1,1,5]
 
 -------------------------------------------------------------------------------
 -- Pseudo-random number generator interfaces
