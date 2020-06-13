@@ -185,6 +185,41 @@ main = do
                 !range = (1, n - 1)
             in pureUniformRBench @Natural range sz
           ]
+        , bgroup "floating"
+          [ bgroup "IO"
+            [ bench "uniformFloat01M" $ nfIO $ runStateGenT_ (mkStdGen 1337) $ \g ->
+                replicateM_ sz $ do !_ <- uniformFloat01M g
+                                    return ()
+            , bench "uniformFloatPositive01M" $ nfIO $ runStateGenT_ (mkStdGen 1337) $ \g ->
+                replicateM_ sz $ do !_ <- uniformFloatPositive01M g
+                                    return ()
+            , bench "uniformDouble01M" $ nfIO $ runStateGenT_ (mkStdGen 1337) $ \g ->
+                replicateM_ sz $ do !_ <- uniformDouble01M g
+                                    return ()
+            , bench "uniformDoublePositive01M" $ nfIO $ runStateGenT_ (mkStdGen 1337) $ \g ->
+                replicateM_ sz $ do !_ <- uniformDoublePositive01M g
+                                    return ()
+            ]
+          --
+          , bgroup "St"
+            [ bench "uniformFloat01M" $ nf
+              (\n -> runStateGen_ (mkStdGen 1337) $ \g -> replicateM_ n $ do !_ <- uniformFloat01M g
+                                                                             return ()
+              ) sz
+            , bench "uniformFloatPositive01M" $ nf
+              (\n -> runStateGen_ (mkStdGen 1337) $ \g -> replicateM_ n $ do !_ <- uniformFloatPositive01M g
+                                                                             return ()
+              ) sz
+            , bench "uniformDouble01M" $ nf
+              (\n -> runStateGen_ (mkStdGen 1337) $ \g -> replicateM_ n $ do !_ <- uniformDouble01M g
+                                                                             return ()
+              ) sz
+            , bench "uniformDoublePositive01M" $ nf
+              (\n -> runStateGen_ (mkStdGen 1337) $ \g -> replicateM_ n $ do !_ <- uniformDoublePositive01M g
+                                                                             return ()
+              ) sz
+            ]
+          ]
         , bgroup "ShortByteString"
           [ env (pure genLengths) $ \ ~(ns, gen) ->
               bench "genShortByteString" $
