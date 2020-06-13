@@ -8,6 +8,7 @@
 module Main (main) where
 
 import Control.Monad
+import Control.Monad.State.Strict
 import Data.Int
 import Data.Proxy
 import Data.Typeable
@@ -218,6 +219,24 @@ main = do
               (\n -> runStateGen_ (mkStdGen 1337) $ \g -> replicateM_ n $ do !_ <- uniformDoublePositive01M g
                                                                              return ()
               ) sz
+            ]
+          , bgroup "pure"
+            [ let !stdGen = mkStdGen 1337
+              in bench "uniformFloat01M" $ nf
+                 (genMany (runState $ uniformFloat01M (StateGenM @StdGen)) stdGen)
+                 sz
+            , let !stdGen = mkStdGen 1337
+              in bench "uniformFloatPositive01M" $ nf
+                 (genMany (runState $ uniformFloatPositive01M (StateGenM @StdGen)) stdGen)
+                 sz
+            , let !stdGen = mkStdGen 1337
+              in bench "uniformDouble01M" $ nf
+                 (genMany (runState $ uniformDouble01M (StateGenM @StdGen)) stdGen)
+                 sz
+            , let !stdGen = mkStdGen 1337
+              in bench "uniformDoublePositive01M" $ nf
+                 (genMany (runState $ uniformDoublePositive01M (StateGenM @StdGen)) stdGen)
+                 sz
             ]
           ]
         , bgroup "ShortByteString"
