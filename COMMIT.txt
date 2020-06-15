@@ -142,10 +142,12 @@ FrozenGen
 
 This patch also introduces a class 'FrozenGen':
 
-class StatefulGen (MutableGen f m) m => FrozenGen f m where
-  type MutableGen f m = (g :: Type) | g -> f
-  freezeGen :: MutableGen f m -> m f
-  thawGen :: f -> m (MutableGen f m)
+    -- | 'FrozenGen' is designed for stateful pseudo-random number generators
+    -- that can be saved as and restored from an immutable data type.
+    class StatefulGen (MutableGen f m) m => FrozenGen f m where
+      type MutableGen f m = (g :: Type) | g -> f
+      freezeGen :: MutableGen f m -> m f
+      thawGen :: f -> m (MutableGen f m)
 
 'f' is the type of the generator's state "at rest" and 'm' the underlying
 monad. 'MutableGen' is defined as an injective type family via 'g -> f' so for
