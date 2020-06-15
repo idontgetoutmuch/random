@@ -4,6 +4,7 @@
 module Main (main) where
 
 import Control.Monad
+import Control.Monad.State.Strict
 import Data.Int
 import Data.Proxy
 import Data.Typeable
@@ -176,6 +177,59 @@ main = do
           , let !n = (10 :: Natural) ^ (100 :: Natural)
                 !range = (1, n - 1)
             in pureUniformRBench (Proxy :: Proxy Natural) range sz
+          ]
+        , bgroup "floating"
+          [ bgroup "IO"
+            [ bench "uniformFloat01M" $ nfIO $ runStateGenT_ (mkStdGen 1337) $ \g ->
+                replicateM_ sz $ do !_ <- uniformFloat01M g
+                                    return ()
+            , bench "uniformFloatPositive01M" $ nfIO $ runStateGenT_ (mkStdGen 1337) $ \g ->
+                replicateM_ sz $ do !_ <- uniformFloatPositive01M g
+                                    return ()
+            , bench "uniformDouble01M" $ nfIO $ runStateGenT_ (mkStdGen 1337) $ \g ->
+                replicateM_ sz $ do !_ <- uniformDouble01M g
+                                    return ()
+            , bench "uniformDoublePositive01M" $ nfIO $ runStateGenT_ (mkStdGen 1337) $ \g ->
+                replicateM_ sz $ do !_ <- uniformDoublePositive01M g
+                                    return ()
+            ]
+          --
+          , bgroup "St"
+            [ bench "uniformFloat01M" $ nf
+              (\n -> runStateGen_ (mkStdGen 1337) $ \g -> replicateM_ n $ do !_ <- uniformFloat01M g
+                                                                             return ()
+              ) sz
+            , bench "uniformFloatPositive01M" $ nf
+              (\n -> runStateGen_ (mkStdGen 1337) $ \g -> replicateM_ n $ do !_ <- uniformFloatPositive01M g
+                                                                             return ()
+              ) sz
+            , bench "uniformDouble01M" $ nf
+              (\n -> runStateGen_ (mkStdGen 1337) $ \g -> replicateM_ n $ do !_ <- uniformDouble01M g
+                                                                             return ()
+              ) sz
+            , bench "uniformDoublePositive01M" $ nf
+              (\n -> runStateGen_ (mkStdGen 1337) $ \g -> replicateM_ n $ do !_ <- uniformDoublePositive01M g
+                                                                             return ()
+              ) sz
+            ]
+          , bgroup "pure"
+            [ let !stdGen = mkStdGen 1337
+              in bench "uniformFloat01M" $ nf
+                 (genMany (runState $ uniformFloat01M (StateGenM @StdGen)) stdGen)
+                 sz
+            , let !stdGen = mkStdGen 1337
+              in bench "uniformFloatPositive01M" $ nf
+                 (genMany (runState $ uniformFloatPositive01M (StateGenM @StdGen)) stdGen)
+                 sz
+            , let !stdGen = mkStdGen 1337
+              in bench "uniformDouble01M" $ nf
+                 (genMany (runState $ uniformDouble01M (StateGenM @StdGen)) stdGen)
+                 sz
+            , let !stdGen = mkStdGen 1337
+              in bench "uniformDoublePositive01M" $ nf
+                 (genMany (runState $ uniformDoublePositive01M (StateGenM @StdGen)) stdGen)
+                 sz
+            ]
           ]
         , bgroup "ShortByteString"
           [ env (pure genLengths) $ \ ~(ns, gen) ->
