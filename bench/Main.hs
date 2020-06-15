@@ -215,19 +215,19 @@ main = do
           , bgroup "pure"
             [ let !stdGen = mkStdGen 1337
               in bench "uniformFloat01M" $ nf
-                 (genMany (runState $ uniformFloat01M (StateGenM @StdGen)) stdGen)
+                 (genMany (runState $ uniformFloat01M (StateGenM :: StateGenM StdGen)) stdGen)
                  sz
             , let !stdGen = mkStdGen 1337
               in bench "uniformFloatPositive01M" $ nf
-                 (genMany (runState $ uniformFloatPositive01M (StateGenM @StdGen)) stdGen)
+                 (genMany (runState $ uniformFloatPositive01M (StateGenM :: StateGenM StdGen)) stdGen)
                  sz
             , let !stdGen = mkStdGen 1337
               in bench "uniformDouble01M" $ nf
-                 (genMany (runState $ uniformDouble01M (StateGenM @StdGen)) stdGen)
+                 (genMany (runState $ uniformDouble01M (StateGenM :: StateGenM StdGen)) stdGen)
                  sz
             , let !stdGen = mkStdGen 1337
               in bench "uniformDoublePositive01M" $ nf
-                 (genMany (runState $ uniformDoublePositive01M (StateGenM @StdGen)) stdGen)
+                 (genMany (runState $ uniformDoublePositive01M (StateGenM :: StateGenM StdGen)) stdGen)
                  sz
             ]
           ]
