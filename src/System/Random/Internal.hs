@@ -421,9 +421,8 @@ runStateGen g f = runState (f StateGenM) g
 -- ====__Examples__
 --
 -- >>> import System.Random.Stateful
--- >>> import Control.Monad.State
 -- >>> let pureGen = mkStdGen 137
--- >>> (runStateGen_ pureGen (\_ -> state random)) :: Int
+-- >>> runStateGen_ pureGen  randomM :: Int
 -- 7879794327570578227
 --
 runStateGen_ :: RandomGen g => g -> (StateGenM g -> State g a) -> a
