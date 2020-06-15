@@ -404,9 +404,8 @@ splitGen = state split
 -- ====__Examples__
 --
 -- >>> import System.Random.Stateful
--- >>> import Control.Monad.State
 -- >>> let pureGen = mkStdGen 137
--- >>> (runStateGen pureGen (\_ -> state random)) :: (Int, StdGen)
+-- >>> runStateGen pureGen randomM :: (Int, StdGen)
 -- (7879794327570578227,StdGen {unStdGen = SMGen 11285859549637045894 7641485672361121627})
 --
 runStateGen :: RandomGen g => g -> (StateGenM g -> State g a) -> (a, g)
