@@ -290,7 +290,8 @@ randomM = applyRandomGenM random
 --
 -- >>> import System.Random.Stateful
 -- >>> let pureGen = mkStdGen 137
--- >>> do {g <- newIOGenM pureGen; randomRM (1, 100) g} :: IO Int
+-- >>> g <- newIOGenM pureGen
+-- >>> randomRM (1, 100) g :: IO Int
 -- 52
 randomRM :: (RandomGenM g r m, Random a) => (a, a) -> g -> m a
 randomRM r = applyRandomGenM (randomR r)
