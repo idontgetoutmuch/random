@@ -75,7 +75,7 @@ module System.Random.Stateful
   -- * Generators for sequences of pseudo-random bytes
   , genShortByteStringIO
   , genShortByteStringST
-  , uniformByteString
+  , uniformByteStringM
   , uniformDouble01M
   , uniformDoublePositive01M
   , uniformFloat01M
@@ -229,7 +229,7 @@ instance RandomGen r => RandomGenM (STGenM r s) r (ST s) where
 -- ====__Examples__
 --
 -- >>> import Data.Int (Int8)
--- >>> withMutableGen (IOGen (mkStdGen 217)) (`uniformListM` 5) :: IO ([Int8], IOGen StdGen)
+-- >>> withMutableGen (IOGen (mkStdGen 217)) (uniformListM 5) :: IO ([Int8], IOGen StdGen)
 -- ([-74,37,-50,-2,3],IOGen {unIOGen = StdGen {unStdGen = SMGen 4273268533320920145 15251669095119325999}})
 --
 -- @since 1.2.0
@@ -261,12 +261,12 @@ withMutableGen_ fg action = fst <$> withMutableGen fg action
 -- >>> import System.Random.Stateful
 -- >>> let pureGen = mkStdGen 137
 -- >>> g <- newIOGenM pureGen
--- >>> uniformListM g 10 :: IO [Bool]
+-- >>> uniformListM 10 g :: IO [Bool]
 -- [True,True,True,True,False,True,True,False,False,False]
 --
 -- @since 1.2.0
-uniformListM :: (StatefulGen g m, Uniform a) => g -> Int -> m [a]
-uniformListM gen n = replicateM n (uniformM gen)
+uniformListM :: (StatefulGen g m, Uniform a) => Int -> g -> m [a]
+uniformListM n gen = replicateM n (uniformM gen)
 
 -- | Generates a pseudo-random value using monadic interface and `Random` instance.
 --
@@ -370,7 +370,7 @@ applyAtomicGen op (AtomicGenM gVar) =
 --
 -- >>> import UnliftIO.Temporary (withSystemTempFile)
 -- >>> import Data.ByteString (hPutStr)
--- >>> let ioGen g = withSystemTempFile "foo.bin" $ \_ h -> uniformRM (0, 100) g >>= flip uniformByteString g >>= hPutStr h
+-- >>> let ioGen g = withSystemTempFile "foo.bin" $ \_ h -> uniformRM (0, 100) g >>= flip uniformByteStringM g >>= hPutStr h
 --
 -- and then run it:
 --

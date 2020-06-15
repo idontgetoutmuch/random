@@ -183,7 +183,7 @@ uniformR r g = runStateGen g (uniformRM r)
 --
 -- @since 1.2.0
 genByteString :: RandomGen g => Int -> g -> (ByteString, g)
-genByteString n g = runStateGenST g (uniformByteString n)
+genByteString n g = runStateGenST g (uniformByteStringM n)
 {-# INLINE genByteString #-}
 
 -- | The class of types for which uniformly distributed values can be

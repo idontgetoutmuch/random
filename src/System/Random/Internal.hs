@@ -53,7 +53,7 @@ module System.Random.Internal
   -- * Pseudo-random values of various types
   , Uniform(..)
   , UniformRange(..)
-  , uniformByteString
+  , uniformByteStringM
   , uniformDouble01M
   , uniformDoublePositive01M
   , uniformFloat01M
@@ -342,9 +342,9 @@ genShortByteStringST n action =
 -- | Generates a pseudo-random 'ByteString' of the specified size.
 --
 -- @since 1.2.0
-{-# INLINE uniformByteString #-}
-uniformByteString :: StatefulGen g m => Int -> g -> m ByteString
-uniformByteString n g = do
+{-# INLINE uniformByteStringM #-}
+uniformByteStringM :: StatefulGen g m => Int -> g -> m ByteString
+uniformByteStringM n g = do
   ba <- uniformShortByteString n g
   pure $
 #if __GLASGOW_HASKELL__ < 802
