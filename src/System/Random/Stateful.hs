@@ -349,7 +349,8 @@ instance (RandomGen g, MonadIO m) => FrozenGen (AtomicGen g) m where
 --
 -- >>> import System.Random.Stateful
 -- >>> let pureGen = mkStdGen 137
--- >>> do {g <- newAtomicGenM pureGen; applyAtomicGen random g} :: IO Int
+-- >>> g <- newAtomicGenM pureGen
+-- >>> applyAtomicGen random g :: IO Int
 -- 7879794327570578227
 --
 applyAtomicGen :: MonadIO m => (g -> (a, g)) -> (AtomicGenM g) -> m a
