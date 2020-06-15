@@ -897,7 +897,7 @@ boundedExclusiveIntegralM s gen = go
     twoToK = (1 :: a) `shiftL` k
     modTwoToKMask = twoToK - 1
 
-    t = (twoToK - s) `mod` s
+    t = (twoToK - s) `rem` s -- `rem`, instead of `mod` because `twoToK >= s` is guaranteed
     go :: (Bits a, Integral a, StatefulGen g m) => m a
     go = do
       x <- uniformIntegralWords n gen
