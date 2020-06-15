@@ -133,6 +133,13 @@ import qualified System.Random.SplitMix as SM
 --
 -- This is a pure version of 'System.Random.Stateful.uniformM'.
 --
+-- ====__Examples__
+--
+-- >>> import System.Random
+-- >>> let pureGen = mkStdGen 137
+-- >>> uniform pureGen :: (Bool, StdGen)
+-- (True,StdGen {unStdGen = SMGen 11285859549637045894 7641485672361121627})
+--
 -- @since 1.2.0
 uniform :: (RandomGen g, Uniform a) => g -> (a, g)
 uniform g = runStateGen g uniformM
@@ -152,12 +159,27 @@ uniform g = runStateGen g uniformM
 --
 -- This is a pure version of 'System.Random.Stateful.uniformRM'.
 --
+-- ====__Examples__
+--
+-- >>> import System.Random
+-- >>> let pureGen = mkStdGen 137
+-- >>> uniformR (1 :: Int, 4 :: Int) pureGen
+-- (4,StdGen {unStdGen = SMGen 11285859549637045894 7641485672361121627})
+--
 -- @since 1.2.0
 uniformR :: (RandomGen g, UniformRange a) => (a, a) -> g -> (a, g)
 uniformR r g = runStateGen g (uniformRM r)
 
 -- | Generates a 'ByteString' of the specified size using a pure pseudo-random
 -- number generator. See 'uniformByteString' for the monadic version.
+--
+-- ====__Examples__
+--
+-- >>> import System.Random
+-- >>> import Data.ByteString
+-- >>> let pureGen = mkStdGen 137
+-- >>> unpack . fst . genByteString 10 $ pureGen
+-- [51,123,251,37,49,167,90,109,1,4]
 --
 -- @since 1.2.0
 genByteString :: RandomGen g => Int -> g -> (ByteString, g)
@@ -211,6 +233,14 @@ class Random a where
 
 
 -- | Produce an infinite list-equivalent of pseudo-random values.
+--
+-- ====__Examples__
+--
+-- >>> import System.Random
+-- >>> let pureGen = mkStdGen 137
+-- >>> (take 4 . buildRandoms (:) random $ pureGen) :: [Int]
+-- [7879794327570578227,6883935014316540929,-1519291874655152001,2353271688382626589]
+--
 {-# INLINE buildRandoms #-}
 buildRandoms :: RandomGen g
              => (a -> as -> as)  -- ^ E.g. '(:)' but subject to fusion
