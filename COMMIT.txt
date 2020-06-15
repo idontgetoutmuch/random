@@ -118,41 +118,43 @@ improvement for 'random' for type 'Float' is 1038, so this operation is
 API changes
 ===========
 
-MonadRandom
+StatefulGen
 -----------
 
-This patch adds a class 'MonadRandom':
+This patch adds a class 'StatefulGen':
 
-    -- | 'MonadRandom' is an interface to monadic pseudo-random number generators.
-    class Monad m => MonadRandom g s m | g m -> s where
-      {-# MINIMAL freezeGen,thawGen,(uniformWord32|uniformWord64) #-}
-
-      type Frozen g = (f :: Type) | f -> g
-      freezeGen :: g s -> m (Frozen g)
-      thawGen :: Frozen g -> m (g s)
-
-      uniformWord32 :: g s -> m Word32 -- default implementation in terms of uniformWord64
-      uniformWord64 :: g s -> m Word64 -- default implementation in terms of uniformWord32
+    -- | 'StatefulGen' is an interface to monadic pseudo-random number generators.
+    class Monad m => StatefulGen g m where
+      uniformWord32 :: g -> m Word32 -- default implementation in terms of uniformWord64
+      uniformWord64 :: g -> m Word64 -- default implementation in terms of uniformWord32
       -- plus methods for other word sizes and for byte strings
       -- all have default implementations so the MINIMAL pragma holds
 
-Conceptually, in 'MonadRandom g s m', 'g s' is the type of the
-generator, 's' is the state type, and 'm' the underlying monad. Via the
-functional dependency 'g m -> s', the state type is determined by the
-generator and monad.
+In 'StatefulGen g m', 'g' is the type of the generator and 'm' the underlying
+monad.
 
-'Frozen' is the type of the generator's state "at rest". It is defined
-as an injective type family via 'f -> g', so there is no ambiguity as to
-which 'g' any 'Frozen g' belongs to.
-
-This definition is generic enough to accommodate, for example, the 'Gen'
-type from the 'mwc-random' package, which itself abstracts over the
-underlying primitive monad and state token. The documentation shows the
-full 'MonadRandom Gen' instance.
-
-Four 'MonadRandom' instances ("monadic adapters") are provided for pure
+Four 'StatefulGen' instances ("monadic adapters") are provided for pure
 generators to enable their use in monadic code. The documentation
 describes them in detail.
+
+FrozenGen
+---------
+
+This patch also introduces a class 'FrozenGen':
+
+class StatefulGen (MutableGen f m) m => FrozenGen f m where
+  type MutableGen f m = (g :: Type) | g -> f
+  freezeGen :: MutableGen f m -> m f
+  thawGen :: f -> m (MutableGen f m)
+
+'f' is the type of the generator's state "at rest" and 'm' the underlying
+monad. 'MutableGen' is defined as an injective type family via 'g -> f' so for
+any generator 'g', the type 'f' of its at-rest state is well-defined.
+
+Both 'StatefulGen' and 'FrozenGen' are generic enough to accommodate, for
+example, the 'Gen' type from the 'mwc-random' package, which itself abstracts
+over the underlying primitive monad and state token. The documentation shows
+the full instances.
 
 'Uniform' and 'UniformRange'
 ----------------------------
