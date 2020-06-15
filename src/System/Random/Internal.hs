@@ -292,7 +292,8 @@ genShortByteStringIO ::
   -> m ShortByteString
 genShortByteStringIO n0 gen64 = do
   let !n@(I# n#) = max 0 n0
-      (n64, nrem64) = n `quotRem` 8
+      !n64 = n `quot` 8
+      !nrem64 = n `rem` 8
   MBA mba# <-
     liftIO $
     IO $ \s# ->
@@ -825,13 +826,13 @@ uniformIntegralM (l, h) gen = case l `compare` h of
 --
 -- PRECONDITION (unchecked): s > 0
 boundedExclusiveIntegralM :: forall a g m . (Bits a, Integral a, StatefulGen g m) => a -> g -> m a
-boundedExclusiveIntegralM (s :: a) gen = go
+boundedExclusiveIntegralM s gen = go
   where
     n = integralWordSize s
     -- We renamed 'L' from the paper to 'k' here because 'L' is not a valid
     -- variable name in Haskell and 'l' is already used in the algorithm.
     k = wordSizeInBits * n
-    twoToK = (1::a) `shiftL` k
+    twoToK = (1 :: a) `shiftL` k
     modTwoToKMask = twoToK - 1
 
     t = (twoToK - s) `mod` s
@@ -890,7 +891,7 @@ unbiasedWordMult32 s g
 -- blogpost](https://www.pcg-random.org/posts/bounded-rands.html) and
 -- more directly [O\'Neill's github
 -- repo](https://github.com/imneme/bounded-rands/blob/3d71f53c975b1e5b29f2f3b05a74e26dab9c3d84/bounded32.cpp#L234).
--- N.B. The range is [0,t) **not** [0,t].
+-- N.B. The range is [0,r) **not** [0,r].
 unbiasedWordMult32Exclusive :: forall g m . StatefulGen g m => Word32 -> g -> m Word32
 unbiasedWordMult32Exclusive r g = go
   where
@@ -918,13 +919,15 @@ unsignedBitmaskWithRejectionRM (bottom, top) gen
     (b, r) = if bottom > top then (top, bottom - top) else (bottom, top - bottom)
 {-# INLINE unsignedBitmaskWithRejectionRM #-}
 
--- | This works for signed integrals by explicit conversion to unsigned and abusing overflow
+-- | This works for signed integrals by explicit conversion to unsigned and abusing
+-- overflow. It uses `unsignedBitmaskWithRejectionM`, therefore it requires functions that
+-- take the value to unsigned and back.
 signedBitmaskWithRejectionRM ::
      (Num a, Num b, Ord b, Ord a, FiniteBits a, StatefulGen g f, Uniform a)
-  => (b -> a)
-  -> (a -> b)
-  -> (b, b)
-  -> g
+  => (b -> a) -- ^ Convert signed to unsigned. @a@ and @b@ must be of the same size.
+  -> (a -> b) -- ^ Convert unsigned to signed. @a@ and @b@ must be of the same size.
+  -> (b, b) -- ^ Range.
+  -> g -- ^ Generator.
   -> f b
 signedBitmaskWithRejectionRM toUnsigned fromUnsigned (bottom, top) gen
   | bottom == top = pure top
@@ -938,6 +941,9 @@ signedBitmaskWithRejectionRM toUnsigned fromUnsigned (bottom, top) gen
         else (bottom, toUnsigned top - toUnsigned bottom)
 {-# INLINE signedBitmaskWithRejectionRM #-}
 
+
+-- | Detailed explanation about the algorithm employed here can be found in this post:
+-- http://web.archive.org/web/20200520071940/https://www.pcg-random.org/posts/bounded-rands.html
 unsignedBitmaskWithRejectionM ::
   forall a g m . (Ord a, FiniteBits a, Num a, StatefulGen g m) => (g -> m a) -> a -> g -> m a
 unsignedBitmaskWithRejectionM genUniformM range gen = go

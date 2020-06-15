@@ -4,11 +4,9 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
 module Main (main) where
 
 import Data.ByteString.Short as SBS
-import Data.Coerce
 import Data.Int
 import Data.Typeable
 import Data.Word
@@ -19,8 +17,6 @@ import Test.SmallCheck.Series as SC
 import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Tasty.SmallCheck as SC
-
-#include "HsBaseConfig.h"
 
 import qualified Spec.Range as Range
 import qualified Spec.Run as Run
@@ -143,51 +139,3 @@ runSpec = testGroup "runGenState_ and runPrimGenIO_"
 -- | Create a StdGen instance from an Int and pass it to the given function.
 seeded :: (StdGen -> a) -> Int -> a
 seeded f = f . mkStdGen
-
-
-instance Monad m => Serial m CFloat where
-  series = coerce <$> (series :: Series m Float)
-instance Monad m => Serial m CDouble where
-  series = coerce <$> (series :: Series m Double)
-#if __GLASGOW_HASKELL >= 802
-instance Monad m => Serial m CBool where
-  series = coerce <$> (series :: Series m HTYPE_BOOL)
-#endif
-instance Monad m => Serial m CChar where
-  series = coerce <$> (series :: Series m HTYPE_CHAR)
-instance Monad m => Serial m CSChar where
-  series = coerce <$> (series :: Series m HTYPE_SIGNED_CHAR)
-instance Monad m => Serial m CUChar where
-  series = coerce <$> (series :: Series m HTYPE_UNSIGNED_CHAR)
-instance Monad m => Serial m CShort where
-  series = coerce <$> (series :: Series m HTYPE_SHORT)
-instance Monad m => Serial m CUShort where
-  series = coerce <$> (series :: Series m HTYPE_UNSIGNED_SHORT)
-instance Monad m => Serial m CInt where
-  series = coerce <$> (series :: Series m HTYPE_INT)
-instance Monad m => Serial m CUInt where
-  series = coerce <$> (series :: Series m HTYPE_UNSIGNED_INT)
-instance Monad m => Serial m CLong where
-  series = coerce <$> (series :: Series m HTYPE_LONG)
-instance Monad m => Serial m CULong where
-  series = coerce <$> (series :: Series m HTYPE_UNSIGNED_LONG)
-instance Monad m => Serial m CPtrdiff where
-  series = coerce <$> (series :: Series m HTYPE_PTRDIFF_T)
-instance Monad m => Serial m CSize where
-  series = coerce <$> (series :: Series m HTYPE_SIZE_T)
-instance Monad m => Serial m CWchar where
-  series = coerce <$> (series :: Series m HTYPE_WCHAR_T)
-instance Monad m => Serial m CSigAtomic where
-  series = coerce <$> (series :: Series m HTYPE_SIG_ATOMIC_T)
-instance Monad m => Serial m CLLong where
-  series = coerce <$> (series :: Series m HTYPE_LONG_LONG)
-instance Monad m => Serial m CULLong where
-  series = coerce <$> (series :: Series m HTYPE_UNSIGNED_LONG_LONG)
-instance Monad m => Serial m CIntPtr where
-  series = coerce <$> (series :: Series m HTYPE_INTPTR_T)
-instance Monad m => Serial m CUIntPtr where
-  series = coerce <$> (series :: Series m HTYPE_UINTPTR_T)
-instance Monad m => Serial m CIntMax where
-  series = coerce <$> (series :: Series m HTYPE_INTMAX_T)
-instance Monad m => Serial m CUIntMax where
-  series = coerce <$> (series :: Series m HTYPE_UINTMAX_T)

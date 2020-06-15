@@ -21,8 +21,7 @@
 	details on how to do this yourself.
 7. Unbiased generation of ranges.
 8. Updated tests and benchmarks.
-9. [Continuous integration](https://travis-ci.org/github/idontgetoutmuch/random).
-10. Fully documented - for more details see the [haddock](https://htmlpreview.github.io/?https://github.com/idontgetoutmuch/random/blob/release-notes/docs/System-Random.html).
+9. [Continuous integration](https://travis-ci.org/github/haskell/random).
 
 ### Breaking Changes
 
