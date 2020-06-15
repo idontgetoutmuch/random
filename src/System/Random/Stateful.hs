@@ -274,7 +274,8 @@ uniformListM gen n = replicateM n (uniformM gen)
 --
 -- >>> import System.Random.Stateful
 -- >>> let pureGen = mkStdGen 137
--- >>> do {g <- newIOGenM pureGen; randomM g} :: IO Double
+-- >>> g <- newIOGenM pureGen
+-- >>>  randomM g :: IO Double
 -- 0.42716450643454884
 --
 randomM :: (RandomGenM g r m, Random a) => g -> m a
