@@ -260,7 +260,8 @@ runGenM_ fg action = fst <$> runGenM fg action
 --
 -- >>> import System.Random.Stateful
 -- >>> let pureGen = mkStdGen 137
--- >>> do {g <- newIOGenM pureGen; uniformListM g 10 :: IO [Bool]}
+-- >>> g <- newIOGenM pureGen
+-- >>> uniformListM g 10 :: IO [Bool]
 -- [True,True,True,True,False,True,True,False,False,False]
 --
 uniformListM :: (StatefulGen g m, Uniform a) => g -> Int -> m [a]
