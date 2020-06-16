@@ -69,6 +69,8 @@ main =
     , runSpec
     , floatTests
     , byteStringSpec
+    , SC.testProperty "uniformRangeWithinExcludedF" $ seeded Range.uniformRangeWithinExcludedF
+    , SC.testProperty "uniformRangeWithinExcludedD" $ seeded Range.uniformRangeWithinExcludedD
     ]
 
 floatTests :: TestTree

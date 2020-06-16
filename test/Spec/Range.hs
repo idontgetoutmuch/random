@@ -3,9 +3,11 @@ module Spec.Range
   , bounded
   , singleton
   , uniformRangeWithin
-  , uniformRangeWithinExcluded
+  , uniformRangeWithinExcludedF
+  , uniformRangeWithinExcludedD
   ) where
 
+import System.Random.Internal
 import System.Random.Stateful
 import Data.Proxy
 
@@ -29,8 +31,12 @@ uniformRangeWithin _ gen (l, r) =
   runStateGen_ gen $ \g ->
     (\result -> min l r <= result && result <= max l r) <$> uniformRM (l, r) g
 
-uniformRangeWithinExcluded ::
-     (RandomGen g, UniformRange a, Ord a) => Proxy a -> g -> (a, a) -> Bool
-uniformRangeWithinExcluded _ gen (l, r) =
+uniformRangeWithinExcludedF :: RandomGen g => g -> Bool
+uniformRangeWithinExcludedF gen =
   runStateGen_ gen $ \g ->
-    (\result -> min l r <= result && (l == r || result < max l r)) <$> uniformRM (l, r) g
+    (\result -> 0 < result && result <= 1) <$> uniformFloatPositive01M g
+
+uniformRangeWithinExcludedD :: RandomGen g => g -> Bool
+uniformRangeWithinExcludedD gen =
+  runStateGen_ gen $ \g ->
+    (\result -> 0 < result && result <= 1) <$> uniformDoublePositive01M g

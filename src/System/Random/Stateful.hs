@@ -624,8 +624,7 @@ runSTGen_ g action = fst $ runSTGen g action
 -- $implementmonadrandom
 --
 -- Typically, a monadic pseudo-random number generator has facilities to save
--- and restore its internal state in addition to generating pseudo-random
--- pseudo-random numbers.
+-- and restore its internal state in addition to generating pseudo-random numbers.
 --
 -- Here is an example instance for the monadic pseudo-random number generator
 -- from the @mwc-random@ package:
@@ -641,6 +640,46 @@ runSTGen_ g action = fst $ runSTGen g action
 -- >   type MutableGen MWC.Seed m = MWC.Gen (PrimState m)
 -- >   thawGen = MWC.restore
 -- >   freezeGen = MWC.save
+--
+-- === @FrozenGen@
+--
+-- `FrozenGen` gives us ability to use any stateful pseudo-random number generator in its
+-- immutable form, if one exists that is. This concept is commonly known as a seed, which
+-- allows us to save and restore the actual mutable state of a pseudo-random number
+-- generator. The biggest benefit that can be drawn from a polymorphic access to a
+-- stateful pseudo-random number generator in a frozen form is the ability to serialize,
+-- deserialize and possibly even use the stateful generator in a pure setting without
+-- knowing the actual type of a generator ahead of time. For example we can write a
+-- function that accepts a frozen state of some pseudo-random number generator and
+-- produces a short list with random even integers.
+--
+-- >>> import Data.Int (Int8)
+-- >>> :{
+-- myCustomRandomList :: FrozenGen f m => f -> m [Int8]
+-- myCustomRandomList f =
+--   withMutableGen_ f $ \gen -> do
+--     len <- uniformRM (5, 10) gen
+--     replicateM len $ do
+--       x <- uniformM gen
+--       pure $ if even x then x else x + 1
+-- :}
+--
+-- and later we can apply it to a frozen version of a stateful generator, such as `STGen`:
+--
+-- >>> print $ runST $ myCustomRandomList (STGen (mkStdGen 217))
+-- [-50,-2,4,-8,-58,-40,24,-32,-110,24]
+--
+-- or a @Seed@ from @mwc-random@:
+--
+-- >>> import Data.Vector.Primitive as P
+-- >>> print $ runST $ myCustomRandomList (MWC.toSeed (P.fromList [1,2,3]))
+-- [24,40,10,40,-8,48,-78,70,-12]
+--
+-- Alternatively, instead of discarding the final state of the generator, as it happens
+-- above, we could have used `withMutableGen`, which together with the result would give
+-- us back its frozen form. This would allow us to store the end state of our generator
+-- somewhere for the later reuse.
+--
 --
 -- $references
 --
