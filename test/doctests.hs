@@ -3,16 +3,10 @@ module Main where
 
 #if __GLASGOW_HASKELL__ >= 802
 
-import Build_doctests (flags, pkgs, module_sources)
-import Data.Foldable (traverse_)
 import Test.DocTest (doctest)
 
 main :: IO ()
-main = do
-    traverse_ putStrLn args
-    doctest args
-  where
-    args = flags ++ pkgs ++ module_sources
+main = doctest ["src"]
 
 #else
 
