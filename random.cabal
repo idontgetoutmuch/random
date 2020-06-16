@@ -59,7 +59,7 @@ description:
     See "System.Random.Stateful" for more details.
 
 category:           System
-build-type:         Custom
+build-type:         Simple
 extra-source-files:
     README.md
     CHANGELOG.md
@@ -80,11 +80,6 @@ source-repository head
     type:     git
     location: https://github.com/haskell/random.git
 
-custom-setup
-    setup-depends:
-        base >=4.8 && <5,
-        Cabal >=1.10 && <3.3,
-        cabal-doctest >=1.0.6 && <1.1
 
 library
     exposed-modules:
