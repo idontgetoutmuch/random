@@ -74,37 +74,10 @@ increase for the types listed below is more than x36.
  Float      |   27.819 |    0.305
  Double     |   50.644 |    0.328
  Integer    |   42.332 |    0.332
- Word8      |   12.591 |    0.028
- Word16     |   12.726 |    0.028
- Word32     |   20.429 |    0.027
- Word64     |   42.299 |    0.028
  Word       |   40.739 |    0.027
- Int8       |   13.479 |    0.027
- Int16      |   13.218 |    0.027
- Int32      |   20.562 |    0.027
- Int64      |   46.513 |    0.029
  Int        |   43.847 |    0.028
  Char       |   17.009 |    0.462
  Bool       |   17.542 |    0.027
- CChar      |   13.276 |    0.027
- CSChar     |   13.287 |    0.027
- CUChar     |   13.409 |    0.027
- CShort     |   13.158 |    0.027
- CUShort    |   12.865 |    0.027
- CInt       |   20.705 |    0.028
- CUInt      |   19.895 |    0.027
- CLong      |   41.679 |    0.027
- CULong     |   40.806 |    0.027
- CPtrdiff   |   41.878 |    0.027
- CSize      |   40.739 |    0.027
- CWchar     |   20.718 |    0.027
- CSigAtomic |   20.768 |    0.029
- CLLong     |   42.011 |    0.028
- CULLong    |   41.428 |    0.027
- CIntPtr    |   45.385 |    0.027
- CUIntPtr   |   40.797 |    0.027
- CIntMax    |   41.778 |    0.027
- CUIntMax   |   40.467 |    0.027
 
 # 1.1
   * breaking change to `randomIValInteger` to improve RNG quality and performance
