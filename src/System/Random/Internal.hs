@@ -867,13 +867,12 @@ uniformIntegralM :: (Bits a, Integral a, StatefulGen g m) => (a, a) -> g -> m a
 uniformIntegralM (l, h) gen = case l `compare` h of
   LT -> do
     let limit = h - l
-    let limitAsWord64 :: Word64 = fromIntegral limit
-    bounded <-
-      if fromIntegral limitAsWord64 == limit
+    bounded <- case toIntegralSized limit :: Maybe Word64 of
+      Just limitAsWord64 ->
         -- Optimisation: if 'limit' fits into 'Word64', generate a bounded
         -- 'Word64' and then convert to 'Integer'
-        then fromIntegral <$> unsignedBitmaskWithRejectionM uniformWord64 limitAsWord64 gen
-        else boundedExclusiveIntegralM (limit + 1) gen
+        fromIntegral <$> unsignedBitmaskWithRejectionM uniformWord64 limitAsWord64 gen
+      Nothing -> boundedExclusiveIntegralM (limit + 1) gen
     return $ l + bounded
   GT -> uniformIntegralM (h, l) gen
   EQ -> pure l
