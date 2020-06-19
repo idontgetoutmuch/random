@@ -304,8 +304,13 @@ randomRM r = applyRandomGenM (randomR r)
 --     of its atomic operations.
 --
 -- @since 1.2.0
-newtype AtomicGenM g = AtomicGenM { unAtomicGenM :: IORef g}
 
+newtype AtomicGenM g =
+  AtomicGenM
+    { unAtomicGenM :: IORef g
+    }
+  deriving ( NFData -- ^ Only strict in the reference
+           )
 
 -- | Frozen version of mutable `AtomicGenM` generator
 --
@@ -377,7 +382,12 @@ applyAtomicGen op (AtomicGenM gVar) =
 -- >>> newIOGenM (mkStdGen 1729) >>= ioGen
 --
 -- @since 1.2.0
-newtype IOGenM g = IOGenM { unIOGenM :: IORef g }
+newtype IOGenM g =
+  IOGenM
+    { unIOGenM :: IORef g
+    }
+  deriving ( NFData -- ^ Only strict in the reference
+           )
 
 -- | Frozen version of mutable `IOGenM` generator
 --
@@ -438,7 +448,12 @@ applyIOGen f (IOGenM ref) = liftIO $ do
 -- *   'STGenM' is slower than 'StateGenM' due to the extra pointer indirection.
 --
 -- @since 1.2.0
-newtype STGenM g s = STGenM { unSTGenM :: STRef s g }
+newtype STGenM g s =
+  STGenM
+    { unSTGenM :: STRef s g
+    }
+  deriving ( NFData -- ^ Only strict in the reference
+           )
 
 -- | Frozen version of mutable `STGenM` generator
 --

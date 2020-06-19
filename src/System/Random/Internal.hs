@@ -65,7 +65,7 @@ module System.Random.Internal
   ) where
 
 import Control.Arrow
-import Control.DeepSeq (NFData)
+import Control.DeepSeq (NFData(..))
 import Control.Monad.IO.Class
 import Control.Monad.ST
 import Control.Monad.ST.Unsafe
@@ -372,6 +372,9 @@ pinnedByteArrayToForeignPtr ba# =
 --
 -- @since 1.2.0
 data StateGenM g = StateGenM
+
+instance NFData (StateGenM g) where
+  rnf StateGenM = ()
 
 -- | Wrapper for pure state gen, which acts as an immutable seed for the corresponding
 -- stateful generator `StateGenM`
