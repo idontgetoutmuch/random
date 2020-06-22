@@ -565,7 +565,7 @@ runSTGen_ g action = fst $ runSTGen g action
 --     floating point numbers in the unit interval. The method never generates
 --     denormal floating point numbers, for example.
 --
--- 2.  Return \(x * a + (1 - x) * b\).
+-- 2.  Return \(x \cdot a + (1 - x) \cdot b\).
 --
 --     Due to rounding errors, floating point operations are neither
 --     associative nor distributive the way the corresponding operations on
