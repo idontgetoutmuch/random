@@ -276,7 +276,7 @@ uniformListM n gen = replicateM n (uniformM gen)
 -- >>> let pureGen = mkStdGen 137
 -- >>> g <- newIOGenM pureGen
 -- >>> randomM g :: IO Double
--- 0.42716450643454884
+-- 0.5728354935654512
 --
 -- @since 1.2.0
 randomM :: (RandomGenM g r m, Random a) => g -> m a
@@ -557,13 +557,15 @@ runSTGen_ g action = fst $ runSTGen g action
 -- The 'UniformRange' instances for 'Float' and 'Double' use the following
 -- procedure to generate a random value in a range for @uniformRM (a, b) g@:
 --
+-- If \(a = b\), return \(a\). Otherwise:
+--
 -- 1.  Generate \(x\) uniformly such that \(0 \leq x \leq 1\).
 --
 --     The method by which \(x\) is sampled does not cover all representable
 --     floating point numbers in the unit interval. The method never generates
 --     denormal floating point numbers, for example.
 --
--- 2.  Return \((b - a) * x + a\).
+-- 2.  Return \(x \cdot a + (1 - x) \cdot b\).
 --
 --     Due to rounding errors, floating point operations are neither
 --     associative nor distributive the way the corresponding operations on
@@ -575,19 +577,20 @@ runSTGen_ g action = fst $ runSTGen g action
 -- *   The result may be greater than @max a b@.
 --
 --     >>> :{
---     let (a, b, x) = (-4.7021254e-38, -1.481e-42, 1.0)
---         result = (b - a) * x + a :: Float
+--     let (a, b, x) = (-2.13238e-29, -2.1323799e-29, 0.27736077)
+--         result = x * a + (1 - x) * b :: Float
 --     in (result, result > max a b)
 --     :}
---     (-1.48e-42,True)
+--     (-2.1323797e-29,True)
 --
--- *   The result may be @NaN@ even if \(a\) and \(b\) are not.
+-- *   The result may be smaller than @min a b@.
 --
 --     >>> :{
---     let (a, b, x) = (-1.7159568e38, 1.7159568e38, 0.0)
---     in (b - a) * x + a :: Float
+--     let (a, b, x) = (-1.9087862, -1.908786, 0.4228573)
+--         result = x * a + (1 - x) * b :: Float
+--     in (result, result < min a b)
 --     :}
---     NaN
+--     (-1.9087863,True)
 --
 -- What happens when @NaN@ or @Infinity@ are given to 'uniformRM'? We first
 -- define them as constants:
@@ -597,23 +600,27 @@ runSTGen_ g action = fst $ runSTGen g action
 --
 -- *   If at least one of \(a\) or \(b\) is @NaN@, the result is @NaN@.
 --
---     >>> let (a, b, x) = (nan, 1, 0.5) in (b - a) * x + a
+--     >>> let (a, b, x) = (nan, 1, 0.5) in x * a + (1 - x) * b
 --     NaN
---     >>> let (a, b, x) = (-1, nan, 0.5) in (b - a) * x + a
+--     >>> let (a, b, x) = (-1, nan, 0.5) in x * a + (1 - x) * b
 --     NaN
 --
--- *   Otherwise, if \(a\) is @Infinity@ or @-Infinity@, the result is @NaN@.
+-- *   If \(a\) is @-Infinity@ and \(b\) is @Infinity@, the result is @NaN@.
+--     >>> let (a, b, x) = (-inf, inf, 0.5) in x * a + (1 - x) * b
+--     NaN
 --
---     >>> let (a, b, x) = (inf, 1, 0.5) in (b - a) * x + a
---     NaN
---     >>> let (a, b, x) = (-inf, 1, 0.5) in (b - a) * x + a
---     NaN
+-- *   Otherwise, if \(a\) is @Infinity@ or @-Infinity@, the result is \(a\).
+--
+--     >>> let (a, b, x) = (inf, 1, 0.5) in x * a + (1 - x) * b
+--     Infinity
+--     >>> let (a, b, x) = (-inf, 1, 0.5) in x * a + (1 - x) * b
+--     -Infinity
 --
 -- *   Otherwise, if \(b\) is @Infinity@ or @-Infinity@, the result is \(b\).
 --
---     >>> let (a, b, x) = (1, inf, 0.5) in (b - a) * x + a
+--     >>> let (a, b, x) = (1, inf, 0.5) in x * a + (1 - x) * b
 --     Infinity
---     >>> let (a, b, x) = (1, -inf, 0.5) in (b - a) * x + a
+--     >>> let (a, b, x) = (1, -inf, 0.5) in x * a + (1 - x) * b
 --     -Infinity
 --
 -- Note that the [GCC 10.1.0 C++ standard library](https://gcc.gnu.org/git/?p=gcc.git;a=blob;f=libstdc%2B%2B-v3/include/bits/random.h;h=19307fbc3ca401976ef6823e8fda893e4a263751;hb=63fa67847628e5f358e7e2e7edb8314f0ee31f30#l1859),
