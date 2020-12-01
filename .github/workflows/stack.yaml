@@ -13,7 +13,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        resolver: [nightly, lts-16]
+        resolver: []
         include:
           - resolver: lts-6 # ghc-7.10.3
             stack-yaml: stack-really-old.yaml
@@ -25,16 +25,16 @@ jobs:
             stack-yaml: stack-old.yaml
           - resolver: lts-14 # ghc-8.6.5
             stack-yaml: stack-coveralls.yaml
-          # - resolver: lts-16 # ghc-8.8.4
-          #   stack-yaml: stack.yaml
-          # - resolver: nightly # ghc-8.10.2
-          #   stack-yaml: stack.yaml
+          - resolver: lts-16 # ghc-8.8.4
+            stack-yaml: stack.yaml
+          - resolver: nightly # ghc-8.10.2
+            stack-yaml: stack.yaml
         # Bugs in GHC make it crash too often to be worth running
         exclude:
           - os: windows-latest
             resolver: nightly
-          # - os: windows-latest
-          #   resolver: lts-16
+          - os: windows-latest
+            resolver: lts-16
     env:
       STACK_YAML: stack.yaml
       cache-version: v1 # bump up this version to invalidate currently stored cache
