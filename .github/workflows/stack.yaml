@@ -12,7 +12,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-latest]
+        #, macos-latest, windows-latest]
         resolver: [nightly, lts-16, lts-14, lts-12, lts-11, lts-9, lts-6]
         include:
           # ghc-7.10.3
@@ -30,6 +31,10 @@ jobs:
           # ghc-8.6.5
           - resolver: lts-14
             stack-yaml: stack-coveralls.yaml
+          - resolver: lts-14
+            os: windows-latest
+          - resolver: lts-16
+            os: macos-latest
           # - resolver: lts-16 # ghc-8.8.4
           #   stack-yaml: stack.yaml
           # - resolver: nightly # ghc-8.10.2
@@ -76,7 +81,7 @@ jobs:
       run: |
         set -ex
         curl -sSL https://get.haskellstack.org/ | sh -s - -f
-        curl -sSL https://gist.githubusercontent.com/lehins/fd36a8cc8bf853173437b17f6b6426ad/raw/d9ddb32cac2f0dc6800be4fa54d450f0dcda6c60/git-modtime.hs -o git-modtime.hs
+        curl -sSL https://gist.githubusercontent.com/lehins/fd36a8cc8bf853173437b17f6b6426ad/raw/4702d0252731ad8b21317375e917124c590819ce/git-modtime.hs -o git-modtime.hs
         [ -n "${{ matrix.stack-yaml }}" ] && STACK_YAML=${{ matrix.stack-yaml }}
         stack --resolver ${{ matrix.resolver }} runghc git-modtime.hs
     - name: Tests
