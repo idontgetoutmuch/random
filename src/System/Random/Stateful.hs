@@ -65,6 +65,12 @@ module System.Random.Stateful
   , applySTGen
   , runSTGen
   , runSTGen_
+  -- ** Mutable adapter in 'STM'
+  , STMGen(..)
+  , STMGenM(..)
+  , newSTMGenM
+  , newSTMGenMIO
+  , applySTMGen
 
   -- * Pseudo-random values of various types
   -- $uniform
@@ -97,6 +103,8 @@ module System.Random.Stateful
 import Control.DeepSeq
 import Control.Monad.IO.Class
 import Control.Monad.ST
+import Control.Concurrent.STM
+import Control.Concurrent.STM.TVar
 import Control.Monad.State.Strict
 import Data.IORef
 import Data.STRef
@@ -223,6 +231,9 @@ instance (RandomGen r, MonadState r m) => RandomGenM (StateGenM r) r m where
 
 instance RandomGen r => RandomGenM (STGenM r s) r (ST s) where
   applyRandomGenM = applySTGen
+
+instance RandomGen r => RandomGenM (STMGenM r) r STM where
+  applyRandomGenM = applySTMGen
 
 
 -- | Runs a mutable pseudo-random number generator from its 'Frozen' state.
@@ -521,6 +532,75 @@ runSTGen g action = unSTGen <$> runST (withMutableGen (STGen g) action)
 runSTGen_ :: RandomGen g => g -> (forall s . STGenM g s -> ST s a) -> a
 runSTGen_ g action = fst $ runSTGen g action
 
+
+-- | Wraps an 'STMRef' that holds a pure pseudo-random number generator.
+--
+-- *   'STMGenM' is safe in the presence of exceptions, but not concurrency.
+-- *   'STMGenM' is slower than 'StateGenM' due to the extra pointer indirection.
+--
+-- @since 1.3.0
+newtype STMGenM g = STMGenM { unSTMGenM :: TVar g }
+
+-- | Frozen version of mutable `STMGenM` generator
+--
+-- @since 1.3.0
+newtype STMGen g = STMGen { unSTMGen :: g }
+  deriving (Eq, Ord, Show, RandomGen, Storable, NFData)
+
+-- | Creates a new 'STMGenM' in `STM`.
+--
+-- @since 1.3.0
+newSTMGenM :: g -> STM (STMGenM g)
+newSTMGenM = fmap STMGenM . newTVar
+
+
+-- | Creates a new 'STMGenM' in `IO`.
+--
+-- @since 1.3.0
+newSTMGenMIO :: g -> IO (STMGenM g)
+newSTMGenMIO = fmap STMGenM . newTVarIO
+
+
+-- | @since 1.3.0
+instance RandomGen g => StatefulGen (STMGenM g) STM where
+  uniformWord32R r = applySTMGen (genWord32R r)
+  {-# INLINE uniformWord32R #-}
+  uniformWord64R r = applySTMGen (genWord64R r)
+  {-# INLINE uniformWord64R #-}
+  uniformWord8 = applySTMGen genWord8
+  {-# INLINE uniformWord8 #-}
+  uniformWord16 = applySTMGen genWord16
+  {-# INLINE uniformWord16 #-}
+  uniformWord32 = applySTMGen genWord32
+  {-# INLINE uniformWord32 #-}
+  uniformWord64 = applySTMGen genWord64
+  {-# INLINE uniformWord64 #-}
+  uniformShortByteString n = applySTMGen (genShortByteString n)
+
+-- | @since 1.3.0
+instance RandomGen g => FrozenGen (STMGen g) STM where
+  type MutableGen (STMGen g) STM = STMGenM g
+  freezeGen = fmap STMGen . readTVar . unSTMGenM
+  thawGen (STMGen g) = newSTMGenM g
+
+
+-- | Applies a pure operation to the wrapped pseudo-random number generator.
+--
+-- ====__Examples__
+--
+-- >>> import Control.Concurrent.STM
+-- >>> import System.Random.Stateful
+-- >>> let pureGen = mkStdGen 137
+-- >>> stmGen <- newSTMGenMIO pureGen
+-- >>> atomically $ applySTMGen uniform stmGen :: IO Int
+--
+-- @since 1.3.0
+applySTMGen :: (g -> (a, g)) -> STMGenM g -> STM a
+applySTMGen f (STMGenM tvar) = do
+  g <- readTVar tvar
+  case f g of
+    (a, !g') -> a <$ writeTVar tvar g'
+{-# INLINE applySTMGen #-}
 
 -- $uniform
 --
